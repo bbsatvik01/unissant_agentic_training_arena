@@ -1,6 +1,6 @@
 """Colleague NPC chat (UI v2, owner D-035): the catalogue, the prompt (never a case fact), the free endpoints in
 order with their cooldowns, the Gemini fallback through the spend guard, and the per-user message limit. Free
-endpoints are mocked HTTP (httpx.MockTransport); the fallback runs on the fake adapter: no network anywhere."""
+endpoints are answered in memory (the client's HTTP seam); the fallback runs on the fake adapter: no network."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ from decimal import Decimal
 from typing import Any
 from uuid import uuid4
 
-import httpx
 import pytest
 
 from arena_core.npc import catalogue
@@ -28,11 +27,11 @@ from arena_core.npc.chat import (
 )
 from arena_core.providers.errors import BudgetRefusedError, ProviderError
 from arena_core.providers.fake import FakeAdapter
-from arena_core.providers.openai_compat import ChatClient, Cooldowns, configured_endpoints
+from arena_core.providers.openai_compat import ChatClient, Cooldowns, HttpReply, configured_endpoints
 from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.providers.types import ModelRequest
 from arena_core.spend.memory import RunBudget
-from arena_core.voice.catalogue import PERSONAS
+from arena_core.voice.catalogue import PERSONAS, speaker_for
 
 ACTOR = uuid4()
 SERGEANT = NPCS["sergeant"]
@@ -50,27 +49,28 @@ def _port(adapter: FakeAdapter | None = None, ceiling: Decimal = Decimal(100)) -
     return AgentPort(fake, budget, PortOptions(sleep=_no_sleep)), budget
 
 
-def _ok(text: str) -> httpx.Response:
-    return httpx.Response(200, json={"choices": [{"message": {"content": text}, "finish_reason": "stop"}]})
+def _ok(text: str) -> HttpReply:
+    return HttpReply(200, json.dumps({"choices": [{"message": {"content": text}, "finish_reason": "stop"}]}), {})
 
 
 class Free:
-    """A mocked set of free endpoints: answers by host, and records which hosts were called."""
+    """The free endpoints, answered in memory by host; records which hosts were called."""
 
-    def __init__(self, answers: dict[str, httpx.Response]) -> None:
+    def __init__(self, answers: dict[str, HttpReply]) -> None:
         self.answers = answers
         self.hosts: list[str] = []
 
-    def __call__(self, request: httpx.Request) -> httpx.Response:
-        self.hosts.append(request.url.host)
-        return self.answers[request.url.host]
+    async def __call__(self, url: str, _body: dict[str, Any], _headers: dict[str, str], _timeout: float) -> HttpReply:
+        host = url.split("/")[2]
+        self.hosts.append(host)
+        return self.answers[host]
 
 
 def _chat(free: Free, port: AgentPort, now: list[float] | None = None) -> NpcChat:
     clock = now if now is not None else [0.0]
     return NpcChat(
         endpoints=configured_endpoints(KEYS),
-        client=ChatClient(transport=httpx.MockTransport(free)),
+        client=ChatClient(post=free),
         port=port,
         cooldowns=Cooldowns(lambda: clock[0]),
     )
@@ -82,10 +82,12 @@ def _chat(free: Free, port: AgentPort, now: list[float] | None = None) -> NpcCha
 def test_the_shipped_catalogue_has_the_receptionist_the_sergeant_and_colleagues_each_with_a_persona_voice() -> None:
     assert {"receptionist", "sergeant"} <= set(NPCS)
     assert MIN_COLLEAGUES <= len(set(NPCS) - {"receptionist", "sergeant"}) <= MAX_COLLEAGUES
-    for npc in NPCS.values():
-        assert npc.voice in PERSONAS
-        assert npc.voice.startswith("npc:")
-    assert len({n.voice for n in NPCS.values()}) == len(NPCS)
+    voices = [n.voice for n in NPCS.values()]
+    assert all(speaker_for(v) is not None for v in voices)
+    assert len(set(voices)) == len(voices)
+    # no NPC sounds like a subject, a coach desk or the investigator (their designed voices or prebuilt fallbacks)
+    taken = {p.prebuilt for p in PERSONAS.values()} | {p.voice_id for p in PERSONAS.values() if p.voice_id}
+    assert not set(voices) & taken
 
 
 @pytest.mark.parametrize(
@@ -96,8 +98,9 @@ def test_the_shipped_catalogue_has_the_receptionist_the_sergeant_and_colleagues_
         {"npcs": {"Bad Id": {}}},
         {"npcs": {"clerk": "x"}},
         {"npcs": {"clerk": {"name": "A", "role": "r", "personality": "p", "voice": "npc:nobody"}}},
-        {"npcs": {"clerk": {"name": "", "role": "r", "personality": "p", "voice": "npc:sergeant"}}},
-        {"npcs": {"clerk": {"name": "A", "role": "r", "personality": "p" * 601, "voice": "npc:sergeant"}}},
+        {"npcs": {"clerk": {"name": "A", "role": "r", "personality": "p", "voice": 3}}},
+        {"npcs": {"clerk": {"name": "", "role": "r", "personality": "p", "voice": "Kore"}}},
+        {"npcs": {"clerk": {"name": "A", "role": "r", "personality": "p" * 601, "voice": "Kore"}}},
     ],
 )
 def test_a_malformed_catalogue_is_refused(doc: dict[str, Any]) -> None:
@@ -107,6 +110,11 @@ def test_a_malformed_catalogue_is_refused(doc: dict[str, Any]) -> None:
 
 def test_load_reads_the_file_next_to_the_module() -> None:
     assert catalogue.load() == NPCS
+
+
+def test_a_persona_key_is_a_voice_too() -> None:
+    doc = {"npcs": {"clerk": {"name": "A", "role": "r", "personality": "p", "voice": "investigator"}}}
+    assert parse(doc)["clerk"].voice == "investigator"
 
 
 # ---------------------------------------------------------------- the prompt: persona and the trainee's words only
@@ -151,7 +159,7 @@ def test_the_first_free_endpoint_that_answers_replies_and_nothing_is_reserved() 
 def test_a_rate_limited_endpoint_is_cooled_and_skipped_until_its_limit_resets() -> None:
     free = Free(
         {
-            "api.groq.com": httpx.Response(429, headers={"retry-after": "20"}, text="requests per minute (RPM)"),
+            "api.groq.com": HttpReply(429, "requests per minute (RPM)", {"retry-after": "20"}),
             "integrate.api.nvidia.com": _ok("Hello."),
         }
     )
@@ -166,7 +174,7 @@ def test_a_rate_limited_endpoint_is_cooled_and_skipped_until_its_limit_resets() 
 
 
 def test_a_failed_endpoint_without_a_rate_limit_is_tried_again_next_time() -> None:
-    free = Free({"api.groq.com": httpx.Response(503), "integrate.api.nvidia.com": _ok("Hi.")})
+    free = Free({"api.groq.com": HttpReply(503, "", {}), "integrate.api.nvidia.com": _ok("Hi.")})
     chat = _chat(free, _port()[0])
     asyncio.run(chat.reply(SERGEANT, "hi", [], ACTOR))
     asyncio.run(chat.reply(SERGEANT, "hi", [], ACTOR))
@@ -174,7 +182,7 @@ def test_a_failed_endpoint_without_a_rate_limit_is_tried_again_next_time() -> No
 
 
 def test_when_every_free_endpoint_fails_gemini_answers_through_the_spend_guard() -> None:
-    free = Free({"api.groq.com": httpx.Response(500), "integrate.api.nvidia.com": _ok("   ")})
+    free = Free({"api.groq.com": HttpReply(500, "", {}), "integrate.api.nvidia.com": _ok("   ")})
     seen: list[ModelRequest] = []
 
     def reply(request: ModelRequest) -> str:

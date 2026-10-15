@@ -1,19 +1,20 @@
 """`GET /api/npc` and `POST /api/npc/chat` in process (UI v2, D-035): the catalogue, a reply with its voice, the
-per-user message limit, refusals, and the 503 when no model answers. Free endpoints are mocked HTTP; the Gemini
-fallback runs on the fake adapter."""
+per-user message limit, refusals, and the 503 when no model answers. Free endpoints are answered in memory (the
+client's HTTP seam); the Gemini fallback runs on the fake adapter."""
 
 from __future__ import annotations
 
 import dataclasses
+import json
 from decimal import Decimal
 from http import HTTPStatus
-
-import httpx
+from typing import Any
 
 from arena_api.app import create_app, guard_config
+from arena_core.npc.catalogue import NPCS
 from arena_core.npc.chat import FAKE_NPC_REPLIES, MessageLimit, NpcChat
 from arena_core.providers.fake import FakeAdapter
-from arena_core.providers.openai_compat import ChatClient, configured_endpoints
+from arena_core.providers.openai_compat import ChatClient, HttpReply, configured_endpoints
 from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.spend.memory import RunBudget
 from services.api.tests.test_app import Harness
@@ -39,27 +40,27 @@ def test_the_npc_list_names_each_npc_and_its_voice() -> None:
     npcs = _with_npc(_gemini()).get("/api/npc").json()["npcs"]
     by_id = {n["npc_id"]: n for n in npcs}
     assert {"receptionist", "sergeant"} <= set(by_id)
-    assert by_id["sergeant"]["voice_id"] == "npc:sergeant"
+    assert by_id["sergeant"]["voice_id"] == NPCS["sergeant"].voice
     assert set(by_id["sergeant"]) == {"npc_id", "name", "role", "voice_id"}
 
 
 def test_a_reply_comes_with_the_npcs_voice() -> None:
-    def free(_request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"choices": [{"message": {"content": "Sign in, please."}}]})
+    async def free(_url: str, _body: dict[str, Any], _headers: dict[str, str], _timeout: float) -> HttpReply:
+        return HttpReply(200, json.dumps({"choices": [{"message": {"content": "Sign in, please."}}]}), {})
 
     port = AgentPort(FakeAdapter(), RunBudget(Decimal(0)), PortOptions(sleep=_no_sleep))
-    chat = NpcChat(configured_endpoints({"GROQ_API_KEY": "k"}), ChatClient(transport=httpx.MockTransport(free)), port)
+    chat = NpcChat(configured_endpoints({"GROQ_API_KEY": "k"}), ChatClient(post=free), port)
     h = _with_npc(chat)
     body = {"npc_id": "receptionist", "message": "Hello", "history": [{"role": "user", "text": "Hi"}]}
     r = h.post("/api/npc/chat", body)
     assert r.status_code == HTTPStatus.OK, r.text
-    assert r.json() == {"reply": "Sign in, please.", "voice_id": "npc:receptionist"}
+    assert r.json() == {"reply": "Sign in, please.", "voice_id": NPCS["receptionist"].voice}
 
 
 def test_the_gemini_fallback_answers_in_fake_mode() -> None:
     r = _with_npc(_gemini()).post("/api/npc/chat", {"npc_id": "sergeant", "message": "Any tips?"})
     assert r.status_code == HTTPStatus.OK, r.text
-    assert r.json()["voice_id"] == "npc:sergeant"
+    assert r.json()["voice_id"] == NPCS["sergeant"].voice
     assert r.json()["reply"].startswith("Good to see you.")
 
 

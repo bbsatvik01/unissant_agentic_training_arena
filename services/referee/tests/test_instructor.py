@@ -6,18 +6,29 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Iterable
+from http import HTTPStatus
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 from uuid import UUID, uuid4
 
-import httpx
 import pytest
 from fastapi import FastAPI
 
 from arena_core.identity import load_allowlist, user_id_for
 from arena_referee import instructor
 from arena_referee.app import create_app
-from services.referee.tests.test_app import BASE_ENV, HOST_HEADER, ORIGIN
+from services.referee.tests.test_app import BASE_ENV, ORIGIN, _get, _post
+
+
+class Response(Protocol):
+    @property
+    def status_code(self) -> int: ...
+
+    @property
+    def text(self) -> str: ...
+
+    def json(self) -> dict[str, Any]: ...
+
 
 TEACHER = "teacher@example.com"
 TRAINEE = "trainee@example.com"
@@ -79,19 +90,23 @@ def store(monkeypatch: pytest.MonkeyPatch) -> FakeStore:
     return fake
 
 
-async def _call(app: FastAPI, method: str, path: str, body: dict[str, Any] | None = None) -> httpx.Response:
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url=ORIGIN) as client:
-        me = await client.get("/api/me", headers={"host": HOST_HEADER})
-        csrf = me.json().get("csrf_token", "")
-        client.cookies.set("arena_console_csrf", csrf)
-        headers = {"host": HOST_HEADER, "origin": ORIGIN, "sec-fetch-site": "same-origin", "x-arena-console-csrf": csrf}
-        return await client.request(method, path, json=body, headers=headers)
+OK, FORBIDDEN, NOT_FOUND = HTTPStatus.OK, HTTPStatus.FORBIDDEN, HTTPStatus.NOT_FOUND
+UNPROCESSABLE = HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+async def _call(app: FastAPI, method: str, path: str, body: dict[str, Any] | None = None) -> Response:
+    """One console request: GET as is; a POST after `GET /api/me` with the console's CSRF pair (D10)."""
+    if method == "GET":
+        return await _get(app, path)
+    csrf = (await _get(app, "/api/me")).json().get("csrf_token", "")
+    headers = {"origin": ORIGIN, "sec-fetch-site": "same-origin", "x-arena-console-csrf": csrf}
+    return await _post(app, path, json=body, headers=headers, cookies={"arena_console_csrf": csrf})
 
 
 def test_the_class_is_the_allowlists_investigators(tmp_path: Path, store: FakeStore) -> None:
     del store
     r = run(_call(_app(tmp_path), "GET", "/api/instructor/class"))
-    assert r.status_code == httpx.codes.OK, r.text
+    assert r.status_code == OK, r.text
     assert r.json() == {"trainees": [{"user_id": str(user_id_for(TRAINEE)), "display_name": "Bea Trainee"}]}
 
 
@@ -102,11 +117,11 @@ def test_an_instructor_opens_the_console_and_others_are_refused_instructor_mode(
     assert me.json()["roles"] == ["instructor"]
     for user in (ADMIN, TRAINEE):
         app = _app(tmp_path, user)
-        assert run(_call(app, "GET", "/api/instructor/class")).status_code == httpx.codes.FORBIDDEN
+        assert run(_call(app, "GET", "/api/instructor/class")).status_code == FORBIDDEN
         body = {"user_id": str(user_id_for(TRAINEE)), "case_id": "C-AAAAAAAA"}
-        assert run(_call(app, "POST", "/api/instructor/assignments", body)).status_code == httpx.codes.FORBIDDEN
+        assert run(_call(app, "POST", "/api/instructor/assignments", body)).status_code == FORBIDDEN
         note = {"t_ms": 5, "text": "x"}
-        assert run(_call(app, "POST", f"/api/trials/{TRIAL}/annotations", note)).status_code == httpx.codes.FORBIDDEN
+        assert run(_call(app, "POST", f"/api/trials/{TRIAL}/annotations", note)).status_code == FORBIDDEN
     assert store.assigned == []
     assert store.notes == []
 
@@ -115,7 +130,7 @@ def test_an_assignment_names_a_trainee_and_a_dev_case(tmp_path: Path, store: Fak
     app = _app(tmp_path)
     trainee = str(user_id_for(TRAINEE))
     r = run(_call(app, "POST", "/api/instructor/assignments", {"user_id": trainee, "case_id": "C-AAAAAAAA"}))
-    assert r.status_code == httpx.codes.OK, r.text
+    assert r.status_code == OK, r.text
     assert r.json() == {
         "assignment_id": "a1",
         "assigned_at": "2026-10-15T00:00:00+00:00",
@@ -124,25 +139,25 @@ def test_an_assignment_names_a_trainee_and_a_dev_case(tmp_path: Path, store: Fak
     }
     assert store.assigned == [(user_id_for(TRAINEE), VARIANT, user_id_for(TEACHER))]
     unknown_case = {"user_id": trainee, "case_id": "C-BBBBBBBB"}
-    assert run(_call(app, "POST", "/api/instructor/assignments", unknown_case)).status_code == httpx.codes.NOT_FOUND
+    assert run(_call(app, "POST", "/api/instructor/assignments", unknown_case)).status_code == NOT_FOUND
     not_trainee = {"user_id": str(user_id_for(ADMIN)), "case_id": "C-AAAAAAAA"}
-    assert run(_call(app, "POST", "/api/instructor/assignments", not_trainee)).status_code == httpx.codes.NOT_FOUND
+    assert run(_call(app, "POST", "/api/instructor/assignments", not_trainee)).status_code == NOT_FOUND
     bad = {"user_id": trainee, "case_id": "F01"}
-    assert run(_call(app, "POST", "/api/instructor/assignments", bad)).status_code == httpx.codes.UNPROCESSABLE_ENTITY
+    assert run(_call(app, "POST", "/api/instructor/assignments", bad)).status_code == UNPROCESSABLE
     assert len(store.assigned) == 1
 
 
 def test_a_note_goes_on_a_training_trial_only(tmp_path: Path, store: FakeStore) -> None:
     app = _app(tmp_path)
     r = run(_call(app, "POST", f"/api/trials/{TRIAL}/annotations", {"t_ms": 4200, "text": "Good open question."}))
-    assert r.status_code == httpx.codes.OK, r.text
+    assert r.status_code == OK, r.text
     assert r.json() == {"annotation_id": "n1", "t_ms": 4200, "text": "Good open question.", "created_at": NOTED}
     assert store.notes == [(TRIAL, user_id_for(TEACHER), 4200, "Good open question.")]
     other = run(_call(app, "POST", f"/api/trials/{uuid4()}/annotations", {"t_ms": 1, "text": "x"}))
-    assert other.status_code == httpx.codes.NOT_FOUND
+    assert other.status_code == NOT_FOUND
     for body in ({"t_ms": -1, "text": "x"}, {"t_ms": 1, "text": ""}, {"t_ms": 1, "text": "x" * 2001}, {"t_ms": 1}):
         resp = run(_call(app, "POST", f"/api/trials/{TRIAL}/annotations", body))
-        assert resp.status_code == httpx.codes.UNPROCESSABLE_ENTITY, body
+        assert resp.status_code == UNPROCESSABLE, body
     assert len(store.notes) == 1
 
 

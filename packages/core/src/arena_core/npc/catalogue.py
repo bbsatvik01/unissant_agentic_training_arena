@@ -1,5 +1,6 @@
 """The colleague NPC catalogue (``npcs.json``, next to this file): who each NPC is, how they talk and which voice
-speaks for them. Every voice must be a persona of the room's voice catalogue, so ``POST /api/tts`` can speak it."""
+speaks for them. Every voice is one ``POST /api/tts`` can speak (``voice.catalogue.speaker_for``): a prebuilt Gemini
+voice, or a persona key of the room's voice catalogue once a voice is designed for the NPC."""
 
 from __future__ import annotations
 
@@ -10,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from arena_core.voice.catalogue import PERSONAS, PersonaVoice
+from arena_core.voice.catalogue import PERSONAS, PersonaVoice, speaker_for
 
 NPC_ID = re.compile(r"^[a-z][a-z_]{1,31}$")
 MAX_NAME_CHARS = 60
@@ -29,7 +30,7 @@ class Npc:
     name: str
     role: str
     personality: str
-    voice: str  # a persona key of arena_core.voice.catalogue
+    voice: str  # a prebuilt Gemini voice or a persona key of arena_core.voice.catalogue (POST /api/tts speaks it)
 
 
 def _text(entry: Mapping[str, Any], npc_id: str, name: str, limit: int) -> str:
@@ -51,8 +52,8 @@ def parse(doc: Mapping[str, Any], voices: Mapping[str, PersonaVoice] = PERSONAS)
             msg = f"{npc_id!r} must be a lower-case id with an object"
             raise NpcCatalogueError(msg)
         voice = entry.get("voice")
-        if voice not in voices:
-            msg = f"{npc_id}.voice must be a persona of the voice catalogue"
+        if not isinstance(voice, str) or speaker_for(voice, voices) is None:
+            msg = f"{npc_id}.voice must be a prebuilt voice or a persona of the voice catalogue"
             raise NpcCatalogueError(msg)
         out[npc_id] = Npc(
             npc_id=npc_id,

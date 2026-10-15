@@ -104,62 +104,6 @@
       "description": "A trainee investigator in his early thirties: a clear, neutral, attentive voice with a neutral American accent.",
       "style": "neutral and attentive",
       "voice_id": "voice_e8799abf-1b31-4c72-b9fc-1e9b6e960693"
-    },
-    "npc:receptionist": {
-      "prebuilt": "Despina",
-      "gender": "female",
-      "language_code": "en-US",
-      "description": "A front desk receptionist in her early fifties: a warm, bright mezzo voice with a neutral American accent, quick and friendly.",
-      "style": "friendly and brisk, short sentences",
-      "voice_id": null
-    },
-    "npc:sergeant": {
-      "prebuilt": "Alnilam",
-      "gender": "male",
-      "language_code": "en-US",
-      "description": "A duty sergeant in his late forties: a low, steady baritone with a neutral American accent, calm and dry.",
-      "style": "calm and direct, few words",
-      "voice_id": null
-    },
-    "npc:accountant": {
-      "prebuilt": "Aoede",
-      "gender": "female",
-      "language_code": "en-US",
-      "description": "A forensic accountant in her thirties: a clear, precise alto with a neutral American accent, curious and articulate.",
-      "style": "precise and lively, explains with small examples",
-      "voice_id": null
-    },
-    "npc:records": {
-      "prebuilt": "Achird",
-      "gender": "male",
-      "language_code": "en-US",
-      "description": "A records clerk in his sixties: a slightly gravelly tenor with a neutral American accent, methodical and unhurried.",
-      "style": "gruff but helpful, unhurried",
-      "voice_id": null
-    },
-    "npc:senior_detective": {
-      "prebuilt": "Vindemiatrix",
-      "gender": "female",
-      "language_code": "en-US",
-      "description": "A senior detective in her fifties: a warm, measured alto with a neutral American accent, thoughtful and encouraging.",
-      "style": "measured and encouraging, asks before telling",
-      "voice_id": null
-    },
-    "npc:it_liaison": {
-      "prebuilt": "Umbriel",
-      "gender": "male",
-      "language_code": "en-US",
-      "description": "An IT liaison in his late twenties: an upbeat, clear tenor with a neutral American accent, energetic and plain spoken.",
-      "style": "upbeat and casual, no jargon",
-      "voice_id": null
-    },
-    "npc:rookie": {
-      "prebuilt": "Laomedeia",
-      "gender": "female",
-      "language_code": "en-US",
-      "description": "A new investigator in her mid twenties: a bright, light soprano with a neutral American accent, eager and friendly.",
-      "style": "eager and friendly, a little quick",
-      "voice_id": null
     }
   }
 }

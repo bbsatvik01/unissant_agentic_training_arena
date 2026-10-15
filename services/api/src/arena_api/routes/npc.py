@@ -2,7 +2,7 @@
 
 The reply comes from a free open-model endpoint when one is configured and answers, else from Gemini on Vertex
 through the spend guard (`arena_core.npc.chat`). An NPC never receives a case fact: the route reads no case, trial
-or session, only the catalogue entry and the trainee's own words. `voice_id` is the persona key `POST /api/tts`
+or session, only the catalogue entry and the trainee's own words. `voice_id` is the voice `POST /api/tts`
 speaks the reply with. A user may send at most `ARENA_NPC_MESSAGES_PER_MIN` messages a minute (default 30; 429).
 """
 

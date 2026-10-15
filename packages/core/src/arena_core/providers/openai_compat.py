@@ -14,8 +14,9 @@ enabled only when its environment variables are set; `ARENA_MODEL_MODE=fake` ena
 from __future__ import annotations
 
 import ipaddress
+import json
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urlsplit
@@ -25,6 +26,7 @@ import httpx
 log = logging.getLogger("arena_core.providers.openai_compat")
 
 HTTP_TOO_MANY = 429
+HTTP_BAD_REQUEST = 400
 QUOTA_COOLDOWN_S = 3600.0  # a daily-limit 429 without Retry-After: skip the endpoint for an hour
 MINUTE_COOLDOWN_S = 30.0  # any other 429 without Retry-After
 MAX_RETRY_AFTER_S = 86_400.0
@@ -161,12 +163,33 @@ def _reply_text(data: object) -> str:
 
 
 @dataclass(frozen=True)
+class HttpReply:
+    status: int
+    text: str
+    headers: Mapping[str, str]  # lower-case names
+
+
+# (url, JSON body, headers, timeout in seconds) -> the reply; raises ConnectionError when nothing came back
+PostJson = Callable[[str, dict[str, Any], dict[str, str], float], Awaitable[HttpReply]]
+
+
+async def httpx_post(url: str, body: dict[str, Any], headers: dict[str, str], timeout_s: float) -> HttpReply:
+    """The one real HTTP send of NPC chat (this package holds the repo's HTTP clients, S5 1.1)."""
+    try:
+        async with httpx.AsyncClient(timeout=timeout_s) as client:
+            resp = await client.post(url, json=body, headers=headers)
+    except httpx.HTTPError as exc:
+        raise ConnectionError(type(exc).__name__) from exc
+    return HttpReply(resp.status_code, resp.text, {k.lower(): v for k, v in resp.headers.items()})
+
+
+@dataclass(frozen=True)
 class ChatClient:
-    """Chat completions against one endpoint. `transport` is the test seam (httpx.MockTransport)."""
+    """Chat completions against one endpoint. `post` is the HTTP seam (tests answer it in memory)."""
 
     timeout_s: float = 15.0
     max_tokens: int = 300
-    transport: httpx.AsyncBaseTransport | None = None
+    post: PostJson = httpx_post
 
     async def complete(self, endpoint: ChatEndpoint, system: str, user: str) -> str:
         body: dict[str, Any] = {
@@ -177,16 +200,15 @@ class ChatClient:
         }
         headers = {"Authorization": f"Bearer {endpoint.api_key}"}
         try:
-            async with httpx.AsyncClient(transport=self.transport, timeout=self.timeout_s) as client:
-                resp = await client.post(f"{endpoint.base_url}/chat/completions", json=body, headers=headers)
-        except httpx.HTTPError as exc:
-            raise FreeTierError(endpoint.name, f"transport error: {type(exc).__name__}") from exc
-        if resp.status_code >= httpx.codes.BAD_REQUEST:
-            text = resp.text[:_MAX_ERROR_TEXT]
-            cooldown = rate_limit_cooldown(resp.status_code, text, resp.headers.get("retry-after"))
-            raise FreeTierError(endpoint.name, f"HTTP {resp.status_code}", cooldown_s=cooldown)
+            reply = await self.post(f"{endpoint.base_url}/chat/completions", body, headers, self.timeout_s)
+        except (ConnectionError, TimeoutError) as exc:
+            raise FreeTierError(endpoint.name, f"transport error: {exc}") from exc
+        if reply.status >= HTTP_BAD_REQUEST:
+            text = reply.text[:_MAX_ERROR_TEXT]
+            cooldown = rate_limit_cooldown(reply.status, text, reply.headers.get("retry-after"))
+            raise FreeTierError(endpoint.name, f"HTTP {reply.status}", cooldown_s=cooldown)
         try:
-            return _reply_text(resp.json())
+            return _reply_text(json.loads(reply.text))
         except ValueError as exc:
             raise FreeTierError(endpoint.name, str(exc)) from exc
 
