@@ -1376,6 +1376,25 @@ def test_the_consoles_are_served_same_origin_with_an_spa_fallback(tmp_path: Path
     assert run(_get(app, "/api/no-such-route")).status_code == NOT_FOUND
 
 
+def test_a_traversal_attempt_never_reaches_the_filesystem_and_falls_back_to_the_shell(tmp_path: Path) -> None:
+    # The handler looks the request path up in a dict built from the dist tree at startup; a path
+    # that is not an exact key (any ".."  or percent-encoded variant) can only ever miss and fall
+    # back to index.html -- it never becomes a filesystem join or read (CodeQL py/path-injection).
+    env = {**BASE_ENV, "ARENA_USERS_FILE": str(_write_users_file(tmp_path)), "ARENA_DEV_USER": ADMIN_EMAIL}
+    app = create_app({**env, "ARENA_WEB_DIST": str(_bundle(tmp_path))})
+    for path in (
+        "/../secret.txt",
+        "/assets/../../secret.txt",
+        "/%2e%2e/secret.txt",
+        "/..%2fsecret.txt",
+        "/assets/..%2f..%2fsecret.txt",
+    ):
+        page = run(_get(app, path))
+        assert page.status_code == httpx.codes.OK
+        assert "<title>arena</title>" in page.text
+        assert "outside" not in page.text
+
+
 def test_without_a_built_bundle_nothing_is_mounted(tmp_path: Path) -> None:
     env = {**BASE_ENV, "ARENA_USERS_FILE": str(_write_users_file(tmp_path)), "ARENA_DEV_USER": ADMIN_EMAIL}
     app = create_app({**env, "ARENA_WEB_DIST": str(tmp_path / "missing")})
