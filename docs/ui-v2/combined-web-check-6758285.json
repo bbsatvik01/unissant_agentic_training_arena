@@ -1,0 +1,36 @@
+{
+  "checkpoint": "675828519bcc3c6b045df2630c12003974595c8b",
+  "verified_at_utc": "2026-10-15T21:01:00Z",
+  "job": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38805119435/job/116664177672",
+  "conclusion": "success",
+  "command": "cd web && pnpm install --frozen-lockfile && pnpm check",
+  "gates": [
+    "lint (same rules and zero-warning policy; finite 4096MiB lint heap)",
+    "strict typecheck",
+    "tests",
+    "coverage with unchanged src/lib floor",
+    "production build"
+  ],
+  "normal": {
+    "suites": 232,
+    "passed": 2682
+  },
+  "coverage": {
+    "suites": 232,
+    "passed": 2682,
+    "statements": 97.83,
+    "branches": 95.86,
+    "functions": 99.11,
+    "lines": 99.22
+  },
+  "build_seconds": 3.1,
+  "raw_log_sha256": "880b89dfe3e9690b36de97c4c62b78c0368f6c7ce6e7aa9ef4fdd5f131c99d62",
+  "not_proven": [
+    "combined native browser audio/lips/video",
+    "new isolated performance candidate",
+    "dictation and Coach Lab staged packages",
+    "MacBook Air M5 sustained performance",
+    "PR-wide CI"
+  ],
+  "note": "The uncommitted recorder revision3b and separate source packages are excluded from this source checkpoint."
+}

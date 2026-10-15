@@ -1,6 +1,6 @@
 # Remaining brief acceptance, 2026-10-15
 
-This is an implementation checklist, not a claim that prepared code has passed. Slices one through four have reviewed browser evidence; the unchanged full web gate for published slice four passes at `1c874bc` (1,799 tests twice, coverage and build). The newer combined Studio/courtyard/stations/reviewer/capture/audio source is integrated but still needs its own complete gate and browser acceptance.
+This is an implementation checklist. Slices one through four have reviewed browser evidence. The combined Studio/courtyard/stations/reviewer/capture/audio source at `6758285` passes the unchanged full web gate: 232 suites / 2,682 tests twice, coverage and build. See [exact proof](combined-web-check-6758285.json). Actual combined browser/audio acceptance and the separately staged performance, dictation and Coach Lab candidates remain outstanding.
 
 ## Active finish-work
 
@@ -10,7 +10,7 @@ This is an implementation checklist, not a claim that prepared code has passed. 
 - **Controller navigation:** deliberate button activation, dialog focus/close, pause, map and camera mappings. The source is integrated; native pickers/permission surfaces remain native. Physical-controller acceptance is outstanding.
 - **Diegetic data:** a publication-gated debrief wall and public case/recognition surfaces should replace static placeholder content on existing props. The DOM readers remain the complete accessible detail. No manufactured scores, ranks, unlock prerequisites or dates.
 - **NPC movement:** actual generated convex-cell navigation and dynamic avoidance are integrated after 299 focused runtime checks and 95 scoped coverage checks. Both worlds include reviewer-chair geometry and all preserved station anchors; post-merge aggregate, rendered movement, second-generation determinism and performance acceptance remain pending.
-- **Review-panel presence and neutral handover:** the separate neutral reviewer and richer lifecycle-driven gestures are integrated under new versioned replay identities. Full combined runtime and visual acceptance are still required.
+- **Review-panel presence and neutral handover:** the separate neutral reviewer and richer lifecycle-driven gestures are integrated under new versioned replay identities. The combined full web gate passes; visual acceptance is still required.
 
 ## Replay fidelity still owed
 
@@ -18,7 +18,7 @@ The current prepared candidate is sampled world replay and client-experienced si
 
 The concrete next step is a versioned bounded presentation-frame stream sampled after the existing scene writers: actual camera/root/rig values, public monitor/UI state and deterministic ordering. Its acceptance must compare replay to the originally rendered state and stop explicitly at byte/event limits. Input-only re-simulation cannot silently replace that proof. Audio needs aligned media/viseme data and explicit consent/provenance; synthesized read-aloud must stay labelled as synthesized.
 
-Upstream main `693c8c19` now contains new telemetry, NPC, instructor, Coach Lab and voice seams. Recording conflicts are resolved with generic-data preservation and explicit checked UI profile narrowing; fresh aggregate verification is pending. The actual Coach Lab read adapter is being prepared separately, with no live model calls. Genuine retry-from-turn still requires a verified backend fork contract; the previously integrated session-creation shape has no source trial/cursor field. A verified winning-coach ghost requires winner identity and that coach's actual source trace. Review-from-turn and comparison with a recorded suggested question are useful but do not supply those missing features.
+Upstream main `693c8c19` now contains new telemetry, NPC, instructor, Coach Lab and voice seams. Recording conflicts are resolved with generic-data preservation and explicit checked UI profile narrowing; fresh aggregate verification passes at `6758285`; connected browser acceptance is pending. The actual Coach Lab read adapter is being prepared separately, with no live model calls. Genuine retry-from-turn still requires a verified backend fork contract; the previously integrated session-creation shape has no source trial/cursor field. A verified winning-coach ghost requires winner identity and that coach's actual source trace. Review-from-turn and comparison with a recorded suggested question are useful but do not supply those missing features.
 
 ## Disclosed local/mock boundaries
 

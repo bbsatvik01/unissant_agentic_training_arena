@@ -1,5 +1,15 @@
 # UI v2 implementation notes
 
+## 2026-10-15 21:01 UTC — combined web gate passes
+
+Remote `675828519bcc3c6b045df2630c12003974595c8b` passes the complete unchanged [web check](https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38805119435/job/116664177672): all-project zero-warning lint, strict types, 232 suites / 2,682 tests in both normal and coverage runs, unchanged coverage floors, and a 3.10-second production build. Coverage is 97.83% statements, 95.86% branches, 99.11% functions and 99.22% lines. [Machine-readable proof](combined-web-check-6758285.json). All three original renderer-fallback assertions now pass; no assertion or timeout was changed.
+
+This validates the combined Studio/courtyard/stations/navigation/capture/audio source at that commit. It does not establish actual browser audio/lips/video, exact audiovisual replay, the isolated performance or dictation/Coach Lab candidates, or MacBook Air M5 smoothness. The recorder revision-3b remains a separate uncommitted QA-tool revision.
+
+The frozen production performance copies pass strict types, zero-warning lint and their focused tests (baseline 174/174; candidate 194/194). Actual supplied-delta Controls tests establish 2.4 m/s and 1.7 rad/s at 5, 10, 20, 30 and 60 Hz in the candidate; the baseline slowed at 5/10 Hz. Real cloud Chromium reached the rendered lobby, but missed the original five-second cold-entry gate. A separately labelled diagnostic preserves that failure while measuring bounded later readiness; no accepted steady-state FPS or hardware result exists yet.
+
+PR-wide CI is still blocked separately. Historical oversized GLBs remain in history. Gitleaks reports two findings without current detailed fingerprints, so latest-head exact local reproduction is still owed. Security tooling now flags the unchanged Semgrep environment's `mcp==1.29.0` for [GHSA-84m7-p3x7-pcfv](https://github.com/advisories/GHSA-84m7-p3x7-pcfv). The official advisory currently says Moderate CVSS v4 6.9; this CI OSV result says High 7.5. It concerns stateful Streamable HTTP MCP servers reachable by untrusted clients, not evidence that the 3D browser runtime is exploitable. Root and Semgrep lockfiles match main byte-for-byte. [Exact job and advisory diagnosis](SECURITY-TOOLING-ADVISORY-2026-10-15.md). No out-of-scope dependency or scanner-policy edit is made; owner decisions remain pending.
+
 ## 2026-10-15 20:49 UTC — initial renderer-fallback ordering repair
 
 At `1cb1bd5`, the complete [web CI](https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38803342799/job/116658299568) passes all-project lint and strict typecheck, then runs 232 suites / 2,679 tests: 2,676 pass and three existing renderer-fallback assertions fail. Coverage/build are not reached. The error-boundary artwork mounted, but its child commit callback ran before the parent layout effect activated the scene guard; the unavailable notice and accessible entry state were never published. This is a real lifecycle defect, not a timed-out assertion.
