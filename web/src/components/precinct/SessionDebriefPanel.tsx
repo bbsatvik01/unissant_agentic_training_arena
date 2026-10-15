@@ -15,7 +15,7 @@ export function SessionDebriefPanel({ debrief, view, recorded }: { readonly debr
     <p className="precinct-note">{EX4_TEXT}</p>
     {recorded ? <p>These scores belong only to the loaded recording. They are not a score for questions you typed, notes you saved, or your exploration.</p> : null}
     <p>Case outcome: <strong>{label(debrief.outcome.correct_finding)}</strong>. Committed finding: <strong>{label(debrief.outcome.committed_label)}</strong>.</p><p>{debrief.outcome.resolution}</p>
-    {!debrief.scored ? <p>Voice practice: not scored.</p> : !debrief.rubric.scorable || debrief.rubric.total === null ? <p>{debrief.rubric.unscorable_reason ?? "This session could not be scored."}</p> : <>
+    {!debrief.scored ? <p>This session is not scored.</p> : !debrief.rubric.scorable || debrief.rubric.total === null ? <p>{debrief.rubric.unscorable_reason ?? "This session could not be scored."}</p> : <>
       <p className="precinct-debrief-total">{debrief.rubric.total}<small> / 100</small></p>
       <dl className="precinct-debrief-dimensions">{debrief.rubric.dimensions.map((dimension) => <div key={dimension.dim_id}><dt>{RUBRIC[dimension.dim_id].name}</dt><dd>{dimension.score} / 4</dd></div>)}</dl>
     </>}

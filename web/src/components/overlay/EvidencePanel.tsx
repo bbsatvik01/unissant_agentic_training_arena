@@ -47,16 +47,18 @@ interface EvidencePanelProps {
   readonly freshId: string | null;
   /** Null in playback: requests come from the recording. */
   readonly onRequest: ((recordId: string) => void) | null;
+  /** Explicit public-source selection. Omitted by existing callers, preserving their disclosure behavior. */
+  readonly openSource?: { readonly kind: "document" | "record"; readonly id: string } | null;
 }
 
-export function EvidencePanel({ documents, released, requestable, exchangesUsed, freshId, onRequest }: EvidencePanelProps) {
+export function EvidencePanel({ documents, released, requestable, exchangesUsed, freshId, onRequest, openSource = null }: EvidencePanelProps) {
   const releasedIds = new Set(released.map((r) => r.record_id));
   const open = requestable.filter((r) => !releasedIds.has(r.record_id));
   return (
     <div className="evidence">
       <span className="eyebrow">Initial documents</span>
       {documents.map((d) => (
-        <details key={d.doc_id} className="record">
+        <details key={d.doc_id} className="record" open={openSource?.kind === "document" && openSource.id === d.doc_id ? true : undefined}>
           <summary>
             <span className="mono">{d.doc_id}</span> {d.title}
           </summary>
@@ -66,7 +68,7 @@ export function EvidencePanel({ documents, released, requestable, exchangesUsed,
       <span className="eyebrow">Released records</span>
       {released.length === 0 ? <p className="empty">No records released yet.</p> : null}
       {released.map((r) => (
-        <details key={r.record_id} className="record" data-fresh={r.record_id === freshId ? "true" : "false"} open={r.record_id === freshId ? true : undefined}>
+        <details key={r.record_id} className="record" data-fresh={r.record_id === freshId ? "true" : "false"} open={r.record_id === freshId || (openSource?.kind === "record" && openSource.id === r.record_id) ? true : undefined}>
           <summary>
             <span className="mono">{r.record_id}</span> {r.title}
             <span className="record-meta">

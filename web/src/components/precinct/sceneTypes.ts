@@ -34,7 +34,7 @@ export const STATIONS = [
   { id: "dossier", label: "Your desk", short: "Desk", key: "4", anchor: [-5.2, 0, -22], yaw: Math.PI / 2, description: "Read the public case dossier and keep an evidence-based notebook." },
   { id: "briefing", label: "Sergeant briefing", short: "Briefing", key: "5", anchor: [-4.3, 0, -29.1], yaw: Math.PI, description: "Review your objective, interview limits, and the ground rule." },
   { id: "interview", label: "Interview room", short: "Interview", key: "6", anchor: [5.7, 0, -12.5], yaw: -Math.PI / 2, description: "Practice neutral questions with a simulated subject." },
-  { id: "observation", label: "Observation room", short: "Observation", key: "7", anchor: [4.8, 0, -18], yaw: 0, description: "Watch the coaches and review panel work behind the glass." },
+  { id: "observation", label: "Observation room", short: "Observation", key: "7", anchor: [10.4, 0, -18.6], yaw: Math.atan2(-0.6, -1.813), description: "Watch the coaches and review panel work behind the glass." },
   { id: "debrief", label: "Replay theater", short: "Replay", key: "8", anchor: [5, 0, -22], yaw: -Math.PI / 2, description: "Review recorded interviews and the evidence behind each finding." },
   { id: "coach_lab", label: "Coach Lab", short: "Coach Lab", key: "9", anchor: [4.3, 0, -28.8], yaw: -Math.PI / 2, description: "Inspect coach versions, playbooks, and tournament history." },
   { id: "records", label: "Records & methodology", short: "Records", key: "0", anchor: [7.9, 0, -33.3], yaw: 0, description: "Visit the archive, training resources, and trust center." },

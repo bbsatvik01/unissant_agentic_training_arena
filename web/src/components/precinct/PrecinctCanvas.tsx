@@ -7,14 +7,21 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 
 import { controllerDeadzone, EYE_HEIGHT, findWaypointRoute, hasLineOfSight, inputMovement, isWalkable, MAX_FRAME_SECONDS, moveWithCollisions, nearestHotspot, turn, WALK_SPEED } from "../../lib/precinct/movement";
 import { advanceCadence } from "../../lib/precinct/cadence";
+import { interviewCamera, INVESTIGATOR_SEAT } from "../../lib/precinct/interviewStage";
+import { seatedNavigation, type ExplorationPose } from "../../lib/precinct/seatedNavigation";
+import type { WorkStyle } from "../../lib/agent-work/model";
 import type { CameraMode, LookAngles, Vec3 } from "../../lib/precinct/types";
 import { INVESTIGATOR } from "../../lib/world/cast";
 import { nextTier, WINDOW, type Tier } from "../../lib/world/quality";
 import { WalkingAvatar } from "./WalkingAvatar";
 import { PrecinctStaff } from "./PrecinctStaff";
+import { PrecinctInterviewCast } from "./PrecinctInterviewCast";
+import { ObservationWorkScreens } from "./ObservationWorkScreens";
+import { PresentedEvidencePaper } from "./PresentedEvidencePaper";
+import type { PrecinctCameraSample, PrecinctInterviewScene } from "./interviewScene";
 import type { PlayerPose, PrecinctManifest, TravelCommand } from "./sceneTypes";
 
-interface Props {
+export interface PrecinctCanvasProps {
   readonly manifest: PrecinctManifest;
   readonly active: boolean;
   readonly paused: boolean;
@@ -26,6 +33,11 @@ interface Props {
   readonly onPose: (pose: PlayerPose) => void;
   readonly onInteract: (id: string) => void;
   readonly onReady: () => void;
+  readonly interview?: PrecinctInterviewScene | null;
+  readonly onInspectEvidence?: () => void;
+  readonly onExpandMonitor?: (style: WorkStyle) => void;
+  /** Actual camera samples only; the parent owns any recording and canonical timestamps. */
+  readonly onCameraSample?: (sample: PrecinctCameraSample) => void;
 }
 
 const SPAWN: Vec3 = [0, 0, -2.4];
@@ -128,12 +140,14 @@ function MovingBody({ speed, still }: { readonly speed: RefObject<number>; reado
   return <WalkingAvatar persona={INVESTIGATOR} position={[0, 0, 0]} yaw={0} speed={sample} still={still} />;
 }
 
-function Controls(props: Props) {
+export function Controls(props: PrecinctCanvasProps) {
   const canvas = useThree((state) => state.gl.domElement);
   const position = useRef<Vec3>(SPAWN);
   const look = useRef<LookAngles>({ yaw: 0, pitch: 0 });
   const orbit = useRef({ yaw: 0, pitch: 0.22, distance: 3.2 });
   const wasFree = useRef(false);
+  const savedExploration = useRef<ExplorationPose | null>(null);
+  const seated = props.interview?.present === true && props.interview.seated;
   const drag = useRef<readonly [number, number] | null>(null);
   const keys = useRef(new Set<string>());
   const path = useRef<readonly Vec3[]>([]);
@@ -153,6 +167,7 @@ function Controls(props: Props) {
   useEffect(() => {
     const previousTabIndex = canvas.getAttribute("tabindex");
     canvas.setAttribute("tabindex", "0");
+    const isSeated = () => live.current.interview?.present === true && live.current.interview.seated;
     const free = () => live.current.paused && live.current.cameraMode === "free";
     const canControl = () => live.current.active && (!live.current.paused || free());
     const clear = () => { keys.current.clear(); path.current = []; drag.current = null; };
@@ -160,6 +175,7 @@ function Controls(props: Props) {
       if (event.code === "Escape") { clear(); return; }
       if (!canControl() || uiTarget(event.target) || !CONTROL_KEYS.has(event.code)) return;
       if (event.code.startsWith("Arrow")) event.preventDefault();
+      if (isSeated() && !free()) return;
       keys.current.add(event.code);
       if (event.code === "KeyE" && !event.repeat && !live.current.paused && nearest.current !== null) live.current.onInteract(nearest.current);
     };
@@ -171,7 +187,7 @@ function Controls(props: Props) {
         orbit.current.yaw -= (event.clientX - x) * 0.006;
         orbit.current.pitch = Math.max(-0.25, Math.min(1.1, orbit.current.pitch + (event.clientY - y) * 0.006));
         drag.current = [event.clientX, event.clientY];
-      } else if (!live.current.paused && document.pointerLockElement === canvas) {
+      } else if (!isSeated() && !live.current.paused && document.pointerLockElement === canvas) {
         look.current = turn(look.current, -event.movementX * 0.002, -event.movementY * 0.002);
         manualLook.current = 1.5;
       }
@@ -181,7 +197,7 @@ function Controls(props: Props) {
       canvas.focus({ preventScroll: true });
       if (free()) {
         if (event.button === 0 || event.button === 2) { drag.current = [event.clientX, event.clientY]; event.preventDefault(); }
-      } else if (event.button === 2) {
+      } else if (!isSeated() && event.button === 2) {
         event.preventDefault();
         try { void Promise.resolve(canvas.requestPointerLock()).catch(() => { /* Arrow keys remain available. */ }); }
         catch { /* Pointer lock is optional; keyboard and click navigation still work. */ }
@@ -213,28 +229,40 @@ function Controls(props: Props) {
   }, [canvas]);
 
   useEffect(() => {
-    if (!props.active || props.paused) {
+    if (!props.active || props.paused || seated) {
       keys.current.clear(); path.current = []; drag.current = null;
       if (document.pointerLockElement === canvas) document.exitPointerLock();
     }
-    if (props.active && (!props.paused || props.cameraMode === "free")) canvas.focus({ preventScroll: true });
-  }, [props.active, props.paused, props.cameraMode, canvas]);
+    if (props.active && (!props.paused || props.cameraMode === "free") && !uiTarget(document.activeElement)) canvas.focus({ preventScroll: true });
+  }, [props.active, props.paused, props.cameraMode, seated, canvas]);
 
   useFrame((state, dt) => {
     const camera = state.camera;
     const p = live.current;
     const seconds = Number.isFinite(dt) ? Math.max(0, Math.min(dt, MAX_FRAME_SECONDS)) : 0;
+    const isSeated = p.interview?.present === true && p.interview.seated;
+    const transition = seatedNavigation(savedExploration.current, { position: position.current, look: look.current }, isSeated);
+    savedExploration.current = transition.saved;
+    if (transition.changed) {
+      position.current = transition.pose.position; look.current = transition.pose.look;
+      keys.current.clear(); path.current = []; routeIndex.current = 0; arrivalYaw.current = null;
+      drag.current = null; speed.current = 0; manualLook.current = 0; nearest.current = null;
+      p.travel.current = null; wasFree.current = false; emittedPose.current = null;
+      if (document.pointerLockElement === canvas) document.exitPointerLock();
+    }
+    // Commands queued while a seated interview owns input cannot execute on exit.
+    if (isSeated) p.travel.current = null;
     const free = p.paused && p.cameraMode === "free";
     const mode = p.cameraMode === "free" && !free ? "first" : p.cameraMode;
-    const canWalk = p.active && !p.paused && !document.hidden && document.hasFocus() && !uiTarget(document.activeElement);
+    const canWalk = !isSeated && p.active && !p.paused && !document.hidden && document.hasFocus() && !uiTarget(document.activeElement);
     const canInspect = p.active && free && !document.hidden && document.hasFocus() && !uiTarget(document.activeElement);
-    if (free && !wasFree.current) orbit.current = { yaw: look.current.yaw, pitch: 0.22, distance: 3.2 };
+    if (free && !wasFree.current) orbit.current = { yaw: isSeated ? 0 : look.current.yaw, pitch: 0.22, distance: isSeated ? 2.5 : 3.2 };
     wasFree.current = free;
     manualLook.current = Math.max(0, manualLook.current - seconds);
 
     // Paused or modal exploration never consumes commands or moves the trainee.
     const command = p.travel.current;
-    if (command !== null && p.active && !p.paused) {
+    if (command !== null && !isSeated && p.active && !p.paused) {
       p.travel.current = null;
       canvas.focus({ preventScroll: true });
       routeIndex.current = 0;
@@ -299,7 +327,10 @@ function Controls(props: Props) {
     speed.current = canWalk && seconds > 0 ? Math.hypot(position.current[0] - before[0], position.current[2] - before[2]) / seconds : 0;
     const [x, y, z] = position.current;
     focus.set(x, y + EYE_HEIGHT, z);
-    if (free) {
+    const anchor = isSeated ? interviewCamera(p.cameraMode, p.paused, orbit.current) : null;
+    if (anchor !== null) {
+      camera.position.set(...anchor.position); focus.set(...anchor.target); camera.lookAt(focus);
+    } else if (free) {
       const angle = orbit.current;
       const distance = angle.distance * Math.cos(angle.pitch);
       const safe = moveWithCollisions(position.current, [Math.sin(angle.yaw) * distance, 0, Math.cos(angle.yaw) * distance], p.manifest.colliders, 0.15);
@@ -315,29 +346,35 @@ function Controls(props: Props) {
     } else {
       camera.position.set(x, y + EYE_HEIGHT, z); camera.rotation.set(look.current.pitch, look.current.yaw, 0, "YXZ");
     }
-    const fov = mode === "first" ? 66 : 58;
+    const fov = anchor?.fov ?? (mode === "first" ? 66 : 58);
     if (camera instanceof PerspectiveCamera && camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
     if (walking.current !== null) { walking.current.position.set(x, y, z); walking.current.rotation.y = look.current.yaw; }
     const visibleHotspots = p.manifest.hotspots.filter((hotspot) => hasLineOfSight(position.current, [hotspot.position[0], y, hotspot.position[2]], p.manifest.colliders, 0.02));
-    nearest.current = nearestHotspot(position.current, visibleHotspots)?.id ?? null;
+    nearest.current = isSeated ? null : nearestHotspot(position.current, visibleHotspots)?.id ?? null;
     // R3F resets its absolute clock when switching demand/always. A delta cadence
     // keeps minimap and input state responsive immediately after closing a panel.
     const emission = advanceCadence(lastEmit.current, dt);
     lastEmit.current = emission.elapsed;
-    if (emission.due) {
+    if (emission.due || transition.changed) {
+      if (p.onCameraSample !== undefined && camera instanceof PerspectiveCamera) {
+        const quaternion = camera.quaternion.clone().normalize();
+        p.onCameraSample({ mode: anchor?.mode ?? mode, position: camera.position.toArray(), quaternion: quaternion.toArray(), fov: camera.fov });
+      }
+      const shownPosition = isSeated ? INVESTIGATOR_SEAT.position : position.current;
+      const shownYaw = isSeated ? 0 : look.current.yaw;
       const previous = emittedPose.current;
-      if (previous === null || previous.position !== position.current || previous.yaw !== look.current.yaw || Math.abs(previous.speed - speed.current) > 0.01 || previous.hotspot !== nearest.current) {
-        const next = { position: position.current, yaw: look.current.yaw, speed: speed.current, hotspot: nearest.current };
+      if (previous === null || previous.position !== shownPosition || previous.yaw !== shownYaw || Math.abs(previous.speed - speed.current) > 0.01 || previous.hotspot !== nearest.current) {
+        const next = { position: shownPosition, yaw: shownYaw, speed: speed.current, hotspot: nearest.current };
         emittedPose.current = next;
         p.onPose(next);
       }
     }
   });
 
-  const bodyVisible = props.cameraMode === "third" || (props.cameraMode === "free" && props.paused);
+  const bodyVisible = !seated && (props.cameraMode === "third" || (props.cameraMode === "free" && props.paused));
   return <>
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, -18]} onPointerDown={(event) => {
-      if (!props.active || props.paused || event.button !== 0 || document.pointerLockElement === canvas) return;
+      if (seated || !props.active || props.paused || event.button !== 0 || document.pointerLockElement === canvas) return;
       canvas.focus({ preventScroll: true });
       const destination: Vec3 = [event.point.x, 0, event.point.z];
       path.current = findWaypointRoute(position.current, destination, props.manifest.navigationNodes, props.manifest.colliders) ?? [];
@@ -349,8 +386,10 @@ function Controls(props: Props) {
   </>;
 }
 
-export default function PrecinctCanvas(props: Props) {
-  return <Canvas frameloop={props.active && (!props.paused || props.cameraMode === "free") ? "always" : "demand"} tabIndex={0} camera={{ position: [0, EYE_HEIGHT, -2.4], fov: 66, near: 0.08, far: 120 }} dpr={props.tier === "high" ? [1, 1.75] : props.tier === "medium" ? [1, 1.25] : 0.75} gl={{ antialias: false, powerPreference: "high-performance", toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.1 }} aria-label="Explorable precinct. WASD walks, arrows look, E interacts. Paused inspection: drag or arrows orbit, wheel or W/S zoom.">
+export default function PrecinctCanvas(props: PrecinctCanvasProps) {
+  const interview = props.interview;
+  const sceneMoving = interview?.present === true && !props.paused && !interview.work.paused && !props.reducedMotion;
+  return <Canvas frameloop={(props.active && (!props.paused || props.cameraMode === "free")) || sceneMoving ? "always" : "demand"} tabIndex={0} camera={{ position: [0, EYE_HEIGHT, -2.4], fov: 66, near: 0.08, far: 120 }} dpr={props.tier === "high" ? [1, 1.75] : props.tier === "medium" ? [1, 1.25] : 0.75} gl={{ antialias: false, powerPreference: "high-performance", toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.1 }} aria-label={interview?.present === true && interview.seated ? "Seated interview. Use the interview controls to ask or leave. While paused in free camera: drag or arrows orbit, wheel or W/S zoom." : "Explorable precinct. WASD walks, arrows look, E interacts. Paused inspection: drag or arrows orbit, wheel or W/S zoom."}>
     <color attach="background" args={["#d5dfe0"]} /><fog attach="fog" args={["#d5dfe0", 55, 100]} />
     <AdaptiveQuality tier={props.tier} onChange={props.onTierChange} /><Environment /><hemisphereLight args={["#f8f6ee", "#70797b", 1.6]} />
     <directionalLight position={[-12, 16, 6]} intensity={3} color="#fff1d5" />
@@ -358,6 +397,11 @@ export default function PrecinctCanvas(props: Props) {
     {props.tier !== "low" ? <><pointLight position={[0, 3, -17]} intensity={25} distance={15} color="#f3eddf" /><pointLight position={[0, 3, -29]} intensity={25} distance={15} color="#f3eddf" /></> : null}
     <Suspense fallback={null}><Architecture onReady={props.onReady} /></Suspense>
     <PrecinctStaff paused={props.paused || !props.active} reducedMotion={props.reducedMotion} tier={props.tier} />
+    {interview?.present === true ? <>
+      <PrecinctInterviewCast state={interview.cast} subjectName={interview.subjectName} clock={interview.clock} paused={props.paused || interview.work.paused} reducedMotion={props.reducedMotion} tier={props.tier} view={interview.seated ? props.cameraMode : "third"} present location={interview.location} />
+      <ObservationWorkScreens frame={interview.work} assessment={interview.cast?.mode === "assessment"} tier={props.tier} interactive={props.active} {...(props.onExpandMonitor === undefined ? {} : { onExpand: props.onExpandMonitor })} />
+      {interview.evidence == null ? null : <PresentedEvidencePaper source={interview.evidence} interactive={props.active} {...(props.onInspectEvidence === undefined ? {} : { onInspect: props.onInspectEvidence })} />}
+    </> : null}
     <Controls {...props} />
   </Canvas>;
 }

@@ -1,0 +1,14 @@
+/* One existing native dialog, with readable interview and monitor content. */
+.precinct-dialog.precinct-dialog--interview { width: min(1240px, calc(100vw - 60px)); }
+.precinct-dialog .awm .awm-scene { width: 100%; height: auto; aspect-ratio: 16 / 9; }
+.precinct-dialog .precinct-interview .precinct-text-button { color: #31595d; }
+.precinct-dialog .precinct-interview .precinct-secondary { background: #e6ebe1; border: 1px solid #90a69b; padding: .65rem .8rem; border-radius: .3rem; text-decoration: none; }
+.precinct-interview-links { display: flex; flex-wrap: wrap; gap: .7rem; margin: 1rem 0; }
+.precinct-interview-links button { border: 1px solid #92a99d; border-radius: .3rem; padding: .65rem 1rem; background: #edf0e6; color: #254d4f; font: inherit; }
+.precinct-seat-controls { position: absolute; left: 50%; bottom: 88px; transform: translateX(-50%); display: flex; flex-wrap: wrap; justify-content: center; gap: .65rem; max-width: 70vw; }
+.precinct-seat-controls button { padding: .85rem 1rem; color: #fffaf0; background: #173f43ee; border: 1px solid #d2c398; border-radius: .4rem; }
+.precinct-full-monitor { min-width: 0; outline: none; }
+.precinct-full-monitor .awm { margin: 0; }
+@media (max-width: 620px) { .precinct-dialog.precinct-dialog--interview { width: calc(100vw - 24px); } }
+
+.precinct-dialog .precinct-session-origin { scroll-margin-top: 8rem; }

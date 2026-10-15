@@ -1,0 +1,244 @@
+{
+  "case": {
+    "case_id": "C-7Q2MXK4D",
+    "title": "Records vault entry during a busy shift",
+    "objective": "Establish why Jordan Pell entered Records Vault B-12 at 14:07 on 12 March 2026, whether the entry had an assigned task, and why the vault door was held open from 14:09 to 14:12.",
+    "domain": "facility_access",
+    "difficulty_level": 2,
+    "subject": {
+      "display_name": "Jordan Pell",
+      "position": "Facilities Technician II"
+    },
+    "setting": "Interview room 2, Office of Facility Security, Halvern Street Annex. The subject attends during work hours; the interview is administrative and voluntary.",
+    "initial_documents": [
+      {
+        "doc_id": "doc-01",
+        "kind": "access_exception_report",
+        "title": "Access exception report, Records Vault B-12, 12 March 2026",
+        "content": {
+          "body": "Generated 16:00 by the end-of-day roster check (O. Varga, Records Vault Custodian). Exception: B-12 is not on J. Pell's daily task roster. Badge 30418 last opened B-12 on 19 November 2025. No other B-12 badge entries on 12 March. The B-12 exit does not require a badge, so no exit time is recorded.",
+          "table": {
+            "columns": [
+              "Time",
+              "Door",
+              "Credential",
+              "Event"
+            ],
+            "rows": [
+              [
+                "14:07:12",
+                "B-12 main door",
+                "Badge 30418 (J. Pell)",
+                "Access granted"
+              ],
+              [
+                "14:09:40",
+                "B-12 main door",
+                "-",
+                "Door held open, alarm raised"
+              ],
+              [
+                "14:12:05",
+                "B-12 main door",
+                "-",
+                "Door closed, alarm cleared"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "doc_id": "doc-02",
+        "kind": "policy_excerpt",
+        "title": "Records Vault B-12 access rules (Facility Security Standard 4.2)",
+        "content": {
+          "body": "Entry to B-12 requires an assigned task: an open work order or a supervisor dispatch recorded on the radio log. Staff must not hold the vault door open longer than 60 seconds except while moving equipment, and must stay at the open door. Sealed records boxes may be opened only by the custodian or under a signed custodian release."
+        }
+      },
+      {
+        "doc_id": "doc-03",
+        "kind": "staffing_note",
+        "title": "Facilities shift staffing, 12 March 2026, 13:30-22:00",
+        "content": {
+          "body": "Supervisor on duty: I. Marrow. Scheduled technicians: J. Pell, D. Rusk, K. Okafor-Lyle, S. Tamsin. Absent: D. Rusk (sick leave), S. Tamsin (training). Technicians on shift: J. Pell, K. Okafor-Lyle."
+        }
+      }
+    ]
+  },
+  "requestable": [
+    {
+      "record_id": "rec-01",
+      "kind": "work_order",
+      "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+      "description": "Export from the facilities work-order system: every work order assigned to J. Pell on 12 March 2026, with creation time, author, location and task.",
+      "requestable_after_exchanges": 2
+    },
+    {
+      "record_id": "rec-02",
+      "kind": "dispatch_log",
+      "title": "Facilities radio log, channel 2, 12 March 2026, 13:45-14:45",
+      "description": "Transcribed radio log for the facilities channel, with time, caller, recipient and message.",
+      "requestable_after_exchanges": 3
+    },
+    {
+      "record_id": "rec-03",
+      "kind": "alarm_log",
+      "title": "Building environmental alarm history, B wing, 12 March 2026",
+      "description": "Alarm panel history for B-wing rooms: room, alarm type, time raised and time cleared.",
+      "requestable_after_exchanges": 3
+    },
+    {
+      "record_id": "rec-04",
+      "kind": "seal_audit",
+      "title": "Records Vault B-12 seal audit, 12 March 2026",
+      "description": "End-of-day seal audit by the vault custodian: sealed boxes checked against the seal register, and the seal supply drawer log.",
+      "requestable_after_exchanges": 6
+    }
+  ],
+  "releases": [
+    {
+      "record_id": "rec-03",
+      "title": "Building environmental alarm history, B wing, 12 March 2026",
+      "kind": "record",
+      "doc_kind": "alarm_log",
+      "date": "2026-03-12",
+      "content": {
+        "body": "No other B-wing alarms on 12 March.",
+        "table": {
+          "columns": [
+            "Room",
+            "Alarm",
+            "Raised",
+            "Cleared"
+          ],
+          "rows": [
+            [
+              "B-03 Mail room",
+              "Temperature high",
+              "11:20",
+              "11:41"
+            ],
+            [
+              "B-12 Records Vault",
+              "Humidity high (72% RH, limit 55%)",
+              "13:58",
+              "14:16"
+            ]
+          ]
+        }
+      },
+      "released_at_turn": 3,
+      "trigger": "requested"
+    },
+    {
+      "record_id": "rec-05",
+      "title": "Written statement, Ines Marrow, Facilities Shift Supervisor (13 March 2026)",
+      "kind": "record",
+      "doc_kind": "supervisor_statement",
+      "date": "2026-03-12",
+      "content": {
+        "body": "It was a busy shift; we were two technicians down. Around two I radioed Jordan about a humidity alarm in the B wing. I honestly don't remember which room I said. I logged the work order later from the alarm panel history once things calmed down, which is what I do on short days."
+      },
+      "released_at_turn": 5,
+      "trigger": "scheduled"
+    },
+    {
+      "record_id": "rec-02",
+      "title": "Facilities radio log, channel 2, 12 March 2026, 13:45-14:45",
+      "kind": "record",
+      "doc_kind": "dispatch_log",
+      "date": "2026-03-12",
+      "content": {
+        "body": "Channel 2 is recorded and transcribed automatically.",
+        "table": {
+          "columns": [
+            "Time",
+            "From",
+            "To",
+            "Message"
+          ],
+          "rows": [
+            [
+              "14:01",
+              "I. Marrow",
+              "J. Pell",
+              "Humidity alarm in the B wing, B-12. Can you take it?"
+            ],
+            [
+              "14:01",
+              "J. Pell",
+              "I. Marrow",
+              "On my way."
+            ],
+            [
+              "14:25",
+              "J. Pell",
+              "I. Marrow",
+              "B-12 dehumidifier reset, tank emptied."
+            ],
+            [
+              "14:40",
+              "I. Marrow",
+              "K. Okafor-Lyle",
+              "Loading dock door is sticking again."
+            ]
+          ]
+        }
+      },
+      "released_at_turn": 5,
+      "trigger": "requested"
+    },
+    {
+      "record_id": "rec-01",
+      "title": "Facilities work orders assigned to J. Pell, 12 March 2026",
+      "kind": "record",
+      "doc_kind": "work_order",
+      "date": "2026-03-12",
+      "content": {
+        "body": "2 work orders.",
+        "table": {
+          "columns": [
+            "Work order",
+            "Created",
+            "Created by",
+            "Location",
+            "Task",
+            "Status"
+          ],
+          "rows": [
+            [
+              "WO-4469",
+              "13:35",
+              "I. Marrow",
+              "A-wing lobby",
+              "Replace entrance mat",
+              "Closed 13:52"
+            ],
+            [
+              "WO-4478",
+              "14:31",
+              "I. Marrow",
+              "B-12 Records Vault",
+              "Humidity alarm; dehumidifier reset; condensate tank emptied",
+              "Closed 14:31"
+            ]
+          ]
+        }
+      },
+      "released_at_turn": 5,
+      "trigger": "requested"
+    },
+    {
+      "record_id": "rec-04",
+      "title": "Records Vault B-12 seal audit, 12 March 2026",
+      "kind": "record",
+      "doc_kind": "seal_audit",
+      "date": "2026-03-12",
+      "content": {
+        "body": "Audit by O. Varga at 16:10. 214 sealed boxes checked; all seals match the register. Seal supply drawer: no seals issued on 12 March."
+      },
+      "released_at_turn": 6,
+      "trigger": "requested"
+    }
+  ]
+}

@@ -152,10 +152,49 @@ The UI v2 compass favicon (`web/public/favicon.svg`) is original vector artwork 
 
 ## UI v2 precinct staff and signage
 
-- Reception, sergeant, office and patrol motion: original procedural walking, idle, counter-work and seated gestures authored for this project in `web/src/lib/precinct/staff.ts` and `web/src/components/precinct/PrecinctStaff.tsx`. Uses the existing Microsoft Rocketbox MIT meshes/textures credited above; no Mixamo or additional animation files.
+- Reception, sergeant, office and patrol motion: original procedural walking, idle, counter-work and seated gestures authored for this project in `web/src/lib/precinct/staff.ts` and `web/src/components/precinct/PrecinctStaff.tsx`. Uses the existing Microsoft Rocketbox MIT meshes/textures documented in [web attribution](web/ATTRIBUTIONS.md#microsoft-rocketbox-avatars-mit) and the [avatar provenance and complete license](web/public/avatars/LICENSE.md); no Mixamo or additional animation files.
 - Larger wayfinding: original typography/layout using DejaVu Sans Bold under the same DejaVu/Bitstream Vera license recorded for the precinct. Both regular and bold font faces are packed into the editable source; license text is in `assets-src/FONT_LICENSE.txt`.
 - Optional NPC/briefing speech uses installed device-local voices only after explicit playback; no downloaded voice asset or third-party TTS service is bundled. Characters and scripted dialogue remain fictional.
 
 ## UI v2 lossless precinct compression
 
 The precinct runtime uses `EXT_meshopt_compression`, encoded with meshoptimizer 1.1.1 by Arseny Kapoulkine under the MIT license ([official project](https://github.com/zeux/meshoptimizer)). The authoring-only encoder is exactly pinned as a development dependency in `web/package.json`, with its existing npm integrity in `web/pnpm-lock.yaml`; the complete notice is retained in `assets-src/MESHOPT_LICENSE.txt`. The browser uses the Meshopt decoder already bundled with Three.js 0.186.1. No new runtime dependency, package version or third-party geometry is added. Original compression/verification scripts live in `assets-src`; they preserve all geometry, material, source and navigation content without quantization or simplification. Reproduction and evidence are documented in `assets-src/ASSET_PROVENANCE.md` and `docs/ui-v2/precinct-compression-review.md`.
+
+## UI v2 agent-work monitors: TechnoMile owner-project adaptation (2026-10-15)
+
+Source: the read-only owner-authorized reference snapshot in `docs/ui-v2/reference/technomile-war-room/`, vendored by this repository at commit `8c2bfbf240cd2450a2843de3060ea679797c4038`. The snapshot README records a 2026-10-15 copy from the same owner’s TechnoMile Agentic Black Hat project. The snapshot does not identify its upstream TechnoMile commit; the hashes below identify the exact source bytes used and must not be mistaken for the earlier donor revisions cited elsewhere in this attribution file. No reference files were modified, imported or built. No external assets, fonts, icons or dependencies were added.
+
+Targets: `src/lib/agent-work/model.ts`, `src/components/agent-work/AgentWorkMonitor.tsx`, `src/styles/agent-work.css`, and their original trial-specific tests.
+
+Verdict: adapt visual compositions, palette and deterministic projection patterns; not a verbatim component transplant. Kept the Classic office’s 2:1 floor/desk geometry and agent delivery metaphor; the Case Board’s cork, polaroid, index-card and cited-thread grammar; Playhouse’s paper proscenium, blue-green curtain, archive wing and critics’ box; and Bid Tower’s stacked cutaway, work desks, archive and brass lift. Adapted `iso` to a 960×540 monitor and specialized path interpolation to one leg. The display-clock/pure-frame separation follows `office`, `playhouse`, `tower/frame`, `tower/world`, `replay` and `player`.
+
+Changed: fixed four public trial roles replace donor rival pods and pipeline steps; all state comes from the arena’s generated contracts and existing validated `TrialView`. Accepted coach cards/updates, citation-checked non-demeanor flags and released evidence map to public activity. Referee input is only scoring or matching published-debrief status, never outcome fields. Assessment and voice coaching are withheld. Donor Next.js, Phosphor, transport, private run data, gates, model-call inspection, themes, internal controls, compressed replay clocks and animation timers are not imported. The caller’s exact session clock drives geometry, with still reduced-motion states and native accessible controls/text. Existing arena validation/reducer code is reused unchanged. New tests check these arena-specific boundaries, determinism, rewind, duplicate ordering, citation refusal, accessibility and thumbnails.
+
+Exact source snapshot hashes (paths relative to the vendored reference root):
+
+| Source | SHA-256 |
+| --- | --- |
+| `components/agent-office.tsx` | `ee095ce371f940b518be50a7a25b38bd3c6374569b78d86e5689e98f03a5f967` |
+| `components/office-styles/case-board.tsx` | `f8d2b6cfdab1ec8bb125a95e23a6ec8d72f74970ea66cd7835adef55d74f8f1d` |
+| `components/office-styles/playhouse.tsx` | `0b5070e55a2b0d7b1fcd0bcabbf6e0578120d6b5d94e3650d425f989d02fe951` |
+| `components/office-styles/bid-tower.tsx` | `677e82ba05517a8b68078471572ad3fe442e8bf7ca20cd62842e31cbeb95c066` |
+| `components/office-styles/playhouse.css` | `a04447ffc174babc9d50c8a612038b20c57e8102afe55fbed17d8e75a71147a9` |
+| `components/tower/tower.css` | `699d2d49406a134114076a0737e86f0a97fa26ae2becfce749477f38111d7ff1` |
+| `lib/office.ts` | `e0319a9a8db754f4c4e2ab4221cd9caf1749646b32265de01a5664da7a5d3880` |
+| `lib/case-board.ts` | `62566cc3ebdea068314014a31249c70a4aa88f269620171325363423f989f009` |
+| `lib/playhouse.ts` | `6a67efdbfb89fedcc9310feca88b9487b48040a0c66a18ed9029ab9ee0037c18` |
+| `lib/tower/frame.ts` | `8e22ec670acf6520a5f1c3d876dfa6bcff2a2b348072adfcff4349f9a4bf72b2` |
+| `lib/tower/world.ts` | `7a61206121c23392d795bbc2974e16e64c9230a5ac329cc52de306a26543015c` |
+| `lib/tower/layout.ts` | `b6d37514188cb05f1a61f6eac06e000befd6abf6b1af11ad24daf79782930131` |
+| `lib/tower/route.ts` | `09efd5979609ad0deda93297dd89016f1b7dcc1d34eaa02204b61d1394df075b` |
+| `lib/tower/record.ts` | `2c6a843ddc1e34717e51d528f741f7e61d2fe0ae8a44e15d22b37517829569db` |
+| `lib/replay.ts` | `867438ac69c49f36b470d171b5f6f96118f6abc2e2a9c200af2c7a5dab1a06c9` |
+| `lib/player.ts` | `bf84f06d1b2af1917e687c5cb7cab1ebd0768ec8d1a5863cfd9a67ad0fc87708` |
+| `lib/run-events.ts` | `4e0d79b3bdfb466e299b157d5b0e292d5796bfd52b2584c543f7db60852a99c9` |
+| `globals.css` | `1a9ea18a199a52468f8067ed73c791a2213495dd44b86f53c82bc4ef8ab6b623` |
+
+## UI v2 interview staging and local rehearsal
+
+The seated rig adaptation, neutral procedural breathing/blinking/typing motions, interview camera anchors, physical public-source cover SVG and local SVG texture lifecycle are original project work. They use only the existing credited Rocketbox meshes/textures, Three.js and installed generic fonts; no motion-capture pack, external image, voice or new font is bundled. Motion depends only on presentation time, public work lifecycle and existing persona style. Actual audio weights alone drive mouth movement.
+
+The optional developer-only local interview service contains original fixed fictional dialogue and an authored, explicitly unscored resolution. Its public documents and release thresholds reuse this repository's hand-built F01-truthful fixture, with provenance recorded in `docs/ui-v2/LOCAL_SCRIPTED_MOCK.md`. It imports no historical transcript, score, evaluator packet or third-party model output.

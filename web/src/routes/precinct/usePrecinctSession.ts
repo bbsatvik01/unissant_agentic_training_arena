@@ -5,6 +5,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPrecinctLocalConnection } from "../../lib/api/precinctLocalApi";
+import { createPrecinctStationReads } from "../../lib/api/precinctStationReads";
 import type { Me } from "../../lib/api/client";
 import type { InvestigatorFinding, VoiceExchange } from "../../lib/contracts/generated/types";
 import { allowedModes } from "../../lib/study/study";
@@ -39,6 +40,7 @@ type PendingStart = { readonly caseId: string; readonly kind: "practice" | "asse
 export function usePrecinctSession({ reducedMotion, paused, audioInRoom }: PrecinctSessionOptions) {
   const connection = useMemo(() => createPrecinctLocalConnection({ origin: () => window.location }), []);
   const api = connection.api;
+  const stationReads = useMemo(() => createPrecinctStationReads(api), [api]);
   const [backend, setBackend] = useState<LocalBackendState>("offline");
   const [backendError, setBackendError] = useState<string | null>(null);
   const [me, setMe] = useState<Me | null>(null);
@@ -61,6 +63,8 @@ export function usePrecinctSession({ reducedMotion, paused, audioInRoom }: Preci
     setReadAloudError(null); setSoundState(enabled);
   }, [backend, localReadAloud, readAloudUnavailable]);
   const [pending, setPending] = useState<PendingStart | null>(null);
+  // Retain the accepted start intent across the microtask before the first session/snapshot exists.
+  const [requestedMode, setRequestedMode] = useState<"practice" | "assessment" | null>(null);
   const selectionOrder = useRef(latestOnly());
   const backendOrder = useRef(latestOnly());
   const recordingOrder = useRef(latestOnly());
@@ -83,6 +87,14 @@ export function usePrecinctSession({ reducedMotion, paused, audioInRoom }: Preci
   const released = view?.released ?? [];
   const liveDebrief = source === "live" && live.debrief !== null && "schema_version" in live.debrief ? live.debrief : null;
   const debrief = source === "live" ? liveDebrief : source === "recording" ? visibleRecordedDebrief(recording, view, world) : null;
+  // One withholding authority for every station/monitor. Accepted pending intent wins even over a
+  // previous practice run's stale published debrief. Once bound, only this live run's debrief releases it.
+  const pendingAssessment = source === "live" && requestedMode === "assessment" && (pending !== null || live.phase === "starting");
+  const liveAssessment = source === "live" && (live.session?.mode === "assessment" || view?.mode === "assessment"
+    || (requestedMode === "assessment" && live.phase === "running"));
+  const ownLiveDebrief = live.session !== null && liveDebrief !== null && liveDebrief.session_id === live.session.session_id;
+  const assessmentActive = pendingAssessment || (liveAssessment && !ownLiveDebrief)
+    || (source === "recording" && (recording?.snapshot.mode === "assessment" || view?.mode === "assessment") && debrief === null);
   const sessionKey = source === "live" ? live.session?.session_id ?? `starting:${selectedCase?.case_id ?? "none"}` : source === "recording" ? recording?.trial_id ?? "none" : `case:${selectedCase?.case_id ?? "none"}`;
   // Do not even construct the Web Audio engine until audio was explicitly enabled for this local connection.
   // Offline speech requires an installed localService voice; the browser's unspecified default is never used.
@@ -98,7 +110,7 @@ export function usePrecinctSession({ reducedMotion, paused, audioInRoom }: Preci
     selectionOrder.current();
     actionOrder.current();
     stopVoice(); stopLive(); pauseReplay();
-    setPending(null); setSource("idle"); setRecording(null); setRecordingState("empty"); setRecordingError(null);
+    setPending(null); setRequestedMode(null); setSource("idle"); setRecording(null); setRecordingState("empty"); setRecordingError(null);
     setSound(false); setEarpiece(false); setDraft("");
   }, [stopLive, stopVoice, pauseReplay, setSound]);
 
@@ -164,6 +176,7 @@ export function usePrecinctSession({ reducedMotion, paused, audioInRoom }: Preci
     if (source === "live" && (live.phase === "starting" || live.phase === "running")) return;
     recordingOrder.current(); actionOrder.current(); pauseReplay(); setSound(false); setEarpiece(false); setDraft("");
     setRecording(null); setRecordingState("empty"); setRecordingError(null);
+    setRequestedMode(kind === "voice" ? "practice" : kind === "resume" ? live.resumable?.mode ?? "practice" : kind);
     setSource("live"); setPending({ caseId: selectedCase.case_id, kind });
     const current = selectionOrder.current();
     setPacket(null); setPacketState("loading");
@@ -191,7 +204,7 @@ export function usePrecinctSession({ reducedMotion, paused, audioInRoom }: Preci
     selectionOrder.current(); actionOrder.current(); stopVoice(); stopLive(); pauseReplay();
     const card = recordingCaseCard(checked.recording);
     setSelectedCase(card); setPacket(publicPacket(card, checked.recording.case.initial_documents)); setPacketState("ready");
-    setPending(null); setDraft(""); setSound(false); setEarpiece(false);
+    setPending(null); setRequestedMode(null); setDraft(""); setSound(false); setEarpiece(false);
     setRecording(checked.recording); setRecordingState("ready"); setRecordingError(null); setSource("recording");
   }, [pauseReplay, stopLive, stopVoice, setSound]);
 
@@ -261,6 +274,10 @@ export function usePrecinctSession({ reducedMotion, paused, audioInRoom }: Preci
 
   return {
     backend, backendError, me, cases, selectedCase, packet, packetState, documents, released,
+    /** Read-only station capabilities share this exact connection gate; unavailable offline or while connecting. */
+    stationReads: backend === "connected" && me !== null ? stationReads : null,
+    /** Pending/live/recorded assessment guidance remains hidden until this run's published debrief. */
+    assessmentActive,
     source, sessionKey, recordingState, recordingError, recordingTrialId: source === "recording" ? recording?.trial_id ?? null : null,
     view, world, clock, arrivals, subjectName, debrief, debriefReady: debrief !== null,
     /** Narrow referee state: no score, outcome, secret role, or evaluator fields. */

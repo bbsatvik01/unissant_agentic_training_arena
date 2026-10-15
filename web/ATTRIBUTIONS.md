@@ -123,6 +123,6 @@ What changed: the cast is one unstyled development placeholder (`src/components/
 
 ## Microsoft Rocketbox avatars (MIT)
 
-`public/avatars/` holds eight characters and six seated motion clips from the Microsoft Rocketbox Avatar Library,
+`public/avatars/` holds ten characters and six seated motion clips from the Microsoft Rocketbox Avatar Library,
 converted to glTF and three.js clip JSON. Provenance, the conversion steps and the MIT licence text are in
 `public/avatars/LICENSE.md`.
