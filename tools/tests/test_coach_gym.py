@@ -656,8 +656,8 @@ def test_a_call_submitted_before_the_halt_but_started_after_it_never_runs() -> N
         assert go.wait(5)
         try:
             bridge(call())
-        except SearchHaltedError:
-            actions.append("refused")
+        except SearchHaltedError as exc:
+            actions.append(type(exc).__name__)
         actions.append(f"worker done ({halt.reason})")
 
     def block_the_loop() -> None:
@@ -673,7 +673,7 @@ def test_a_call_submitted_before_the_halt_but_started_after_it_never_runs() -> N
             await task
 
     run(main())
-    assert actions == ["refused", "worker done (cancelled)"]
+    assert actions == ["SearchHaltedError", "worker done (cancelled)"]
 
 
 def test_runs_and_promotions_take_the_registry_one_at_a_time(tmp_path: Path) -> None:
