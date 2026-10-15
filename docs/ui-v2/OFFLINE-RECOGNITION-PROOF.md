@@ -22,7 +22,7 @@ Synthetic microphone actual transcript: “describe what happened before the mee
 
 ## Recommendation and limits
 
-Optional editable-draft experiment only; typed questions remain available, and recognition must never automatically Send. This small synthetic phrase set is not representative of people, dialects or noisy rooms. No grammar bias, reference-text hinting, or transcript repair was applied. The pronounced formant quality and cloud CPU can affect these results; no inference about human accuracy is justified.
+Optional editable-draft experiment only; typed questions remain available, and recognition must never automatically Send. This small synthetic phrase set is not representative of people, dialects or noisy rooms. The fake microphone fixture began immediately at device start, so startup alignment can contribute to its missing first word; the file metric is independent of that alignment. No grammar bias, reference-text hinting, or transcript repair was applied. The pronounced formant quality and cloud CPU can affect these results; no inference about human accuracy is justified.
 
 ## Packaging and security findings
 

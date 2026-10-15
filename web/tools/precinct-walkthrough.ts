@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { chromium, expect, type Browser, type BrowserContext, type Page, type Response } from "@playwright/test";
 import { EX4_TEXT } from "../src/lib/copy/ex4.ts";
+import { STATIONS } from "../src/components/precinct/sceneTypes.ts";
 type Exit = { code: number | null; signal: string | null };
 type Check = { name: string; passed: boolean; detail: string; durationMs: number };
 interface Capture {
@@ -122,7 +123,12 @@ export async function recordPrecinctWalkthrough(): Promise<void> {
     const travel = async (key: string, label: string, open = true) => {
       await close(); await page.locator("canvas").focus(); await page.keyboard.press(`Digit${key}`); await rendered();
       await expect(page.getByRole("button", { name: new RegExp(`E\\s*${label}`, "u") })).toBeVisible();
-      if (open) { await page.locator("canvas").focus(); await page.keyboard.press("KeyE"); await expect(page.getByRole("dialog")).toBeVisible(); }
+      if (open) {
+        await page.locator("canvas").focus(); await page.keyboard.press("KeyE");
+        const station = STATIONS.find((item) => item.key === key);
+        if (station === undefined) throw new Error("Unknown documentary station key.");
+        await expect(page.getByRole("dialog").getByRole("heading", { name: station.label, exact: true, level: 2 })).toBeVisible();
+      }
     };
     const response = (path: string, method = "POST") => { const pending = page.waitForResponse((item) => new URL(item.url()).pathname === path && item.request().method() === method); void pending.catch(() => undefined); return pending; };
     await page.goto(target.href, { waitUntil: "domcontentloaded" });
@@ -144,8 +150,24 @@ export async function recordPrecinctWalkthrough(): Promise<void> {
     await page.locator("canvas").focus(); await page.keyboard.press("KeyV"); await expect(page.locator(".precinct-controls")).toContainText("Third person");
     await bodyReady; await rendered(); await hold(5000);
     await chapter("Third-person character movement: keyboard controls");
-    await page.keyboard.down("KeyW"); await hold(2800); await page.keyboard.up("KeyW"); await hold(1200);
-    await page.keyboard.down("KeyD"); await hold(900); await page.keyboard.up("KeyD"); await hold(1500);
+    const shownPosition = async () => {
+      const transform = await page.locator(".precinct-minimap g").getAttribute("transform");
+      const coordinates = /^translate\(([-\d.]+) ([-\d.]+)\)/u.exec(transform ?? "");
+      const x = Number(coordinates?.[1]), z = Number(coordinates?.[2]);
+      if (!Number.isFinite(x) || !Number.isFinite(z)) throw new Error("Missing visible minimap position.");
+      return { x, z };
+    };
+    // Hold actual input until visible route presentation confirms meaningful displacement.
+    // A fixed short delay can record only a tiny step on the software renderer.
+    await page.bringToFront(); await page.locator("canvas").focus();
+    expect(await page.evaluate(() => document.hasFocus())).toBe(true);
+    const beforeWalk = await shownPosition();
+    try {
+      await page.keyboard.down("KeyW");
+      await expect.poll(async () => { const now = await shownPosition(); return Math.hypot(now.x - beforeWalk.x, now.z - beforeWalk.z); }, { timeout }).toBeGreaterThan(1.2);
+    } finally { await page.keyboard.up("KeyW"); }
+    const afterWalk = await shownPosition(); await hold(1500);
+    result.checks.push({ name: "Keyboard walking changes the visible minimap by more than 1.2 metres", passed: true, detail: JSON.stringify({ beforeWalk, afterWalk }), durationMs: Date.now() - started });
     await page.keyboard.press("KeyV"); await expect(page.locator(".precinct-controls")).toContainText("First person");
     await chapter("Reception: fictional colleague, fixed local dialogue");
     await travel("1", "Reception", false); await hold(2500); await page.keyboard.press("KeyE");
@@ -155,8 +177,8 @@ export async function recordPrecinctWalkthrough(): Promise<void> {
     await page.getByRole("button", { name: "Where do I begin?", exact: true }).click(); await page.locator(".npc-subtitle").scrollIntoViewIfNeeded(); await hold(3500);
     if (!short) {
     await chapter("Explicit connection to the local scripted fixture; no live model");
-    await travel("6", "Enter interview"); const me = response("/api/me", "GET");
-    await page.getByRole("button", { name: "Connect local backend", exact: true }).click(); await json(await me);
+    await travel("6", "Enter interview"); const me = response("/api/me", "GET"), cases = response("/api/cases", "GET");
+    await page.getByRole("button", { name: "Connect local backend", exact: true }).click(); await json(await me); await json(await cases);
     const ack = response("/api/me/ack-ex4"); await page.getByRole("button", { name: "I understand the ground rule", exact: true }).click(); await json(await ack);
     await travel("2", "Choose a case"); await hold(2500); await page.getByRole("button", { name: /Select Local scripted fixture:/u }).click(); await hold(1500);
     await chapter("Public dossier: readable documents and an explicit working notebook");
