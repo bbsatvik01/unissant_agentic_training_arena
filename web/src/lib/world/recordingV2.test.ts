@@ -3,7 +3,7 @@ import raw from "../../fixtures/recordings/F01-truthful.json";
 import { initialTrialState, trialReducer } from "../trial/trialReducer";
 import { parseRecording } from "./parseRecording";
 import { END_TAIL_MS, mergeRecordingEvents, RECORDING_FORMAT, RECORDING_FORMAT_V2, seek, startCursor, type Recording } from "./recording";
-import { initialWorldReplayState, MAX_WORLD_TIME_MS, reduceWorldEvent, type WorldEvent } from "./worldEvents";
+import { isWorldEvent, initialWorldReplayState, MAX_WORLD_TIME_MS, reduceWorldEvent, type WorldEvent } from "./worldEvents";
 
 const pose = (t_ms: number, x: number): WorldEvent => ({ t_ms, kind: "pose", data: {
   actor_id: "trainee", position: [x, 0, 0], rotation: [0, 0, 0, 1], animation: { clip: "walk", time: t_ms / 1000 },
@@ -156,7 +156,7 @@ describe("deterministic merged timeline and seek", () => {
       for (const entry of timeline) {
         if (entry.t_ms > t) break;
         if (entry.source === "trial") trial = trialReducer(trial, { type: "frame", frame: entry.frame });
-        else world = reduceWorldEvent(world, entry.event);
+        else if (isWorldEvent(entry.event)) world = reduceWorldEvent(world, entry.event);
       }
       const cursor = seek(rec, startCursor(rec), t);
       expect(cursor.state).toEqual(trial);

@@ -46,7 +46,7 @@ def test_export_writes_the_recording(tmp_path: Path, monkeypatch: pytest.MonkeyP
     out = tmp_path / "recordings" / "t.json"
     assert export_run.main(["--trial", str(rig.db.trial_id), "--out", str(out)], _env(tmp_path)) == 0
     rec = json.loads(out.read_text(encoding="utf-8"))
-    assert rec["format"] == "arena.recording.v1"
+    assert rec["format"] == "arena.recording.v2"
     assert rec["trial_id"] == str(rig.db.trial_id)
     assert seen == [user_id_for(EMAIL)]
 

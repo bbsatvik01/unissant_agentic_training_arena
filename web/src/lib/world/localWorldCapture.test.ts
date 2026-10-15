@@ -52,6 +52,36 @@ describe("new local world-only run", () => {
     const back = seek(result.recording, end, 500); expect(back.world.notes.get("n")?.text).toBe("Read the source first."); expect(back.world.camera?.mode).toBe("third");
     expect(back.state.view?.turns).toEqual([]); expect(back.state.view?.runningFinding).toBeNull(); expect(back.state.view?.debriefReady).toBeNull();
   });
+  it("timestamps explicit modal actions on the existing clock without waiting for another frame", () => {
+    const env = setup(); const controller = env.local.controller;
+    const doc = historical.case.initial_documents[0]; if (doc === undefined) throw new Error("fixture");
+    controller.start(); controller.camera({ mode: "first", position: [0, 2, 1], quaternion: [0, 0, 0, 1], fov: 60 });
+    env.at(10_500); expect(controller.ui({ action: "panel", panel_id: "dossier", open: true })).toBe(true);
+    env.at(10_600); expect(controller.input({ action: "notebook", operation: "upsert", note_id: "n", text: "Actual action time" })).toBe(true);
+    env.at(10_700); expect(controller.input({ action: "evidence", operation: "inspect", record_id: doc.doc_id })).toBe(true);
+    env.at(10_800); expect(controller.inputs([
+      { action: "notebook", operation: "delete", note_id: "n" },
+      { action: "notebook", operation: "upsert", note_id: "next", text: "Atomic replacement" },
+    ])).toBe(true);
+    env.at(10_900); env.local.advanceClock(); controller.camera({ mode: "third", position: [0, 2, 2], quaternion: [0, 0, 0, 1], fov: 60 });
+    expect(controller.exportEvents().events.map((event) => event.t_ms)).toEqual([0, 500, 600, 700, 800, 800, 900]);
+    expect(env.local.clock.current).toBe(900);
+  });
+  it("does not record refused actions or advance stopped time, and resume retains its existing epoch policy", () => {
+    const env = setup(); const controller = env.local.controller;
+    const panel = { action: "panel" as const, panel_id: "dossier", open: true };
+    expect(controller.ui(panel)).toBe(false); expect(env.local.clock.current).toBe(0);
+    controller.start(); env.at(10_100); expect(controller.ui(panel)).toBe(true);
+    env.at(10_200); controller.stop(); env.at(90_000);
+    expect(controller.ui(panel)).toBe(false); expect(controller.input({ action: "notebook", operation: "clear" })).toBe(false);
+    expect(controller.inputs([{ action: "notebook", operation: "clear" }])).toBe(false); expect(env.local.clock.current).toBe(200);
+    expect(controller.exportEvents().events.map((event) => event.t_ms)).toEqual([100]);
+    expect(controller.start()).toBe(true); env.at(90_050); expect(controller.ui(panel)).toBe(true);
+    expect(controller.exportEvents().events.map((event) => event.t_ms)).toEqual([100, 250]);
+    env.at(90_100); expect(controller.input({ action: "text", field_id: "unrelated-editor", value: "never record" })).toBe(false);
+    expect(controller.getSnapshot().issue).toBe("private-input");
+    expect(controller.exportEvents().events.map((event) => event.t_ms)).toEqual([100, 250]);
+  });
   it("hard-disables transport and allows only public packet IDs, not historical releases or interview typing", async () => {
     const env = setup(); const sender = vi.fn(() => Promise.resolve()); env.local.controller.start();
     expect(env.local.controller.enableSender(sender)).toBe(false);

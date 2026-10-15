@@ -1,0 +1,8 @@
+src/lib/precinct/crowdNavmesh.test.ts
+src/lib/precinct/knownWorldNavigation.test.ts
+src/lib/precinct/precinctNavmesh.test.ts
+src/lib/precinct/worldNavigation.actual.test.ts
+src/lib/precinct/worldNavigation.test.ts
+src/lib/precinct/movement.test.ts
+src/lib/precinct/crowdNavigation.test.ts
+src/lib/precinct/staffCrowd.test.ts

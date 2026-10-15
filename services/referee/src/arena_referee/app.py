@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import os
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 from typing import get_args
 
 from fastapi import FastAPI, Response
@@ -28,7 +29,7 @@ from arena_core.http_guard import (
     RequestFacts,
     evaluate_request,
 )
-from arena_core.identity import DevIdentity, resolve_dev_user
+from arena_core.identity import AllowlistedUser, DevIdentity, load_allowlist, resolve_dev_user
 from arena_core.providers.mode import model_adapter
 from arena_core.providers.port import AgentPort
 from arena_core.referee.fake_referee import FAKE_REFEREE_REPLIES
@@ -149,6 +150,11 @@ def create_app(env: dict[str, str] | None = None) -> FastAPI:
     debrief_deps = db.make_debrief_deps(connect, scoring_deps, provenance)
 
     identity: DevIdentity | None = resolve_dev_user(resolved_env) if settings.is_local else None
+    # Instructor mode's class (UI v2, D-036): the allowlist's investigators, read from the same users file the dev
+    # identity was just resolved from. The hosted identity mapping (WP-33) brings its own.
+    allowlist: dict[str, AllowlistedUser] = (
+        load_allowlist(Path(resolved_env["ARENA_USERS_FILE"].strip())) if settings.is_local else {}
+    )
     git_sha = resolved_env.get("ARENA_GIT_SHA")
     if not git_sha:
         # Codex finding #3: a silent "0"*40 fallback here would let every misconfigured deployment share
@@ -175,6 +181,7 @@ def create_app(env: dict[str, str] | None = None) -> FastAPI:
     app.state.debrief_deps = debrief_deps
     app.state.prompt_context = PromptContext(prompts=prompts, rubric=rubric)
     app.state.identity = identity
+    app.state.allowlist = allowlist
     app.state.git_sha = git_sha
     # QQ (M09) is not computed by this process (arena_core.referee.leaderboard's `not_computed` list says
     # so on every published board); qq_calibrated stays False until a later WP wires QQ and its freeze.

@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from uuid import UUID
 
 from fastapi import HTTPException, Request
@@ -13,9 +14,11 @@ from fastapi.responses import JSONResponse
 
 from arena_api.referee_client import DebriefCall
 from arena_api.voice_relay import RelayRegistry, SubjectDialer
+from arena_core.agents.templates import REPO_ROOT
 from arena_core.db.arena import ArenaDb, ArenaError
 from arena_core.db.pool import Connector
 from arena_core.identity import DevIdentity
+from arena_core.npc.chat import DEFAULT_MESSAGES_PER_MIN, MessageLimit, NpcChat
 from arena_core.providers.port import AgentPort
 from arena_core.turns.orchestrator import Orchestrator, SubjectCall, TrialSignals, TurnRefusedError, refusal
 
@@ -41,6 +44,9 @@ class ApiState:
     make_db: Callable[[Connector, UUID], ArenaDb] = ArenaDb
     voice_dialer: SubjectDialer | None = None
     voice_relays: RelayRegistry = field(default_factory=RelayRegistry)
+    coachlab_root: Path = REPO_ROOT  # the repository whose coachlab/ registry the Coach Lab routes read (D-036)
+    npc: NpcChat | None = None  # None: no NPC chat in this process (404)
+    npc_limit: MessageLimit = field(default_factory=lambda: MessageLimit(DEFAULT_MESSAGES_PER_MIN))
 
     def db(self, actor: UUID) -> ArenaDb:
         return self.make_db(self.connect, actor)

@@ -34,7 +34,9 @@ from arena_core.http_guard import (
     evaluate_request,
 )
 from arena_core.identity import IdentityError, resolve_dev_user
-from arena_core.providers.mode import model_adapter
+from arena_core.npc.chat import FAKE_NPC_REPLIES, RATE_VAR, MessageLimit, NpcChat, messages_per_min
+from arena_core.providers.mode import FAKE, MODE_VAR, model_adapter
+from arena_core.providers.openai_compat import ChatClient, configured_endpoints
 from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.spend.guard import DbSpendGuard
 from arena_core.turns.fake_coach import FAKE_COACH_REPLIES
@@ -113,7 +115,7 @@ def create_app(state: ApiState, config: GuardConfig, *, phoenix_url: str | None 
 
 def state_from_env(env: Mapping[str, str]) -> ApiState:
     """The process state: boot checks, the role's DSN, the dev identity, the agent port (fake replies registered
-    for `ARENA_MODEL_MODE=fake`), and the caller-token clients for arena-subject and arena-referee."""
+    for `ARENA_MODEL_MODE=fake`), the caller-token clients for arena-subject and arena-referee, and NPC chat."""
     settings = boot(ArenaRole.API, env)
     connect = PooledConnector(settings.dsn)
     try:
@@ -121,7 +123,13 @@ def state_from_env(env: Mapping[str, str]) -> ApiState:
     except IdentityError as exc:
         log.warning("arena-api: no dev identity (%s); every /api/* request will be refused 403", exc)
         identity = None
-    port = AgentPort(model_adapter(env, canned=FAKE_COACH_REPLIES), DbSpendGuard(connect), PortOptions())
+    port = AgentPort(
+        model_adapter(env, canned={**FAKE_COACH_REPLIES, **FAKE_NPC_REPLIES}), DbSpendGuard(connect), PortOptions()
+    )
+    # NPC chat (UI v2, D-035): the free endpoints whose keys are set, never in fake mode (no network there), then the
+    # Gemini fallback on this same port and guard.
+    fake = env.get(MODE_VAR, "").strip() == FAKE
+    npc = NpcChat(endpoints=[] if fake else configured_endpoints(env), client=ChatClient(), port=port)
     token = env.get("ARENA_LOCAL_CALLER_TOKEN", "")
     return ApiState(
         connect=connect,
@@ -134,4 +142,6 @@ def state_from_env(env: Mapping[str, str]) -> ApiState:
         subject_name=env.get("ARENA_TRAINING_SUBJECT", "S1"),
         case_draw_seed=env.get("ARENA_CASE_DRAW_SEED", "0"),
         planned_n=int(env.get("ARENA_PLANNED_N", "30")),
+        npc=npc,
+        npc_limit=MessageLimit(messages_per_min(env.get(RATE_VAR))),
     )

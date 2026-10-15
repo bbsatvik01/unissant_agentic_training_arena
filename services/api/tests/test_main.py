@@ -12,6 +12,7 @@ from typing import Any
 import pytest
 
 from arena_api import __main__ as api_main
+from arena_api.app import state_from_env
 from arena_api.state import PORT
 from tools.tests.subprocess_support import good_env, popen_role_module, refusal_cases, run_role_module, with_overrides
 
@@ -20,6 +21,7 @@ MODULE = "arena_api"
 OWN_DSN_VAR = "ARENA_PUBLIC_DSN"
 GOOD_ENV = {**good_env(ROLE, OWN_DSN_VAR), "ARENA_MODEL_MODE": "fake"}
 TIMEOUT_S = 10.0
+NPC_LIMIT = 7
 
 
 def _output_until(fd: int, needle: bytes, deadline: float) -> bytes:
@@ -96,3 +98,14 @@ def test_main_exits_1_in_process_on_a_refusal(monkeypatch: pytest.MonkeyPatch) -
     with pytest.raises(SystemExit) as exc_info:
         api_main.main()
     assert exc_info.value.code == 1
+
+
+def test_npc_chat_in_fake_mode_calls_no_free_endpoint_and_takes_its_limit_from_the_environment() -> None:
+    """UI v2 (D-035): fake mode never reaches a network, so no free endpoint is enabled even with its key set; the
+    per-user message limit comes from ARENA_NPC_MESSAGES_PER_MIN, and a malformed value refuses to start."""
+    state = state_from_env({**GOOD_ENV, "GROQ_API_KEY": "k", "ARENA_NPC_MESSAGES_PER_MIN": "7"})
+    assert state.npc is not None
+    assert list(state.npc.endpoints) == []
+    assert state.npc_limit.per_minute == NPC_LIMIT
+    with pytest.raises(ValueError, match="ARENA_NPC_MESSAGES_PER_MIN"):
+        state_from_env({**GOOD_ENV, "ARENA_NPC_MESSAGES_PER_MIN": "lots"})

@@ -1,0 +1,9 @@
+{
+  "commit": "d1be6fde11ac6e0407606b4e42fe72d34add8037",
+  "archive": "cache/whisper.cpp-d1be6fde11ac6e0407606b4e42fe72d34add8037.tar.gz",
+  "checked_regular_files": 2039,
+  "failures": [],
+  "missing_blobs": [],
+  "submodules": [],
+  "method": "Read archive members in memory; compare Git blob SHA-1 to official pinned Git tree; no source extraction or execution."
+}

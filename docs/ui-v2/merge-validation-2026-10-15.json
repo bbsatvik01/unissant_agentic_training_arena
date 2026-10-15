@@ -1,0 +1,538 @@
+{
+  "scope": "Genuine ui-v2 working tree: upstream 693c8c193229ac70754ffaad8335d757ee684a1a reconciliation plus approved capture/navigation integration",
+  "date_utc": "2026-10-15",
+  "status": "focused gate passed",
+  "not_claimed": [
+    "complete aggregate check",
+    "coverage gate",
+    "production build",
+    "native browser or WebGL acceptance",
+    "whole-world exact replay"
+  ],
+  "toolchain": {
+    "node": "24.21.0",
+    "entrypoints": "absolute pinned Node and direct installed TypeScript/ESLint/Vitest; no package manager"
+  },
+  "unchanged_gates": {
+    "app_and_tools": "checked-in strict configs, no skipLibCheck",
+    "lint_max_warnings": 0,
+    "vitest_max_workers": 1,
+    "test_timeout_ms": 5000,
+    "hook_timeouts": "checked-in defaults unchanged",
+    "assertions_and_tests": "unchanged, including upstream recording.test.ts",
+    "coverage": "not run; existing 90% floors unmodified"
+  },
+  "initial_attempt": {
+    "test_files": 25,
+    "passed_files": 23,
+    "tests": 444,
+    "passed": 441,
+    "failed": 3,
+    "success": false,
+    "phases": [
+      {
+        "utc": "2026-10-15T20:04:23Z",
+        "phase": "preflight",
+        "exit_code": 0
+      },
+      {
+        "utc": "2026-10-15T20:05:30Z",
+        "phase": "app-types",
+        "exit_code": 0
+      },
+      {
+        "utc": "2026-10-15T20:06:24Z",
+        "phase": "tools-types",
+        "exit_code": 0
+      },
+      {
+        "utc": "2026-10-15T20:07:20Z",
+        "phase": "changed-lint",
+        "exit_code": 0
+      },
+      {
+        "utc": "2026-10-15T20:09:17Z",
+        "phase": "focused-runtime",
+        "exit_code": 1
+      }
+    ],
+    "failures": [
+      {
+        "file": "src/routes/PrecinctRoute.replay.test.tsx",
+        "line": 72,
+        "test": "captures only after explicit Start and reviews its own local run through one existing Canvas",
+        "error": "Test timed out in 5000ms",
+        "reported_duration_ms": 7241
+      },
+      {
+        "file": "src/lib/world/recording.test.ts",
+        "line": 126,
+        "error": "Expected /must be a list/; received annotations: must be a bounded list",
+        "behavior": "Invalid annotations were rejected; diagnostic wording mismatch"
+      },
+      {
+        "file": "src/lib/world/recording.test.ts",
+        "line": 150,
+        "error": "Expected /exactly/; received world_events: invalid bounded transport envelope, kind, data or t_ms order",
+        "behavior": "Extra envelope member was rejected; diagnostic wording mismatch"
+      }
+    ]
+  },
+  "approved_correction": {
+    "path": "web/src/lib/world/recordingTelemetry.ts",
+    "before_sha256": "f9aadc6900983300ba47b552dc04e6b0b287dd1f8c052d34be87edcd8e174579",
+    "after_sha256": "a0b4e118e0cd2d40634574f04b97e5269ac2bfbbfdedc8b30dcd91e0d073a010",
+    "behavior": "Only error wording; rejection, bounds, callers and all tests unchanged",
+    "patch_sha256": "10da6f060c561b9a7b98da20ddb906e3f803b7333668d466f840006347ee78fd"
+  },
+  "route_diagnosis": {
+    "method": "Non-shipping in-memory timing transform around original queries, event dispatch, render and readiness; original assertions/5-second limit unchanged",
+    "first_profile": "First case passed 1919 ms; second timed out 5656 ms. Later second-case measurements were invalidated by its intentional performance.now mock.",
+    "corrected_profile": "Bound native performance function before the test mock. Both unchanged cases passed: 1793 ms and 747 ms; import readiness 47/36 ms; role queries approximately 444/270 ms.",
+    "conclusion": "Costs varied across render, event dispatch and queries; no persistent production stall or query-dominated cause established. Tests and production behavior were not changed to address timing."
+  },
+  "final_attempt": {
+    "test_files": 25,
+    "passed_files": 25,
+    "tests": 444,
+    "passed": 444,
+    "failed": 0,
+    "success": true,
+    "phases": [
+      {
+        "utc": "2026-10-15T20:12:55Z",
+        "phase": "preflight",
+        "exit_code": 0
+      },
+      {
+        "utc": "2026-10-15T20:13:48Z",
+        "phase": "app-types",
+        "exit_code": 0
+      },
+      {
+        "utc": "2026-10-15T20:14:55Z",
+        "phase": "tools-types",
+        "exit_code": 0
+      },
+      {
+        "utc": "2026-10-15T20:16:21Z",
+        "phase": "changed-lint",
+        "exit_code": 0
+      },
+      {
+        "utc": "2026-10-15T20:18:01Z",
+        "phase": "focused-runtime",
+        "exit_code": 0
+      },
+      {
+        "utc": "2026-10-15T20:18:02Z",
+        "phase": "postflight",
+        "exit_code": 0
+      }
+    ]
+  },
+  "inputs": {
+    "initial_manifest_sha256": "024e64ac7257bbdb50159dae8aa93ba76859b8af335929c8fe625d57d21ce98b",
+    "final_manifest_sha256": "d62454bc98d1ab754bce1711cee23de777f5fce391f9a626fbb793ac49f509c8",
+    "files": [
+      {
+        "path": "assets-src/precinct-world-navmesh-report.json",
+        "sha256": "e468c4f968d5065bbe4e8d5eba1a57e2ff933d8d325fca2a9990a33ac15532b2"
+      },
+      {
+        "path": "web/eslint.config.js",
+        "sha256": "842967152270e143e75599e911a8d19a8e0a835149a14f75c4e4049f30f0b0a0"
+      },
+      {
+        "path": "web/eslint.restrictions.d.ts",
+        "sha256": "21cca62bc1f7f8b79c71b332a39d0d226c7719f6c1a4f4e233db4dcec99a4370"
+      },
+      {
+        "path": "web/eslint.restrictions.js",
+        "sha256": "1856e57bf27aaae5b5aa9d1d8a3fc6f65de343181c9456a4afed27542d9d5337"
+      },
+      {
+        "path": "web/package.json",
+        "sha256": "605408808ab4f4944207b2319451d7b1032685f4463382247d80e253855fd270"
+      },
+      {
+        "path": "web/pnpm-lock.yaml",
+        "sha256": "3b1ab24a57ae7def0ebfe9c4bd84bb1b7c4e1c0fbdfcd24b68e23f7ff5814198"
+      },
+      {
+        "path": "web/public/world/precinct-courtyard-navmesh.json",
+        "sha256": "4da61e8ecff9a5895dc674739a55f46d14416feedde5db948066d2528e05e925"
+      },
+      {
+        "path": "web/public/world/precinct-office-navmesh.json",
+        "sha256": "04d6cb5f47316474a6d8a98a1ed14363094a4d3562530dc0a887d316d56b6b64"
+      },
+      {
+        "path": "web/src/components/precinct/PrecinctCanvas.tsx",
+        "sha256": "af359c64f76a41094980531e873ea363be7bdc0f7b52d623665dbe26fa69df35"
+      },
+      {
+        "path": "web/src/components/precinct/PrecinctControls.navmesh.test.tsx",
+        "sha256": "ecce6ae7a7446ad5af80676d53619c416b1f6df4c213c9dad49a953e7359d54a"
+      },
+      {
+        "path": "web/src/components/precinct/PrecinctNavigationStatus.test.tsx",
+        "sha256": "d8fcb34a8ffae94e8fa8816d648cc03525f0d7dbb2ef1cc4854e7f8c47a3bb35"
+      },
+      {
+        "path": "web/src/components/precinct/PrecinctNavigationStatus.tsx",
+        "sha256": "a5b46345cbd1409a67f86bba4a3d95534c295c2543509ef1d035b8b725ac887e"
+      },
+      {
+        "path": "web/src/components/precinct/ReplayTheaterPanel.telemetry.test.tsx",
+        "sha256": "6493564b9333d1cb94b5d74c45b5a900fb5f691eecb3bc2470f781b5302b9202"
+      },
+      {
+        "path": "web/src/components/precinct/ReplayTheaterPanel.test.tsx",
+        "sha256": "d573499bf4aedc85d5cb832dcf6243de0f749708e34c932e665ccf045e852206"
+      },
+      {
+        "path": "web/src/components/precinct/ReplayTheaterPanel.tsx",
+        "sha256": "e757469cd644d480441872ad5f9fdeb3689e53d5486915272ef963a531994626"
+      },
+      {
+        "path": "web/src/components/precinct/sceneTypes.ts",
+        "sha256": "4f062d452175aca5a1e360e47dffdabd6c7a4729c191a170e5379084ab6aad3b"
+      },
+      {
+        "path": "web/src/lib/api/arena.ts",
+        "sha256": "7c49b11191e7548e9b02522029020e76479962bd54e50105e2535159f62832f5"
+      },
+      {
+        "path": "web/src/lib/api/worldEventSender.bounds.test.ts",
+        "sha256": "1a54e09593c9392d376ab386415f17e23b3ba8c2e124ef77b7ce1421c974b91a"
+      },
+      {
+        "path": "web/src/lib/api/worldEventSender.test.ts",
+        "sha256": "a0453af0efb81f6dddcd3dcb5e305e1babcaa5bae44b957935964b84a1e89f68"
+      },
+      {
+        "path": "web/src/lib/api/worldEventSender.ts",
+        "sha256": "05e5a220fe6332541cb501b04a77b29a821c28c59cc41dc0175f5aa5acc1c58b"
+      },
+      {
+        "path": "web/src/lib/api/worldEventSenderLocalFinding.test.ts",
+        "sha256": "d1a40c3a7a6ef74819fab7c67f2cae3f3ab8426cca2509b07c0f0804a963a78b"
+      },
+      {
+        "path": "web/src/lib/precinct/crowdNavigation.ts",
+        "sha256": "9f8f7a56a265e94040cab0fcb037365a7390b4b58762bc4b624797fb76d91549"
+      },
+      {
+        "path": "web/src/lib/precinct/crowdNavmesh.test.ts",
+        "sha256": "adec2098771cf764bd244d2965c923a975732b248e8580e7f46dbd7e318afd48"
+      },
+      {
+        "path": "web/src/lib/precinct/knownWorldNavigation.test.ts",
+        "sha256": "3f17bcd477815b4226f099687cdf8924a508fd9813aea6c8e2e3cd731e157c0b"
+      },
+      {
+        "path": "web/src/lib/precinct/knownWorldNavigation.ts",
+        "sha256": "7f5cbc2ae1e94f62e1050796e8f68c3d97d8308a96ae09ea60f645cc7a7fd147"
+      },
+      {
+        "path": "web/src/lib/precinct/precinctNavmesh.test.ts",
+        "sha256": "3f6c53af46458430cacf527237d55030c220bc67eb541c22a0bc0996471a743f"
+      },
+      {
+        "path": "web/src/lib/precinct/precinctNavmesh.ts",
+        "sha256": "8a5357541a02aaf51f3a2442b329c026f892f69f77116ae54945b976e6b4b4e8"
+      },
+      {
+        "path": "web/src/lib/precinct/staffCrowd.ts",
+        "sha256": "e1d070b507b55511bb43c406e7da7e7c3b44c044296076788b85cc91723245eb"
+      },
+      {
+        "path": "web/src/lib/precinct/worldNavigation.actual.test.ts",
+        "sha256": "eab7d6191e18eae54f587469f7c58fe0be55de5baea41c93d5198d8740b2c955"
+      },
+      {
+        "path": "web/src/lib/precinct/worldNavigation.test.ts",
+        "sha256": "d16c82541fc3e483eb99c83047070d0ef53c400c412b189f73a21baa620587c0"
+      },
+      {
+        "path": "web/src/lib/precinct/worldNavigation.ts",
+        "sha256": "164672f3059a936ff24a214f25232775fcb8948a145a068a76520babe87b08ee"
+      },
+      {
+        "path": "web/src/lib/trial/sessionObservation.test.ts",
+        "sha256": "93c7d171d0572318e619d7b8c46235a303d95d46ad81806f2b58a21b81234534"
+      },
+      {
+        "path": "web/src/lib/world/captureAudioBoundary.test.ts",
+        "sha256": "5dd7fb5786b5d503c97d227448cce8f9c12367c78cfb6500da10206f7eaa2d4a"
+      },
+      {
+        "path": "web/src/lib/world/clientCaptureSchema.test.ts",
+        "sha256": "b483b261991d2c0d1e98cef2c672631f867bbc6ad33ee484ea016928141a49b6"
+      },
+      {
+        "path": "web/src/lib/world/freshClientCapture.test.ts",
+        "sha256": "590f8e926882daf9641a40dd2f315417ef7ce55481d5c15a3fe5cc8f613aaf52"
+      },
+      {
+        "path": "web/src/lib/world/localWorldCapture.test.ts",
+        "sha256": "4e42f033f6856fe5550f52426936d8d04945573d510fc368d12a8a2f1a98785d"
+      },
+      {
+        "path": "web/src/lib/world/localWorldCapture.ts",
+        "sha256": "f236adfd5f45635e901bd883d93a9e3b0ad15b2e1b7f854a6a97664aeecd2c08"
+      },
+      {
+        "path": "web/src/lib/world/notebookEvents.test.ts",
+        "sha256": "8ebcb9c37e1e82f75d1c8944559a9035ab24f7b15748fab91286c09d21b0d0ee"
+      },
+      {
+        "path": "web/src/lib/world/parseRecording.ts",
+        "sha256": "7cff05e8e55e7fb44a660f4724088ca2193419f70649ea8a90d1df13b956d0b9"
+      },
+      {
+        "path": "web/src/lib/world/recording.test.ts",
+        "sha256": "4366a5f81e37276fcc6796bf4216c4e50c5524c1961a40ddaaff6db3c63007f7"
+      },
+      {
+        "path": "web/src/lib/world/recording.ts",
+        "sha256": "66a1f0e08b10ef76ed0dc88b65808d214ff12e1ecea936cdb48a693d475fe37b"
+      },
+      {
+        "path": "web/src/lib/world/recordingFiles.test.ts",
+        "sha256": "dba37ffbf9c54003aa3f05c977341884b72c9f9384105ef3ee63b7a228f6d3c2"
+      },
+      {
+        "path": "web/src/lib/world/recordingFiles.ts",
+        "sha256": "591d0c49cd98a49bf1e413b59494b0e8f58d1702c3a16e121a77212eee84f26c"
+      },
+      {
+        "path": "web/src/lib/world/recordingTelemetry.test.ts",
+        "sha256": "ecc3707aa4f6e1d561b92230a53a3049224dc4042bda967bbe6c0b0dd914e03b"
+      },
+      {
+        "path": "web/src/lib/world/recordingTelemetry.ts",
+        "sha256": "a0b4e118e0cd2d40634574f04b97e5269ac2bfbbfdedc8b30dcd91e0d073a010"
+      },
+      {
+        "path": "web/src/lib/world/recordingV2.test.ts",
+        "sha256": "5858eb9e5fe51b1b4ef7c2c136d12a2ed047440457c7807d96442b52e50e9484"
+      },
+      {
+        "path": "web/src/lib/world/sceneCapture.test.ts",
+        "sha256": "096f6b7cfed11262767e7afa26c899314b92b7f770082ee03ab3eae0de3f6129"
+      },
+      {
+        "path": "web/src/lib/world/sceneContext.test.ts",
+        "sha256": "65ad3fea36ee3eaf473c79b9ef0d8bfcb6a74ced58ae38be26589a5a4cfb2881"
+      },
+      {
+        "path": "web/src/lib/world/worldCapture.test.ts",
+        "sha256": "fa5afdf63a5685f379db26ce921d3c31103b2af05c0015f7d70c06e7cec91dae"
+      },
+      {
+        "path": "web/src/lib/world/worldCapture.ts",
+        "sha256": "36dc0e70c01da42f045d06b8fc5ec2ebff55fd92faf813eb10b15329d154d101"
+      },
+      {
+        "path": "web/src/lib/world/worldEvents.test.ts",
+        "sha256": "84413c0669cfb3f45ffde7d74d6d0ef69ecb15c9cb208c041d8b60ad7dd8f5ad"
+      },
+      {
+        "path": "web/src/routes/PrecinctRoute.navmesh.test.tsx",
+        "sha256": "db6d15ef5193c433f8c63379dd0a7a10b1444467c8bace01b7ca7131e46e5b27"
+      },
+      {
+        "path": "web/src/routes/PrecinctRoute.replay.test.tsx",
+        "sha256": "1094e9a5221d7951e0649d8904bc2c6d9d98dc2c7fa50854ce2ccc3a15980a58"
+      },
+      {
+        "path": "web/src/routes/PrecinctRoute.tsx",
+        "sha256": "d8f1fb7b2fb082a03ed55774de8e590d5c862a44e1f0fe7c6c92f974b00a87e9"
+      },
+      {
+        "path": "web/src/routes/precinct/useLocalWorldCapture.scene.test.tsx",
+        "sha256": "0d7e5973bfd37a072771e0a4e77710501c4c4ff905295d8c9e80b0282f2f7fe5"
+      },
+      {
+        "path": "web/src/routes/precinct/usePrecinctSessionReplay.test.tsx",
+        "sha256": "9907138ca44d400fe37de96f9bd6ee86946ffe846897b70ac4004ec4895fb05b"
+      },
+      {
+        "path": "web/src/routes/world/useLiveCapture.test.tsx",
+        "sha256": "e545cccc2dc8892708d9698d351bc99dd4473a8f9d5059f0a5ec1ed1be8fd395"
+      },
+      {
+        "path": "web/src/routes/world/usePlaybackPublication.test.tsx",
+        "sha256": "ba55cdef22fbebb9fb231d5ef4cfd7c36def911bf992f3f459a8a0c54a746152"
+      },
+      {
+        "path": "web/src/routes/world/usePlaybackWorld.test.tsx",
+        "sha256": "433456e90f8cac00ec251977a0e4cf409607b25990824bb5b13a6ff1580669f1"
+      },
+      {
+        "path": "web/src/test/navmesh-digest.ts",
+        "sha256": "f679f3b6d1fd34fb05f20860f4cf32ee532169c0767bb9b517f6c5929ea883ba"
+      },
+      {
+        "path": "web/tools/author-precinct-world-navmeshes.ts",
+        "sha256": "bbb8d80ee3eec200f1138857a1ead69108eb7783c943920da44ebf347ed52328"
+      },
+      {
+        "path": "web/tsconfig.app.json",
+        "sha256": "6699b448a36ffc5f66d8e64e9797a92f060aa18658dfd14fec674e4ca2fed2ce"
+      },
+      {
+        "path": "web/tsconfig.json",
+        "sha256": "e8d6f7b50828db3953e21c7e92584f9206b3cd2551b4012507372afbb7fe9ce3"
+      },
+      {
+        "path": "web/tsconfig.node.json",
+        "sha256": "8a929232962f3f2d4f86c9d67a62f992ba741b00edb754b83ec44914d888bb6a"
+      },
+      {
+        "path": "web/vite.config.ts",
+        "sha256": "d3e8fb039a82a86d845824ad879aff4fcefa825cbf26d557fda1496bca268fbc"
+      },
+      {
+        "path": "web/vitest.config.ts",
+        "sha256": "70d11deed66b5302c8728e1291c0d5db7225c169ee7df8dfe61e80a640e9633e"
+      }
+    ]
+  },
+  "lint_files": [
+    "src/components/precinct/PrecinctCanvas.tsx",
+    "src/components/precinct/PrecinctControls.navmesh.test.tsx",
+    "src/components/precinct/PrecinctNavigationStatus.test.tsx",
+    "src/components/precinct/PrecinctNavigationStatus.tsx",
+    "src/components/precinct/ReplayTheaterPanel.telemetry.test.tsx",
+    "src/components/precinct/ReplayTheaterPanel.tsx",
+    "src/components/precinct/sceneTypes.ts",
+    "src/lib/api/arena.ts",
+    "src/lib/api/worldEventSender.bounds.test.ts",
+    "src/lib/api/worldEventSender.ts",
+    "src/lib/precinct/crowdNavigation.ts",
+    "src/lib/precinct/crowdNavmesh.test.ts",
+    "src/lib/precinct/knownWorldNavigation.test.ts",
+    "src/lib/precinct/knownWorldNavigation.ts",
+    "src/lib/precinct/precinctNavmesh.test.ts",
+    "src/lib/precinct/precinctNavmesh.ts",
+    "src/lib/precinct/staffCrowd.ts",
+    "src/lib/precinct/worldNavigation.actual.test.ts",
+    "src/lib/precinct/worldNavigation.test.ts",
+    "src/lib/precinct/worldNavigation.ts",
+    "src/lib/trial/sessionObservation.test.ts",
+    "src/lib/world/localWorldCapture.test.ts",
+    "src/lib/world/localWorldCapture.ts",
+    "src/lib/world/parseRecording.ts",
+    "src/lib/world/recording.test.ts",
+    "src/lib/world/recording.ts",
+    "src/lib/world/recordingFiles.test.ts",
+    "src/lib/world/recordingFiles.ts",
+    "src/lib/world/recordingTelemetry.test.ts",
+    "src/lib/world/recordingTelemetry.ts",
+    "src/lib/world/recordingV2.test.ts",
+    "src/lib/world/worldCapture.ts",
+    "src/routes/PrecinctRoute.navmesh.test.tsx",
+    "src/routes/PrecinctRoute.replay.test.tsx",
+    "src/routes/PrecinctRoute.tsx",
+    "src/routes/precinct/useLocalWorldCapture.scene.test.tsx",
+    "src/test/navmesh-digest.ts",
+    "tools/author-precinct-world-navmeshes.ts"
+  ],
+  "test_files": [
+    "src/lib/world/recording.test.ts",
+    "src/lib/world/recordingV2.test.ts",
+    "src/lib/world/recordingTelemetry.test.ts",
+    "src/lib/world/recordingFiles.test.ts",
+    "src/lib/world/worldEvents.test.ts",
+    "src/lib/world/worldCapture.test.ts",
+    "src/lib/world/localWorldCapture.test.ts",
+    "src/lib/world/freshClientCapture.test.ts",
+    "src/lib/world/clientCaptureSchema.test.ts",
+    "src/lib/world/notebookEvents.test.ts",
+    "src/lib/world/sceneContext.test.ts",
+    "src/lib/world/sceneCapture.test.ts",
+    "src/lib/world/captureAudioBoundary.test.ts",
+    "src/lib/api/worldEventSender.test.ts",
+    "src/lib/api/worldEventSenderLocalFinding.test.ts",
+    "src/lib/api/worldEventSender.bounds.test.ts",
+    "src/lib/trial/sessionObservation.test.ts",
+    "src/routes/world/usePlaybackWorld.test.tsx",
+    "src/routes/world/usePlaybackPublication.test.tsx",
+    "src/routes/world/useLiveCapture.test.tsx",
+    "src/routes/precinct/usePrecinctSessionReplay.test.tsx",
+    "src/routes/precinct/useLocalWorldCapture.scene.test.tsx",
+    "src/routes/PrecinctRoute.replay.test.tsx",
+    "src/components/precinct/ReplayTheaterPanel.test.tsx",
+    "src/components/precinct/ReplayTheaterPanel.telemetry.test.tsx"
+  ],
+  "evidence": {
+    "raw_logs": "Retained outside the repository in precinct-upstream-v2-qa; hashes below pin the evidence without adding logs to source control",
+    "artifacts": [
+      {
+        "path": "results/phases.log",
+        "sha256": "f07203722db8a24e4d3776c69bcb2e776388a0a41a205176317512f089d1f284"
+      },
+      {
+        "path": "results/focused-runtime.log",
+        "sha256": "a5d2cd1548bf687b2c342ff38ad2d846d12895ec450fecb819d22c39c233a7ee"
+      },
+      {
+        "path": "results/runtime.json",
+        "sha256": "1961806e6a91bbae9449a990e974bf03e1aa31d8d1bc9196ccd2f62fd6c90fe8"
+      },
+      {
+        "path": "results/route-profile.log",
+        "sha256": "74c41177c3c80abcf7cf0cc9de44898a0b2cbefaed6f1db3b913d913537a7a4c"
+      },
+      {
+        "path": "results/route-profile.json",
+        "sha256": "1daac9509b5b6597dba98ed66d2729d0a9f0d44b8da0c380c1306f7da77e565a"
+      },
+      {
+        "path": "results/route-profile-bound-clock.log",
+        "sha256": "215f3c4018d6485451b2bcf478fb766c857413b92ff4c302bb025f5601fd5124"
+      },
+      {
+        "path": "results/route-profile-bound-clock.json",
+        "sha256": "aecab987981649aed795cf53cdc78af60e21df81c65e970e88772c3868a86790"
+      },
+      {
+        "path": "attempt-2/results/phases.log",
+        "sha256": "8bbaa9be3f9f53eb339a5ed40c8e9df657b9d3b1fa05ebb83125c1cf51a7fe69"
+      },
+      {
+        "path": "attempt-2/results/app-types.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "attempt-2/results/tools-types.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "attempt-2/results/changed-lint.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "attempt-2/results/focused-runtime.log",
+        "sha256": "3eb21d6abedbd0e63ddaa2c903db403a3d9d93ebfc6c0f8d2f884bfe773fcaf1"
+      },
+      {
+        "path": "attempt-2/results/runtime.json",
+        "sha256": "a6e453c5cfaa128ec432b0768a48cb960e75a82cda8d576f4f14ae673b991a2a"
+      },
+      {
+        "path": "attempt-2/results/postflight.log",
+        "sha256": "3078c58b401343ac012f543a96339db3155761568344af2a2d664c635e57afc0"
+      }
+    ]
+  },
+  "remaining_followups": [
+    "Run the full aggregate gate including nav-specific route/Controls/geometry suites with this generic telemetry adapter.",
+    "Native browser/WebGL acceptance remains separate.",
+    "stationLab annotationDraft requires the documented day bound and Unicode-character semantics; its assignment contract comment is stale.",
+    "The currently local-only NPC adapter allows 600 characters versus upstream 400."
+  ]
+}

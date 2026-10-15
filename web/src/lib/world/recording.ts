@@ -2,8 +2,8 @@
  * Recorded runs and their playback (D-021). A recording is the trial's opening snapshot, its wire frames in the
  * order the server emitted them with the time each arrived (`at_ms` from the start of the session), the case's
  * public metadata, and, when the session was scored, its published debrief. Playback feeds the frames through the
- * same `trialReducer` the live room uses, so the world cannot tell a replay from a live session: the live seam is
- * the reducer input (snapshot, then frames), and only the source differs (SSE versus this file).
+ * same `trialReducer` the live room uses. Sampled world rendering is a separately validated projection; opaque
+ * transport events remain preserved but inert. The reducer seam remains snapshot, then accepted frames.
  *
  * Every payload is checked against the wire contracts before use (S6 5.2): a recording that fails any check is
  * refused whole, never partly played.
@@ -11,13 +11,19 @@
 
 import type { Content, Debrief, TrialFrame, TrialSnapshot } from "../contracts/generated/types";
 import { initialTrialState, trialReducer, type TrialState } from "../trial/trialReducer";
-import { initialWorldReplayState, reduceWorldEvent, type WorldEvent, type WorldReplayState } from "./worldEvents";
+import { initialWorldReplayState, reduceWorldEvent, type WorldReplayState } from "./worldEvents";
 
 import type { ClientCaptureMetadata, ClientOrder } from "./clientCaptureSchema";
 import type { RecordingSceneContext } from "./sceneContext";
+import { uiWorldSample, type Annotation, type WorldEvent, type UI_WORLD_PROFILE } from "./recordingTelemetry";
+export type { Annotation, WorldEvent } from "./recordingTelemetry";
 
-export const RECORDING_FORMAT = "arena.recording.v1";
+/** Legacy compatibility export; new callers should use the explicit aliases. */
+export const RECORDING_FORMAT_V1 = "arena.recording.v1";
+export const RECORDING_FORMAT = RECORDING_FORMAT_V1;
 export const RECORDING_FORMAT_V2 = "arena.recording.v2";
+export const RECORDING_FORMATS = [RECORDING_FORMAT_V1, RECORDING_FORMAT_V2] as const;
+export type RecordingFormat = (typeof RECORDING_FORMATS)[number];
 
 /** Playback runs this long past the last event, so a moment it starts (a seal, a pinned record) completes. */
 export const END_TAIL_MS = 3_000;
@@ -48,13 +54,17 @@ export interface RecordingCase {
 }
 
 export interface Recording {
-  readonly format: typeof RECORDING_FORMAT | typeof RECORDING_FORMAT_V2;
+  readonly format: RecordingFormat;
   readonly trial_id: string;
   readonly case: RecordingCase;
   readonly snapshot: TrialSnapshot;
   readonly events: readonly RecordedEvent[];
-  /** V1 normalizes to []; v2 has validated UI samples, stable-sorted by session-relative t_ms. */
+  /** Preserved v2 wire telemetry. Only the checked UI adapter may apply renderable samples. */
   readonly world_events: readonly WorldEvent[];
+  readonly annotations: readonly Annotation[];
+  readonly world_profile?: typeof UI_WORLD_PROFILE;
+  /** Derived unsupported sample count, never trusted from a file or serialized. */
+  readonly unsupportedWorldEvents: number;
   readonly debrief: Debrief | null;
   /** The trial's end-of-trial snapshot (null while it ran): in assessment mode, the withheld coaching (FE-DEB-4). */
   readonly final_snapshot: TrialSnapshot | null;
@@ -134,9 +144,12 @@ export function seek(recording: Recording, cursor: PlaybackCursor, t: number): P
       arrivals = noteArrival(arrivals, frame.frame, frame.at_ms);
       next += 1;
     } else if (sample !== undefined && sample.t_ms <= target) {
-      world = reduceWorldEvent(world, sample);
-      if (recording.client_capture !== undefined && sample.kind === "input" && sample.data.action === "finding") {
-        state = trialReducer(state, { type: sample.data.operation === "submitted" ? "finding_submitted" : "finding_failed" });
+      const ui = uiWorldSample(sample);
+      if (ui !== null) {
+        world = reduceWorldEvent(world, ui);
+        if (recording.client_capture !== undefined && ui.kind === "input" && ui.data.action === "finding") {
+          state = trialReducer(state, { type: ui.data.operation === "submitted" ? "finding_submitted" : "finding_failed" });
+        }
       }
       nextWorld += 1;
     } else break;

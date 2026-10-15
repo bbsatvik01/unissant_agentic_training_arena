@@ -5,6 +5,7 @@
 - **Phase:** 1, build (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
 ## UI v2 wave (2026-10-15; hold lifted by owner)
+- Merged locally (not pushed): Coach Gym (4e2e34c area), UI v2 seams (bdd7e94). Hosted migration 20261015000100 applied. Pending owner: push main; first real Gym run (~$2, cap $3); seams approvals (NPC rate limit 30/min, free endpoints unguarded, npc call kind, voice coach card cost). Dots agent building UI v2 on GitHub branch ui-v2.
 - UI v2 is built by Codex (ChatGPT app, GPT-6 Astra) from docs/ui-v2/codex-prompt.md on branch ui-v2 of the GitHub repo (bbsatvik01/unissant_agentic_training_arena, private, empty until the first push).
 - Running: pre-push fixes (a138b421e997cad50, fix/prepush: source-map-js exclusion, CodeQL path fix, trufflehog fixture, CI web-check job, remove codeql.yml, CLAUDE.md); Coach Gym (a295794ec8e9b4661, feat/coach-gym, GEPA + ACE playbook + PROCTOR gates over Phoenix dev datasets); UI v2 backend seams (a97beecbb5e5bd194, feat/ui-v2-seams: world-events + recording v2, NPC chat on free models, instructor APIs, voice scored + coached).
 - Local stack up on real Gemini for the owner (make dev, bg bb7nlfo5d).

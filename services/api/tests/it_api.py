@@ -238,7 +238,7 @@ def test_a_whole_interview_through_the_real_functions(dsns: dict[str, str]) -> N
     assert done.json()["status"] == "completed"
 
     rec = api.get(f"/api/trials/{trial}/recording").json()
-    assert rec["format"] == "arena.recording.v1"
+    assert rec["format"] == "arena.recording.v2"
     assert rec["events"][-1]["frame"]["type"] == "trial.finalized"
     assert rec["events"][-1]["frame"]["data"]["commitment_hash"] == done.json()["commitment_hash"]
 
@@ -254,6 +254,25 @@ def test_a_whole_interview_through_the_real_functions(dsns: dict[str, str]) -> N
     assert counts == [(TURNS, TURNS, True)]
 
 
+UI_EVENT = {"t_ms": 1, "kind": "ui", "data": {"panel": "notebook", "open": True}}
+
+
+def test_world_events_reach_the_owners_recording_in_time_order(dsns: dict[str, str]) -> None:
+    """UI v2: a telemetry batch goes through `training.record_world_events` and comes back, merged by time, in the
+    trial's recording v2 (`training.v_my_world_events`)."""
+    api = Client(dsns)
+    api.post("/api/me/ack-ex4")
+    case = next(c["case_id"] for c in api.get("/api/cases").json()["cases"] if c["title"] == F01_TITLE)
+    started = api.post("/api/sessions", {"case_id": case, "mode": "practice", "voice": False, "idem_key": str(uuid4())})
+    trial = started.json()["trial_id"]
+    pose = {"t_ms": 700, "kind": "pose", "data": {"actor": "subject", "position": [0, 1, 2]}}
+    first = api.post(f"/api/trials/{trial}/world-events", {"events": [pose, {**pose, "t_ms": 300}]})
+    second = api.post(f"/api/trials/{trial}/world-events", {"events": [UI_EVENT]})
+    assert [first.json()["batch_no"], second.json()["batch_no"]] == [1, 2], (first.text, second.text)
+    rec = api.get(f"/api/trials/{trial}/recording").json()
+    assert [(e["t_ms"], e["kind"]) for e in rec["world_events"]] == [(1, "ui"), (300, "pose"), (700, "pose")]
+
+
 def test_another_users_trial_is_404_on_every_route(dsns: dict[str, str]) -> None:
     owner, other = Client(dsns), Client(dsns, USER_B)
     owner.post("/api/me/ack-ex4")
@@ -267,6 +286,7 @@ def test_another_users_trial_is_404_on_every_route(dsns: dict[str, str]) -> None
     for status in (
         other.get(f"/api/trials/{trial}/snapshot").status_code,
         other.get(f"/api/trials/{trial}/recording").status_code,
+        other.post(f"/api/trials/{trial}/world-events", {"events": [UI_EVENT]}).status_code,
         other.post(f"/api/trials/{trial}/stream-tickets").status_code,
         other.post(f"/api/trials/{trial}/turns", turn).status_code,
         other.get(f"/api/sessions/{session}").status_code,

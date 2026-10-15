@@ -55,6 +55,10 @@ LIMITS = {  # call type: (input_limit_bytes, output_limit_including_thinking)
     # bytes each plus the request JSON; output: the model's hard output-token limit (16,384), since CreateVoice takes no
     # output cap (the sample is about 1,100 tokens in Google's example).
     "voice_design": (6000, 16384),
+    # UI v2 (D-035): a colleague NPC's reply on the Gemini fallback, when no free endpoint answers. Input: the
+    # persona prompt plus at most 12 history lines and the message (400 characters each, up to 12 escaped bytes a
+    # character) and the repair allowance; output: a short reply at MINIMAL thinking.
+    "npc": (72000, 1000),
 }
 
 

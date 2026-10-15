@@ -211,3 +211,6 @@
 ## 2026-10-15 · D-037 First push accepted with two known review notes
 - **Decision:** coordinator under D-029/D-036. main pushed to the private GitHub repo after the pre-push bar (py-check, web-check, sec-check, db-test green; boot tests need free ports). The final Codex push review raised (1) the trufflehog exclude covers one test file's whole history (narrowest mechanism trufflehog offers for an immutable historical placeholder; gitleaks still scans it) and (2) CodeQL CLI tests still run inside py-check in CI (licence not shown to be violated). Both accepted for now; revisit if CI fails or the owner wants a history rewrite.
 - **Reversibility:** cheap.
+
+## 2026-10-15 · D-038 Seams approvals; push; first Coach Gym run
+- **Decision:** owner. Approved: NPC chat 30 messages/min per user (per process), free endpoints bypass the spend guard (free-tier keys only), Gemini `npc` fallback call kind within the global ceiling, a coach card per practice voice exchange. Push main to GitHub. First real Coach Gym run approved (BUDGET=3, MAX_EVALS=200; promotion still needs the owner).

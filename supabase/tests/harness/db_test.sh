@@ -17,6 +17,7 @@
 #      pgTAP suite itself uses (supabase/tests/harness/fixtures.psql); runs before the spend-guard suite since it
 #      touches no budget state and nothing it does depends on a ceiling being applied.
 #                                     pytest services/api/tests/it_api.py services/subject/tests/it_answer.py
+#                                     tools/tests/it_coach_gym.py (Coach Gym dev-only dataset SQL, D-036)
 #   6. the spend-guard integration suite (S5 4.10, 3.6; WP-05): the agent port and the guard client against the real
 #      migrated functions, then the budget-plan apply and check (D-012). It runs last on this server because it
 #      applies ceilings, reserves and turns the kill switch on and off; steps 3 and 4 read the seeds as migrated.
@@ -244,7 +245,7 @@ subject_integration() {
   local dsn="$ADMIN/postgres"
   (cd "$ROOT" && ARENA_IT_ADMIN_DSN="$dsn" uv run --locked pytest -c pyproject.toml --rootdir . \
     -p no:cacheprovider -W error services/api/tests/it_api.py services/referee/tests/it_admin.py \
-    services/subject/tests/it_answer.py)
+    tools/tests/it_coach_gym.py services/subject/tests/it_answer.py)
 }
 
 # Runs last: `start` replaces ADMIN, which the steps on the Supabase path's server read.

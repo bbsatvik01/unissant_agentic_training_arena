@@ -1,0 +1,4 @@
+{
+  "families": ["F03", "F05"],
+  "note": "Coach Gym dev holdout (D-036): about a quarter of the dev families, fixed. The optimizer and the playbook never see these families; only the grader scores champion and challenger on them. Chosen as the first two of F01-F09 by sha256('coach-gym-holdout:' + family). Changing this list invalidates every earlier holdout comparison."
+}

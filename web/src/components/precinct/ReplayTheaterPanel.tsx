@@ -2,7 +2,7 @@
 import { LEGACY_SCENE_NOTICE, recordingScene } from "../../lib/world/sceneContext";
 import { useEffect, useState } from "react";
 import { isLocalWorldRecording } from "../../lib/world/localWorldCapture";
-import { SPEEDS, type Recording } from "../../lib/world/recording";
+import { SPEEDS, type Annotation, type Recording } from "../../lib/world/recording";
 import type { CaptureSnapshot, WorldCapture } from "../../lib/world/worldCapture";
 import type { PlaybackControls } from "../../routes/world/usePlayback";
 import { EX4_TEXT } from "../../lib/copy/ex4";
@@ -35,18 +35,18 @@ const ISSUES = {
 } as const;
 function time(ms: number): string { return `${Math.floor(ms / 60_000).toString().padStart(2, "0")}:${Math.floor((ms % 60_000) / 1_000).toString().padStart(2, "0")}`; }
 
-function ReplayTimeline({ playback, disabled }: { readonly playback: ReplayControls; readonly disabled: boolean }) {
+function ReplayTimeline({ playback, disabled, annotations }: { readonly playback: ReplayControls; readonly disabled: boolean; readonly annotations: readonly Annotation[] }) {
   const [at, setAt] = useState(0);
   useEffect(() => {
     const update = () => { setAt(playback.clock.current); };
     const timer = window.setInterval(update, 100);
     return () => { window.clearInterval(timer); };
   }, [playback.clock]);
-  return <label className="precinct-replay__timeline">Replay position
+  return <><label className="precinct-replay__timeline">Replay position
     <input aria-label="Replay position" type="range" min={0} max={playback.duration} step={1} value={Math.min(at, playback.duration)} disabled={disabled}
       onChange={(event) => { const value = event.currentTarget.valueAsNumber; setAt(value); playback.seekTo(value); }} />
     <span>{time(at)} / {time(playback.duration)}</span>
-  </label>;
+  </label>{annotations.length > 0 && <section aria-label="Recorded instructor annotations"><h3>Recorded instructor notes · read-only</h3><ol>{annotations.filter((note) => note.t_ms <= at).map((note, index) => <li key={`${note.created_at}:${String(index)}`}><time>{time(note.t_ms)}</time><p>{note.text}</p></li>)}</ol></section>}</>;
 }
 function CapturePanel({ capture }: { readonly capture: NonNullable<ReplayTheaterProps["capture"]> }) {
   const { controller, snapshot, onExport } = capture;
@@ -100,7 +100,8 @@ export function ReplayTheaterPanel({ recording, playback, paused, freeCamera, on
         {recording.client_capture.reason === null ? " Accepted text and available world samples only." : ` Accepted prefix only (${recording.client_capture.reason}).`}
         {" Original audio is absent. File provenance is an untrusted client claim, not a server signature."}
       </p>}
-      <ReplayTimeline key={recording.trial_id} playback={playback} disabled={loading} />
+      {recording.unsupportedWorldEvents > 0 && <p className="precinct-replay__notice">{recording.unsupportedWorldEvents} world events have an unsupported rendering format. Their original JSON is preserved for export and stays inert. Only validated UI samples are shown; the full recorded world cannot be reconstructed.</p>}
+      <ReplayTimeline key={recording.trial_id} playback={playback} disabled={loading} annotations={importDisabled ? [] : recording.annotations} />
       <div className="precinct-replay__controls">
         <button type="button" disabled={paused || loading} onClick={playback.playing ? playback.pause : playback.play}>{playback.playing ? "Pause replay" : "Play replay"}</button>
         <button type="button" onClick={() => { playback.pause(); playback.seekTo(0); }}>Back to start</button>

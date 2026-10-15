@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, Field, StringConstraints
+from pydantic import AfterValidator, Field, JsonValue, StringConstraints
 
 from arena_core.contracts.common import (
     CASE_ID,
@@ -93,6 +93,61 @@ class CardAck(Contract):
     client_valid: bool
 
 
+WORLD_BATCH_MAX_BYTES = 65_536  # UI v2: one telemetry batch's request body
+WORLD_T_MS_MAX = 86_400_000  # a day from the session start
+
+
+class WorldEvent(Contract):
+    """One moment of the 3D world (UI v2, recording v2): `t_ms` from the session start, on the same clock as a
+    recording's frame `at_ms`. `data` is the client's own object per kind (pose: actor, position, quaternion, clip
+    and time; camera: mode, position, quaternion, fov; input; ui); the server checks only that it is an object."""
+
+    t_ms: Annotated[int, Field(ge=0, le=WORLD_T_MS_MAX)]
+    kind: Literal["pose", "camera", "input", "ui"]
+    data: dict[str, JsonValue]
+
+
+class WorldEventBatch(Contract):
+    """`POST /api/trials/{id}/world-events`: one batch, at most 64 KB as sent."""
+
+    events: Annotated[list[WorldEvent], Field(min_length=1, max_length=2000)]
+
+
+NPC_TEXT_MAX_CHARS = 400
+
+
+class NpcTurn(Contract):
+    """One earlier line of an NPC conversation; `user`/`assistant` are accepted as the chat-style names of the
+    trainee and the NPC."""
+
+    role: Literal["investigator", "user", "npc", "assistant"]
+    text: Annotated[str, StringConstraints(min_length=1, max_length=NPC_TEXT_MAX_CHARS)]
+
+
+class NpcChatRequest(Contract):
+    """`POST /api/npc/chat` (UI v2, D-035): the trainee's message to one colleague NPC and the conversation so far
+    (at most 12 lines, kept by the client)."""
+
+    npc_id: Annotated[str, StringConstraints(pattern=r"^[a-z][a-z_]{1,31}$")]
+    message: Annotated[str, StringConstraints(min_length=1, max_length=NPC_TEXT_MAX_CHARS)]
+    history: list[NpcTurn] = Field(default_factory=list, max_length=12)
+
+
+class AssignmentCreate(Contract):
+    """`POST /api/instructor/assignments` (arena-referee, UI v2, D-036): assign one development case to a trainee."""
+
+    user_id: Uuid
+    case_id: Annotated[str, StringConstraints(pattern=CASE_ID)]
+
+
+class AnnotationCreate(Contract):
+    """`POST /api/trials/{id}/annotations` (arena-referee, UI v2, D-036): an instructor's note at a moment of a
+    trainee's recording (`t_ms` on the recording's clock)."""
+
+    t_ms: Annotated[int, Field(ge=0, le=WORLD_T_MS_MAX)]
+    text: Annotated[str, StringConstraints(min_length=1, max_length=2000)]
+
+
 class DebriefScoring(Contract):
     """`GET /api/sessions/{id}/debrief` before the debrief is published (S5 5.4)."""
 
@@ -105,7 +160,8 @@ Auth = Literal[
     "session",
     "session:admin",
     "session:trainer",
-    "session:admin_or_trainer",
+    "session:console",
+    "session:instructor",
     "caller:api",
     "caller:tournament",
     "caller:api_or_tournament",
@@ -198,15 +254,25 @@ ROUTES: tuple[Route, ...] = (
     ),
     Route(API, "GET", "/api/leaderboards/{tournament_id}", "session", "Leaderboards after reveal"),
     Route(API, "GET", "/api/trust/{section}", "session", "Trust-center data"),
+    Route(API, "GET", "/api/coach-lab/versions", "session", "Coach Gym versions: status, parent, holdout metrics"),
+    Route(API, "GET", "/api/coach-lab/versions/{id}/lessons", "session", "Playbook lessons of one coach version"),
+    Route(API, "GET", "/api/coach-lab/experiments", "session", "Coach Gym runs: before/after metrics and series"),
     Route(API, "POST", "/api/voice/tickets", "session", "Mint a voice ticket", "voice-ticket-request.schema.json"),
     Route(API, "GET", "/api/voice/ws", "ticket", "Voice WebSocket (ticket in the subprotocol)"),
     Route(API, "POST", "/api/telemetry/kpi4", "session", "Card acknowledgement (KPI-4)", "card-ack.schema.json"),
     Route(API, "POST", "/api/telemetry/contract-violation", "session", "Client projection re-check failed (log only)"),
+    Route(API, "GET", "/api/trials/{id}/recording", "session", "The trial's recording (arena.recording.v2, D-021)"),
+    Route(API, "POST", "/api/trials/{id}/world-events", "session", "One 3D-world telemetry batch (UI v2)"),
+    Route(API, "GET", "/api/npc", "session", "The colleague NPCs (id, name, role, voice; UI v2)"),
+    Route(API, "POST", "/api/npc/chat", "session", "One colleague NPC reply {reply, voice_id} (UI v2, D-035)"),
     Route(API, "GET", "/api/health", "none", "Liveness only"),
     Route(SUBJECT, "POST", "/internal/answer", "caller:api_or_tournament", "One subject turn"),
     Route(SUBJECT, "GET", "/internal/voice/ws", "caller:api", "Voice relay leg"),
-    Route(REFEREE, "GET", "/api/me", "session:admin_or_trainer", "Console bootstrap on the referee origin"),
-    Route(REFEREE, "GET", "/api/config", "session:admin_or_trainer", "Console flags"),
+    Route(REFEREE, "GET", "/api/me", "session:console", "Console bootstrap on the referee origin"),
+    Route(REFEREE, "GET", "/api/config", "session:console", "Console flags"),
+    Route(REFEREE, "GET", "/api/instructor/class", "session:instructor", "Trainees with progress (UI v2)"),
+    Route(REFEREE, "POST", "/api/instructor/assignments", "session:instructor", "Assign a dev case to a trainee"),
+    Route(REFEREE, "POST", "/api/trials/{id}/annotations", "session:instructor", "Note on a trainee's recording"),
     Route(
         REFEREE,
         "POST",

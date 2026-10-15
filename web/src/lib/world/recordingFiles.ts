@@ -13,11 +13,15 @@ export async function readRecordingFile(file: Pick<File, "size" | "text">): Prom
   } catch { return { ok: false, errors: ["recording: could not read a valid JSON file"] }; }
 }
 export function recordingJson(recording: Recording): string {
-  const result = parseRecording(recording);
+  if (recording.format === "arena.recording.v1" && (recording.world_events.length > 0 || recording.annotations.length > 0))
+    throw new TypeError("A v1 recording has no world telemetry or annotations");
+  const result = parseRecording(recording.format === "arena.recording.v1"
+    ? { ...recording, world_events: undefined, annotations: undefined } : recording);
   if (!result.ok) throw new TypeError("Cannot export an invalid recording");
   const value = result.recording;
   const text = JSON.stringify({ format: value.format, trial_id: value.trial_id, case: value.case, snapshot: value.snapshot,
-    events: value.events, ...(value.format === RECORDING_FORMAT_V2 ? { world_events: value.world_events } : {}),
+    events: value.events, ...(value.format === RECORDING_FORMAT_V2 ? { world_events: value.world_events, annotations: value.annotations } : {}),
+    ...(value.world_profile === undefined ? {} : { world_profile: value.world_profile }),
     ...(value.published_at_ms === undefined ? {} : { published_at_ms: value.published_at_ms }),
     ...(value.client_capture === undefined ? {} : { client_capture: value.client_capture }),
     ...(value.scene_context === undefined ? {} : { scene_context: value.scene_context }),

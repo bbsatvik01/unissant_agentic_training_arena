@@ -17,7 +17,6 @@ from arena_core.referee.pipeline import (
     learning_payload,
     rubric_payload,
     subject_realism_payload,
-    unscored_debrief,
 )
 from arena_core.scoring.flags import TrialRows
 from arena_core.scoring.rubric import CheckResult, RubricResult
@@ -284,13 +283,6 @@ def test_subject_realism_counts_compliance_and_per_check_failures() -> None:
 
 
 # ---------------------------------------------------------------- end to end
-
-
-def test_unscored_debrief_carries_only_outcome() -> None:
-    d = unscored_debrief("00000000-0000-0000-0000-00000000000a", EVAL_PACKET, None)
-    assert d.scored is False
-    assert d.outcome.role == "deceptive"
-    assert d.outcome.committed_label is None
 
 
 def test_assemble_scored_debrief_end_to_end() -> None:

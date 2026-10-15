@@ -1,5 +1,25 @@
 # UI v2 implementation notes
 
+## 2026-10-15 20:19 UTC — genuine main merge focused gate passes
+
+The resolved main `693c8c1` merge now passes strict app/tools types, zero-warning lint on 38 changed web paths, and all 444/444 tests across 25 focused suites. All 66 pinned inputs were rechecked after execution. [Exact merge verification](merge-validation-2026-10-15.md) preserves the initial 441/444 attempt: two diagnostic wording mismatches were corrected without changing validators/tests, and a variable first-route timeout was profiled and subsequently passed under its original five-second limit. No timeout, assertion, lint policy or coverage floor changed. The full aggregate web gate and actual combined browser/audio acceptance remain pending.
+
+The merge retains genuine history and incoming backend/root/generated changes exactly as main supplies them; no UI-authored change exists outside the permitted scope. Actual two-world navmeshes and checked generic recording/annotation compatibility are included. The source checkpoint will be pushed additively to ui-v2; no PR merge, main push, force push or rewrite is requested.
+
+The completed [Whisper synthetic proof](WHISPER-LOCAL-PROOF.md) and attribution are included: normalized 3/5 exact phrases, 3/44 word edits (6.82% WER), 15.215 seconds for 25.154 seconds of audio and 144.8 MiB peak child RSS. The material phrase substitution is preserved visibly; optional review-before-Add dictation remains a separate unvalidated implementation.
+
+Production performance baseline/candidate checks and paired real-input Office/Courtyard diagnostics are now the active heavy-job lane. Actual voiced-browser capture and new courtyard stills follow. The MacBook Air M5 60 FPS target is still unverified. Exact main-plus-previous-UI scanner reproduction confirms the earlier one-finding result; the later source checkpoint adds the separately reviewed Blender geometry fingerprint false positive. Owner decisions on clean publication and exact scanner-policy handling remain pending.
+
+## 2026-10-15 20:02 UTC — main reconciliation and checked navigation source
+
+The ordinary merge of genuine main `693c8c1` is open on ui-v2 above preserved remote source checkpoint `9cd148b`. Both recording conflicts are resolved; no unresolved paths or whitespace errors remain. Backend, root policy and generated contracts match incoming main unchanged. The merge has not yet been committed because its fresh aggregate validation remains pending.
+
+The 26-path actual two-world navigation/capture package and 14-path upstream recording reconciliation are now integrated. Isolated navigation checks passed 299/299 runtime tests and 95/95 scoped coverage tests, strict app/tools and zero-warning lint. These are package results, not a claim that the merged application has passed. See [navigation evidence](navigation-proof/README.md) and [actual upstream seams](UPSTREAM-SEAMS-2026-10-15.md). Generic upstream world data stays inert unless a checked UI adapter understands it; annotations and legacy v1 remain preserved.
+
+The security investigation now distinguishes exact main ancestry (zero findings) from the default all-fetched-refs scan (two reviewed false positives: the public localStorage name and a Blender geometry fingerprint). The earlier CI check's two annotations are not two scanner findings. [Exact diagnosis and publication consequence](SECURITY-REF-SCOPE-2026-10-15.md). No scanner policy was changed.
+
+The bounded official Whisper tiny.en proof is using the sole heavy-job lane. Strict/focused merge checks follow, then production performance A/B and actual voiced-browser recording. No MacBook Air M5 hardware result, aggregate gate or combined browser/audio acceptance is claimed at this checkpoint.
+
 ## 2026-10-15 19:08 UTC — integrated source checkpoint before upstream contract reconciliation
 
 Studio/Office themes, training stations, neutral reviewer/cast, immersive captions, local sampled-world capture/replay, the selectable original courtyard annex, and original scripted staff audio are now integrated into `ui-v2` source. This is a recoverable **pending-validation** checkpoint, not another accepted playable slice. The previous published web gate at `1c874bc` does not validate this larger source set. The corrected combined candidate passed strict app/tools checks and changed-source lint; six previously failing focused suites passed 55/55. The full combined test/coverage/build and actual combined browser/audio acceptance remain pending. Native local rehearsal TTS passed 36 focused tests and produced 13 real bounded PCM WAV responses; it remains fixed authored dialogue, with no natural AI-conversation claim.

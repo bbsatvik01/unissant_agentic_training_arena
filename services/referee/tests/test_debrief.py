@@ -277,12 +277,18 @@ def test_scorable_session_writes_a_rubric_score_row() -> None:
     assert len(fake.rubric_scores) == 1
 
 
-def test_a_voice_session_never_runs_r3() -> None:
-    fake = FakeDebriefDeps(n_questions=MIN_QUESTIONS, voice=True)
-    debrief = run(publish_session_debrief(fake.deps(), CTX, SESSION_ID))
-    assert debrief["scored"] is False
-    assert "rubric" not in debrief
-    assert fake.calls == []
+def test_a_voice_session_runs_r3_and_publishes_a_scored_debrief_like_text() -> None:
+    """UI v2 amendment to D7: a voice session's stored exchanges are its turns (`fetch_trial_data`), scored by the
+    same R3 into the same scored debrief.v1 as a text session's."""
+    voice = FakeDebriefDeps(n_questions=MIN_QUESTIONS, voice=True)
+    text = FakeDebriefDeps(n_questions=MIN_QUESTIONS)
+    spoken = run(publish_session_debrief(voice.deps(), CTX, SESSION_ID))
+    typed = run(publish_session_debrief(text.deps(), CTX, SESSION_ID))
+    assert spoken["scored"] is True
+    assert spoken["rubric"]["scorable"] is True
+    assert spoken == typed
+    assert voice.calls == text.calls != []
+    assert len(voice.rubric_scores) == 1
 
 
 def test_republishing_is_idempotent_and_calls_the_model_zero_times() -> None:

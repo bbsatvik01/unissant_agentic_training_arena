@@ -287,6 +287,31 @@ class ArenaDb:
         )
         return [{"exchange_no": int(r[0]), "lines": json.loads(r[1])} for r in rows]
 
+    async def record_world_events(self, trial: UUID, events: list[dict[str, Any]]) -> int:
+        """`training.record_world_events` (UI v2): one telemetry batch on the actor's own training trial; returns
+        its batch number."""
+        value = await self.value("select training.record_world_events(%s, %s)", (trial, Jsonb(events)))
+        if not isinstance(value, int):
+            msg = "training.record_world_events returned no batch number"
+            raise ArenaError("XX000", msg)
+        return value
+
+    async def world_events(self, trial: UUID) -> list[dict[str, Any]]:
+        """Every world event of the actor's own training trial (`training.v_my_world_events`), in batch order."""
+        rows = await self.fetch(
+            "select events::text from training.v_my_world_events where trial_id = %s order by batch_no", (trial,)
+        )
+        return [event for r in rows for event in json.loads(r[0])]
+
+    async def annotations(self, trial: UUID) -> list[dict[str, Any]]:
+        """Instructor notes on the actor's own training trial (`training.v_my_annotations`), in time order."""
+        rows = await self.fetch(
+            "select t_ms, text, created_at from training.v_my_annotations where trial_id = %s"
+            " order by t_ms, created_at",
+            (trial,),
+        )
+        return [{"t_ms": int(r[0]), "text": str(r[1]), "created_at": iso(r[2])} for r in rows]
+
     async def open_question(self, trial: UUID) -> bool:
         """Whether the trial has a question with no answer yet (`arena.v_transcripts`)."""
         rows = await self.fetch(
@@ -296,11 +321,14 @@ class ArenaDb:
 
     async def released(self, trial: UUID) -> list[dict[str, Any]]:
         rows = await self.fetch(
-            "select record_id, released_after_exchanges, content::text from arena.v_released_evidence"
+            "select record_id, released_after_exchanges, content::text, title from arena.v_released_evidence"
             " where trial_id = %s order by release_seq",
             (trial,),
         )
-        return [{"record_id": r[0], "released_after_exchanges": int(r[1]), "content": json.loads(r[2])} for r in rows]
+        return [
+            {"record_id": r[0], "released_after_exchanges": int(r[1]), "content": json.loads(r[2]), "title": r[3]}
+            for r in rows
+        ]
 
     async def public_packet(self, variant: UUID) -> dict[str, Any] | None:
         rows = await self.fetch("select public_packet::text from arena.v_dev_cases where variant_id = %s", (variant,))

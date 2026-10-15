@@ -87,7 +87,16 @@ export function createLocalWorldCapture(options: LocalWorldOptions) {
   const exportRecording = (): RecordingResult => base === null
     ? { ok: false, errors: ["local capture: start and capture actual world samples before exporting"] }
     : capture.exportRecording(base);
-  const controller: WorldCapture = { ...capture, start, stop, clear };
+  // Demand-rendered modals can be idle between frames. Explicit actions must sample
+  // this same local clock now; an input must not inherit the last rendered frame's time.
+  // The existing active/running guards preserve stop/pause semantics and environmental
+  // refusals. Atomic input batches still receive one timestamp from one clock read.
+  const action = (write: () => boolean): boolean => { advanceClock(); return write(); };
+  const controller: WorldCapture = { ...capture, start, stop, clear,
+    input: (data) => action(() => capture.input(data)),
+    inputs: (data) => action(() => capture.inputs(data)),
+    ui: (data) => action(() => capture.ui(data)),
+  };
   return { controller, clock, advanceClock, exportRecording };
 }
 export type LocalWorldCapture = ReturnType<typeof createLocalWorldCapture>;

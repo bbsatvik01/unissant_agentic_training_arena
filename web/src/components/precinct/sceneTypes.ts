@@ -1,3 +1,5 @@
+import type { PrecinctNavmesh } from "../../lib/precinct/precinctNavmesh";
+import type { WorldNavigationStatus } from "../../lib/precinct/worldNavigation";
 import type { WorldVariantMetadata } from "../../lib/precinct/worldVariant";
 import type { Collider, Hotspot, NavigationNode, Vec3 } from "../../lib/precinct/types";
 
@@ -13,6 +15,10 @@ export interface PrecinctManifest extends WorldVariantMetadata {
   readonly colliders: readonly Collider[];
   readonly hotspots: readonly Hotspot[];
   readonly navigationNodes: readonly NavigationNode[];
+  /** Validated actor-radius profiles. Null means the explicitly disclosed graph/legacy path. */
+  readonly playerNavigationMesh?: PrecinctNavmesh | null;
+  readonly navigationMesh?: PrecinctNavmesh | null;
+  readonly navigationStatus?: WorldNavigationStatus;
 }
 
 export interface PlayerPose {

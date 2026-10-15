@@ -8,7 +8,11 @@ import { clientEventOrder, isClientCaptureMetadata, MAX_CLIENT_FRAMES, MAX_CLIEN
 import { isWire } from "../contracts/validate";
 import { knownReplayScene } from "./sceneContext";
 import { END_TAIL_MS, RECORDING_FORMAT, RECORDING_FORMAT_V2, type Recording } from "./recording";
-import { isWorldTime, notebookSourceKey, parseWorldEvents } from "./worldEvents";
+import { isWorldTime, notebookSourceKey } from "./worldEvents";
+import { parseRecordingTelemetry, parseAnnotations, UI_WORLD_PROFILE } from "./recordingTelemetry";
+
+/** Only objects returned by this validator may carry normalized empty v1 arrays back into it. */
+const normalized = new WeakSet<object>();
 
 export type RecordingResult = { readonly ok: true; readonly recording: Recording } | { readonly ok: false; readonly errors: readonly string[] };
 
@@ -74,9 +78,20 @@ export function parseRecording(raw: unknown): RecordingResult {
   const sceneContext = raw["scene_context"];
   const scene = sceneContext === undefined ? null : knownReplayScene(sceneContext);
   if (sceneContext !== undefined && (!version2 || scene === null)) return { ok: false, errors: ["scene_context: requires a known bundled v2 scene tuple"] };
-  const world = parseWorldEvents(version2 ? raw["world_events"] : []);
-  if (!version2 && raw["world_events"] !== undefined && !(Array.isArray(raw["world_events"]) && raw["world_events"].length === 0)) errors.push("world_events: requires arena.recording.v2");
-  if (!world.ok) errors.push(...world.errors);
+  const profile = raw["world_profile"];
+  if (profile !== undefined && (!version2 || profile !== UI_WORLD_PROFILE)) return { ok: false, errors: ["world_profile: unknown v2 UI profile"] };
+  const localProfile = profile === UI_WORLD_PROFILE || raw["client_capture"] !== undefined || sceneContext !== undefined;
+  const telemetry = parseRecordingTelemetry(version2 ? raw["world_events"] : [], localProfile);
+  const annotations = parseAnnotations(raw["annotations"]);
+  if (!version2) {
+    for (const key of ["world_events", "annotations"]) {
+      const value = raw[key];
+      if (value !== undefined && !(normalized.has(raw) && Array.isArray(value) && value.length === 0)) errors.push(`${key}: a v1 recording has none`);
+    }
+  }
+  if (!telemetry.ok) errors.push(...telemetry.errors);
+  if (!annotations.ok) errors.push(...annotations.errors);
+  const world = telemetry.ok ? { ok: true as const, events: telemetry.value.samples } : telemetry;
   const trialId = raw["trial_id"];
   if (!isText(trialId)) errors.push("recording: trial_id must be a non-empty string");
   errors.push(...recordingCaseErrors(raw["case"]));
@@ -115,7 +130,7 @@ export function parseRecording(raw: unknown): RecordingResult {
       if (ready !== debrief.session_id) errors.push("debrief: its session is not the one this run's debrief.ready names");
     }
   }
-  if (errors.length > 0 || !world.ok) return { ok: false, errors };
+  if (errors.length > 0 || !world.ok || !telemetry.ok || !annotations.ok) return { ok: false, errors };
   // The end-of-trial snapshot (absent or null while the trial ran): in assessment mode it holds the coaching the
   // session withheld, shown once the recording reaches the end (FE-DEB-4).
   const finalSnapshot = raw["final_snapshot"] ?? null;
@@ -177,13 +192,17 @@ export function parseRecording(raw: unknown): RecordingResult {
     if (metadata.status === "complete" && (publishedAt === undefined || checked.debrief?.session_id !== metadata.session_id))
       return { ok: false, errors: ["client_capture: complete requires timed publication for this session"] };
   }
-  const durationMs = Math.max(typeof publishedAt === "number" ? publishedAt : 0, checked.events.at(-1)?.at_ms ?? 0, world.events.at(-1)?.t_ms ?? 0) + END_TAIL_MS;
-  return { ok: true, recording: structuredClone({ format: checked.format, trial_id: checked.trial_id,
-    case: checked.case, snapshot: checked.snapshot, events: checked.events, world_events: world.events,
+  const durationMs = Math.max(typeof publishedAt === "number" ? publishedAt : 0, checked.events.at(-1)?.at_ms ?? 0, telemetry.value.events.at(-1)?.t_ms ?? 0, annotations.value.at(-1)?.t_ms ?? 0) + END_TAIL_MS;
+  const recording: Recording = structuredClone({ format: checked.format, trial_id: checked.trial_id,
+    case: checked.case, snapshot: checked.snapshot, events: checked.events, world_events: telemetry.value.events, annotations: annotations.value,
+    unsupportedWorldEvents: telemetry.value.unsupported,
+    ...(telemetry.value.profile === undefined ? {} : { world_profile: telemetry.value.profile }),
     debrief: checked.debrief ?? null, final_snapshot: checked.final_snapshot ?? null, durationMs,
     ...(typeof publishedAt === "number" ? { published_at_ms: publishedAt } : {}),
     ...(scene === null ? {} : { scene_context: scene.context }),
     ...(isClientCaptureMetadata(metadata) ? { client_capture: metadata } : {}),
-    ...(clientOrder === undefined ? {} : { client_order: clientOrder }) }) };
+    ...(clientOrder === undefined ? {} : { client_order: clientOrder }) });
+  normalized.add(recording);
+  return { ok: true, recording };
 }
 

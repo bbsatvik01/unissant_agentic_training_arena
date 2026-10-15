@@ -1,4 +1,5 @@
 /** Transport adapter only: never creates a client, reads /me, or enables a backend by itself. */
+import { transportWorldTime, WORLD_TRANSPORT_MAX_BATCH_EVENTS } from "../world/recordingTelemetry";
 import type { ApiClient } from "./client";
 import type { WorldEventSender } from "../world/worldCapture";
 import { MAX_WORLD_BATCH_BYTES, splitWorldEventBatches, worldEventBatchBytes } from "../world/worldEvents";
@@ -14,6 +15,9 @@ export function createWorldEventSender(client: Pick<ApiClient, "post">, gate: Wo
     if (!gate.localSessionEnabled() || gate.activeTrialId() !== trialId || !/^[A-Za-z0-9_-]{1,160}$/.test(trialId)
       || !["http:", "https:"].includes(protocol) || !["localhost", "127.0.0.1", "[::1]", "::1"].includes(hostname)) {
       throw new Error("Explicit matching local session required for world-event writes");
+    }
+    if (batch.events.length > WORLD_TRANSPORT_MAX_BATCH_EVENTS || batch.events.some((event) => !transportWorldTime(event.t_ms))) {
+      throw new TypeError("World-event transport requires at most 2000 samples and integer times within one day");
     }
     if (worldEventBatchBytes(batch) > MAX_WORLD_BATCH_BYTES) throw new RangeError("World-event batch exceeds 64 KB");
     const batches = splitWorldEventBatches(batch.events);

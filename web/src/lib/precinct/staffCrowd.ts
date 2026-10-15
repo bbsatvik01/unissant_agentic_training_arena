@@ -27,7 +27,7 @@ export function staffCrowdPeople(state: CrowdState): readonly CrowdPerson[] {
 }
 
 /** Call once after Controls updates the player, before live figures apply and sample their roots. */
-export function advanceStaffCrowd(state: CrowdState, geometry: Pick<CrowdWorld, "colliders" | "navigationNodes">, frame: StaffCrowdFrame): CrowdState {
+export function advanceStaffCrowd(state: CrowdState, geometry: Pick<CrowdWorld, "colliders" | "navigationNodes" | "navigationMesh">, frame: StaffCrowdFrame): CrowdState {
   // Replay samples own roots and clip time. Even a tier change must not simulate their navigation.
   if (frame.replay) return state;
   const definitions = staffCrowdDefinitions(frame.tier);

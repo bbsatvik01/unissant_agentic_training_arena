@@ -1,4 +1,5 @@
-import { effectivePrecinctColliders } from "../../lib/precinct/effectiveWorldGeometry";
+import { navigatedPrecinctManifest } from "../../lib/precinct/knownWorldNavigation";
+import { planNavigationRoute } from "../../lib/precinct/worldNavigation";
 import { precinctAsset, precinctPointerFloor } from "../../lib/precinct/worldVariant";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useSyncExternalStore, type RefObject } from "react";
@@ -7,7 +8,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
-import { controllerDeadzone, EYE_HEIGHT, findWaypointRoute, hasLineOfSight, inputMovement, isWalkable, MAX_FRAME_SECONDS, moveWithCollisions, nearestHotspot, PLAYER_RADIUS, turn, WALK_SPEED } from "../../lib/precinct/movement";
+import { controllerDeadzone, EYE_HEIGHT, hasLineOfSight, inputMovement, isWalkable, MAX_FRAME_SECONDS, moveWithCollisions, nearestHotspot, PLAYER_RADIUS, turn, WALK_SPEED } from "../../lib/precinct/movement";
 import { adjustInspectionCamera, createInspectionCamera, inspectionView, stepInspectionCamera, type InspectionCamera } from "../../lib/precinct/inspectionCamera";
 import { moveWithPeople, type CrowdState } from "../../lib/precinct/crowdNavigation";
 import { advanceStaffCrowd, createStaffCrowd, staffCrowdPeople } from "../../lib/precinct/staffCrowd";
@@ -44,6 +45,8 @@ export interface PrecinctCanvasProps {
   readonly boardSurfaces?: BoardSurfaceModel | null;
   readonly debriefWall?: DebriefWall | null;
   readonly manifest: PrecinctManifest;
+  /** Validated v1 playback retains its original graph behavior. V2 is captured-root driven. */
+  readonly legacyReplay?: boolean;
   readonly active: boolean;
   readonly paused: boolean;
   readonly reducedMotion: boolean;
@@ -345,7 +348,7 @@ export function Controls(props: PrecinctCanvasProps & { readonly crowd?: RefObje
       if (command.instant && isWalkable(command.position, p.manifest.colliders)) {
         position.current = command.position; look.current = { yaw: command.yaw, pitch: 0 }; path.current = []; arrivalYaw.current = null;
       } else {
-        path.current = findWaypointRoute(position.current, command.position, p.manifest.navigationNodes, p.manifest.colliders) ?? [];
+        path.current = planNavigationRoute(position.current, command.position, p.manifest, p.manifest.playerNavigationMesh) ?? [];
         arrivalYaw.current = command.yaw;
       }
     }
@@ -449,7 +452,7 @@ export function Controls(props: PrecinctCanvasProps & { readonly crowd?: RefObje
       canvas.focus({ preventScroll: true });
       props.onControlInput?.({ action: "click", target: "precinct:floor", button: event.button });
       const destination: Vec3 = [event.point.x, 0, event.point.z];
-      path.current = findWaypointRoute(position.current, destination, props.manifest.navigationNodes, props.manifest.colliders) ?? [];
+      path.current = planNavigationRoute(position.current, destination, props.manifest, props.manifest.playerNavigationMesh) ?? [];
       routeIndex.current = 0; arrivalYaw.current = null;
     }}>
       <planeGeometry args={[...pointerFloor.size]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -465,7 +468,8 @@ export default function PrecinctCanvas(props: PrecinctCanvasProps) {
   const playingStaffAudio = useSyncExternalStore(localStaffPlaybackActivity.subscribe, localStaffPlaybackActivity.getSnapshot, localStaffPlaybackActivity.getServerSnapshot);
   const interview = props.interview;
   // Append runtime chair/person collision after the route selects its world manifest.
-  const sceneManifest = useMemo(() => ({ ...props.manifest, colliders: effectivePrecinctColliders(props.manifest.colliders) }), [props.manifest]);
+  const navigationContext = props.replayActors !== undefined ? "sampled-replay" : props.legacyReplay === true ? "legacy-replay" : "live";
+  const sceneManifest = useMemo(() => navigatedPrecinctManifest(props.manifest, navigationContext), [props.manifest, navigationContext]);
   const assessment = interview?.work.assessment === true || interview?.cast?.mode === "assessment";
   const reviewer = reviewerForSceneV2(interview?.reviewer, interview?.assessmentActive === true, assessment);
   const withheldActors = withheldObservationActorsV2(interview?.reviewer, interview?.assessmentActive === true, assessment);

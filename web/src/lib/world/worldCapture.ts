@@ -2,6 +2,7 @@
 import { uncapturedAudioActive } from "./captureAudioBoundary";
 import type { Recording, RecordingCase } from "./recording";
 import { RECORDING_FORMAT_V2 } from "./recording";
+import { UI_WORLD_PROFILE, type WorldEvent as RecordedWorldEvent } from "./recordingTelemetry";
 import { parseRecording, type RecordingResult } from "./parseRecording";
 import { createCaptureSceneBinding, type SceneContextReader } from "./sceneContext";
 import {
@@ -53,7 +54,7 @@ export interface CaptureOptions {
 }
 export type RecordingBase = Pick<Recording, "trial_id" | "snapshot" | "events" | "debrief" | "final_snapshot"> & {
   readonly case: RecordingCase;
-  readonly world_events?: readonly WorldEvent[];
+  readonly world_events?: readonly (WorldEvent | RecordedWorldEvent)[];
 };
 export type FlushResult = "empty" | "disabled" | "sent" | "uncertain";
 
@@ -213,7 +214,7 @@ export function createWorldCapture(options: CaptureOptions) {
     if (state.trialId === null || base.trial_id !== state.trialId) return { ok: false, errors: ["capture: trial does not match"] };
     if ((base.world_events?.length ?? 0) > 0) return { ok: false, errors: ["capture: base already has world samples; use its original v2 export to avoid duplicates"] };
     const sceneContext = scene?.context();
-    return parseRecording({ ...base, format: RECORDING_FORMAT_V2, world_events: events,
+    return parseRecording({ ...base, format: RECORDING_FORMAT_V2, world_events: events, world_profile: UI_WORLD_PROFILE,
       ...(sceneContext == null ? {} : { scene_context: sceneContext }) });
   };
   return {

@@ -1,9 +1,11 @@
 /**
- * Deterministic local crowd routing on the existing collision-validated waypoint graph.
- * This is not a navigation mesh. Only authored geometry, people and bounded frame deltas enter.
+ * Deterministic local crowd routing on a validated polygon mesh, with explicit graph compatibility/fallback.
+ * Only authored geometry, people and bounded frame deltas enter.
  * No case/model/event state, timers, randomness, Three objects or renderer writes belong here.
  */
-import { findWaypointRoute, hasLineOfSight, isWalkable, MAX_FRAME_SECONDS, moveWithCollisions } from "./movement";
+import { hasLineOfSight, isWalkable, MAX_FRAME_SECONDS, moveWithCollisions } from "./movement";
+import { planNavigationRoute } from "./worldNavigation";
+import { isPointOnNavmesh, type PrecinctNavmesh } from "./precinctNavmesh";
 import type { Collider, NavigationNode, Vec3 } from "./types";
 
 export interface CrowdStop { readonly position: Vec3; readonly waitSeconds: number }
@@ -36,6 +38,7 @@ export interface CrowdPerson { readonly id: string; readonly position: Vec3; rea
 export interface CrowdWorld {
   readonly colliders: readonly Collider[];
   readonly navigationNodes: readonly NavigationNode[];
+  readonly navigationMesh?: PrecinctNavmesh | null;
   /** Player and other stationary people. These are read-only obstacles, never pushed. */
   readonly people: readonly CrowdPerson[];
 }
@@ -152,7 +155,7 @@ function propose(agent: CrowdAgent, definition: CrowdDefinition, world: CrowdWor
     if (retryRemaining > 0) return hold({ ...agent, retryRemaining, status: "blocked" });
     // The precinct is one flat floor; authored graph nodes are y=0 and avatar feet are y=0.03.
     const nodes = world.navigationNodes.map((node) => ({ ...node, position: atHeight(node.position, agent.position[1]) }));
-    route = findWaypointRoute(agent.position, destination, nodes, world.colliders, radius) ?? [];
+    route = planNavigationRoute(agent.position, destination, { colliders: world.colliders, navigationNodes: nodes }, world.navigationMesh, radius) ?? [];
     detour = [];
     if (route.length === 0) return hold({ ...agent, route, detour, retryRemaining: CROWD_RETRY_SECONDS, status: "blocked" });
   }
@@ -176,7 +179,8 @@ function propose(agent: CrowdAgent, definition: CrowdDefinition, world: CrowdWor
   const intended: Vec3 = length <= EPSILON ? ZERO : [(target[0] - agent.position[0]) / length * step, 0, (target[2] - agent.position[2]) / length * step];
   const moved = moveWithCollisions(agent.position, intended, world.colliders, radius);
   // Collision sliding can bend the segment. Accept only a visibility-checked straight chord.
-  const displacement: Vec3 = hasLineOfSight(agent.position, moved, world.colliders, radius)
+  const onMesh = world.navigationMesh == null || isPointOnNavmesh(moved, world.navigationMesh);
+  const displacement: Vec3 = onMesh && hasLineOfSight(agent.position, moved, world.colliders, radius)
     ? [moved[0] - agent.position[0], 0, moved[2] - agent.position[2]] : ZERO;
   return { definition, agent: { ...agent, route, detour, retryRemaining, status: "walking", blockedSeconds: agent.blockedSeconds >= CROWD_STUCK_SECONDS ? 0 : agent.blockedSeconds }, displacement };
 }

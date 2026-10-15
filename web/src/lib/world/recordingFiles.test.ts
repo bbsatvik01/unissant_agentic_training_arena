@@ -25,7 +25,7 @@ describe("bounded recording files", () => {
   });
   it("refuses a failed read, malformed JSON, bad schemas and injected private case facts whole", async () => {
     expect((await readRecordingFile({ size: 1, text: () => Promise.reject(new Error("sensitive path")) })).ok).toBe(false);
-    for (const text of ["{broken", "null", JSON.stringify({ ...raw, case: { ...raw.case, role: "private" } }), JSON.stringify({ ...raw, format: "arena.recording.v2", world_events: [{ ...sample, data: { mood: "untrustworthy" } }] })]) {
+    for (const text of ["{broken", "null", JSON.stringify({ ...raw, case: { ...raw.case, role: "private" } }), JSON.stringify({ ...raw, format: "arena.recording.v2", world_profile: "arena.ui-world.v1", world_events: [{ ...sample, data: { mood: "untrustworthy" } }] })]) {
       const result = await readRecordingFile({ size: text.length, text: () => Promise.resolve(text) }); expect(result.ok).toBe(false);
       expect(JSON.stringify(result)).not.toContain("untrustworthy"); expect(JSON.stringify(result)).not.toContain("sensitive path");
     }

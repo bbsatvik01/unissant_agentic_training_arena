@@ -1,3 +1,4 @@
+import { uiWorldSamples } from "../world/recordingTelemetry";
 import { describe, expect, it, vi } from "vitest";
 import type { Debrief, InvestigatorFinding, RequestableRecord, TrialFrame, TrialSnapshot } from "../contracts/generated/types";
 import { parseTrialFrame, type TrialStreamOptions } from "../sse/trial-stream";
@@ -102,7 +103,7 @@ describe("optional accepted-session observer", () => {
     expect(replay.state.view?.released).toEqual(h.controller.getState().trial.view?.released);
     expect(h.controller.getState().trial.view?.requestable).toEqual([]);
     expect(result.recording.events.map((entry) => entry.frame)).toEqual(builder.frames);
-    expect(result.recording.world_events.filter((event) => event.kind === "input" && event.data.action === "finding")).toHaveLength(3);
+    expect(uiWorldSamples(result.recording.world_events).filter((event) => event.kind === "input" && event.data.action === "finding")).toHaveLength(3);
     h.controller.dispose(); expect(capture.getSnapshot()).toMatchObject({ phase: "complete", reason: null });
   });
   it("recognizes only equivalent terminal public state, excluding compaction metadata", () => {

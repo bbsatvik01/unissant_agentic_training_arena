@@ -1,5 +1,6 @@
 """The referee console's identity dependency (S5 9.3, 10.3): one acting user per run, resolved once at
-startup into `app.state.identity`; every console route requires it to carry `admin` or `trainer`.
+startup into `app.state.identity`; every console route requires it to carry `admin` or `trainer` (or, for the
+console bootstrap and instructor mode, `instructor`; UI v2, D-036).
 """
 
 from __future__ import annotations
@@ -8,13 +9,14 @@ from fastapi import HTTPException, Request
 
 from arena_core.identity import DevIdentity
 
-CONSOLE_ROLES = frozenset({"admin", "trainer"})
+# Who may open the console (`GET /api/me`, `GET /api/config`); each surface then checks its own role below.
+CONSOLE_ROLES = frozenset({"admin", "trainer", "instructor"})
 
 
 def require_console_role(request: Request) -> DevIdentity:
     identity: DevIdentity | None = getattr(request.app.state, "identity", None)
     if identity is None or not (identity.roles & CONSOLE_ROLES):
-        raise HTTPException(status_code=403, detail="admin or trainer role required")
+        raise HTTPException(status_code=403, detail="admin, trainer or instructor role required")
     return identity
 
 
@@ -33,4 +35,12 @@ def require_admin_role(request: Request) -> DevIdentity:
     identity: DevIdentity | None = getattr(request.app.state, "identity", None)
     if identity is None or "admin" not in identity.roles:
         raise HTTPException(status_code=403, detail="admin role required")
+    return identity
+
+
+def require_instructor(request: Request) -> DevIdentity:
+    """Instructor mode (UI v2, D-036): an `instructor` identity specifically."""
+    identity: DevIdentity | None = getattr(request.app.state, "identity", None)
+    if identity is None or "instructor" not in identity.roles:
+        raise HTTPException(status_code=403, detail="instructor role required")
     return identity

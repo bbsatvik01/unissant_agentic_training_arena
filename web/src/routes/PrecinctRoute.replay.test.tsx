@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
+import { Group } from "three";
+import { useActorSampler } from "../components/precinct/useActorSampler";
+import { ABSENT_CLIP, staffClip, type ActorCapture } from "../lib/precinct/proceduralActors";
+import type { FreshCaptureBinding } from "../lib/world/freshClientCapture";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PrecinctCanvas from "../components/precinct/PrecinctCanvas";
@@ -8,6 +12,7 @@ import { RenderBoundary } from "../components/precinct/RenderBoundary";
 import rawRecording from "../fixtures/recordings/F01-truthful.json";
 import { localStaffPlaybackActivity } from "../lib/precinct/localStaffPlaybackActivity";
 import { SILENT_CAPTURE_AUDIO_REASON } from "../lib/world/captureAudioBoundary";
+import { uiWorldSamples } from "../lib/world/recordingTelemetry";
 import { parseRecording } from "../lib/world/parseRecording";
 import { COURTYARD_SCENE_CONTEXT, OFFICE_SCENE_CONTEXT } from "../lib/world/sceneContext";
 import { STATIONS } from "../components/precinct/sceneTypes";
@@ -50,7 +55,10 @@ async function enter(props: ComponentProps<typeof PrecinctRoute> = {}) {
 async function choose() {
   const card = CASES.find((item) => item.case_id === RECORDED_CASE_ID); if (card === undefined) throw new Error("Missing public case");
   act(() => { canvas().onInteract("case_board"); });
-  fireEvent.click(screen.getByRole("button", { name: "Select case" }));
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Select case" }));
+    await vi.dynamicImportSettled();
+  });
   await screen.findByText("Your public packet is ready at your desk.");
   fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
 }
@@ -75,6 +83,75 @@ describe("merged sampled replay route", () => {
     expect(canvas().actorCapture).toBeUndefined(); expect(canvas().replayActors).toBeDefined();
     expect(screen.getByTestId("precinct-canvas")).toBe(original); expect(screen.getAllByRole("dialog")).toHaveLength(1);
     expect(screen.getByText("Local world capture · no interview or score")).toBeTruthy();
+    expect(transport).not.toHaveBeenCalled();
+  });
+  it("records notebook actions after an idle demand-modal interval at their actual local-clock time", async () => {
+    await enter(); await choose(); openRoom(7, "debrief_replay");
+    let now = 1_000; vi.spyOn(performance, "now").mockImplementation(() => now);
+    fireEvent.click(screen.getByRole("button", { name: "Start local capture" }));
+    now = 6_000; openRoom(3, "personal_dossier");
+    now = 6_500; fireEvent.click(screen.getByRole("tab", { name: /Notebook/ }));
+    now = 7_000; fireEvent.change(screen.getByRole("textbox", { name: "New note" }), { target: { value: "Written after the idle wait" } });
+    now = 8_000; fireEvent.click(screen.getByRole("button", { name: "Add note" }));
+    // This mocked demand Canvas has issued no onBeforeFrame callback during the wait or edits.
+    now = 8_100; openRoom(7, "debrief_replay");
+    fireEvent.click(screen.getByRole("button", { name: "Review this local capture" }));
+    const events = uiWorldSamples(readSession().recording?.world_events ?? []);
+    expect(events.find((event) => event.kind === "ui" && event.data.action === "panel" && event.data.panel_id === "personal_dossier" && event.data.open)?.t_ms).toBe(5_000);
+    expect(events.find((event) => event.kind === "input" && event.data.action === "notebook" && event.data.operation === "draft" && event.data.draft.text === "Written after the idle wait")?.t_ms).toBe(6_000);
+    expect(events.find((event) => event.kind === "input" && event.data.action === "notebook" && event.data.operation === "upsert" && event.data.text === "Written after the idle wait")?.t_ms).toBe(7_000);
+    expect(readSession().recording?.events).toEqual([]); expect(transport).not.toHaveBeenCalled();
+  });
+  it("keeps local actor sampling stable through capture counts, camera, pose and comfort rerenders", async () => {
+    await enter(); await choose(); openRoom(7, "debrief_replay");
+    fireEvent.click(screen.getByRole("button", { name: "Start local capture" }));
+    const owner = canvas().actorCapture; if (owner === undefined) throw new Error("missing local capture");
+    const sampler = renderHook<ReturnType<typeof useActorSampler>, { capture: ActorCapture | undefined }>(({ capture }) => useActorSampler(capture, "staff:patrol"), { initialProps: { capture: owner } });
+    const root = new Group(); root.position.set(1, 0, 2);
+    act(() => { sampler.result.current.current?.sample(root, staffClip("patrol", false), 1, 0.1); });
+    expect(canvas().actorCapture).toBe(owner);
+    sampler.rerender({ capture: canvas().actorCapture });
+    act(() => { canvas().onCameraSample?.(cameraSample); });
+    expect(canvas().actorCapture?.onActorSample).toBe(owner.onActorSample);
+    act(() => { canvas().onPose({ position: [0, 0, -4], yaw: 1, speed: 1, hotspot: null }); });
+    expect(canvas().actorCapture).toBe(owner);
+    openSettings(); fireEvent.click(screen.getByRole("checkbox", { name: /Larger text/ }));
+    expect(canvas().actorCapture).toBe(owner);
+    sampler.rerender({ capture: canvas().actorCapture });
+    // A real actor unmount still records one absence, rather than suppressing lifecycle cleanup.
+    sampler.unmount();
+    openRoom(7, "debrief_replay"); fireEvent.click(screen.getByRole("button", { name: "Review this local capture" }));
+    const poses = uiWorldSamples(readSession().recording?.world_events ?? []).filter((event) => event.kind === "pose");
+    expect(poses.map((event) => event.data.animation.clip)).toEqual([staffClip("patrol", false), ABSENT_CLIP]);
+    expect(transport).not.toHaveBeenCalled();
+  });
+  it("keeps a fresh actor writer stable for the same run and closes only the replaced run's sampler", async () => {
+    await enter(); const session = readSession();
+    const pose = vi.fn(() => true); const nextPose = vi.fn(() => true);
+    const binding: FreshCaptureBinding = { observer: { observe: vi.fn(), failed: vi.fn() }, pose,
+      camera: vi.fn(() => true), input: vi.fn(() => true), inputs: vi.fn(() => true), ui: vi.fn(() => true) };
+    const state = { ...session.freshCapture.state, phase: "recording" as const, captureId: "capture-a", sessionId: "run-a", trialId: "trial-a" };
+    harness.patch = { source: "live", sessionKey: "run-a", freshCapture: { ...session.freshCapture, state, binding } };
+    act(() => { canvas().onPose({ position: [0, 0, -4], yaw: 0, speed: 0, hotspot: null }); });
+    const owner = canvas().actorCapture; if (owner === undefined) throw new Error("missing fresh capture");
+    const sampler = renderHook<ReturnType<typeof useActorSampler>, { capture: ActorCapture | undefined }>(({ capture }) => useActorSampler(capture, "staff:patrol"), { initialProps: { capture: owner } });
+    act(() => { sampler.result.current.current?.sample(new Group(), staffClip("patrol", false), 1, 0.1); });
+    harness.patch = { ...harness.patch, freshCapture: { ...session.freshCapture, state: { ...state, worldSamples: 1 }, binding } };
+    act(() => { canvas().onCameraSample?.(cameraSample); canvas().onPose({ position: [0, 0, -5], yaw: 1, speed: 1, hotspot: null }); });
+    expect(canvas().actorCapture).toBe(owner);
+    openSettings(); fireEvent.click(screen.getByRole("checkbox", { name: /Larger text/ }));
+    expect(canvas().actorCapture?.onActorSample).toBe(owner.onActorSample);
+    sampler.rerender({ capture: canvas().actorCapture }); expect(pose).toHaveBeenCalledOnce();
+    harness.patch = { ...harness.patch, sessionKey: "run-b", freshCapture: { ...session.freshCapture,
+      state: { ...state, captureId: "capture-b", sessionId: "run-b", trialId: "trial-b" }, binding: { ...binding, pose: nextPose } } };
+    act(() => { canvas().onPose({ position: [0, 0, -6], yaw: 1, speed: 1, hotspot: null }); });
+    expect(canvas().actorCapture).not.toBe(owner);
+    sampler.rerender({ capture: canvas().actorCapture });
+    expect(pose).toHaveBeenLastCalledWith(expect.objectContaining({ animation: { clip: ABSENT_CLIP, time: 1 } }));
+    expect(pose).toHaveBeenCalledTimes(2); expect(nextPose).not.toHaveBeenCalled();
+    act(() => { sampler.result.current.current?.sample(new Group(), staffClip("patrol", true), 2, 0.1); });
+    sampler.unmount(); expect(nextPose).toHaveBeenCalledTimes(2);
+    expect(nextPose).toHaveBeenLastCalledWith(expect.objectContaining({ animation: { clip: ABSENT_CLIP, time: 2 } }));
     expect(transport).not.toHaveBeenCalled();
   });
   it("keeps one finite capture status visible while walking and accessible inside every modal", async () => {
@@ -135,7 +212,7 @@ describe("combined recorded architecture ownership", () => {
     expect(screen.getByRole("status", { name: "Capture status" }).textContent).toContain("audio-enabled");
     expect(canvas().actorCapture).toBeUndefined();
     fireEvent.click(screen.getByRole("button", { name: "Review this local capture" }));
-    expect(readSession().recording?.world_events?.filter((event) => event.kind === "camera")).toHaveLength(1);
+    expect(readSession().recording?.world_events.filter((event) => event.kind === "camera")).toHaveLength(1);
     expect(readSession().recording?.scene_context).toEqual(OFFICE_SCENE_CONTEXT);
     expect(transport).not.toHaveBeenCalled();
   });
@@ -169,7 +246,7 @@ describe("combined recorded architecture ownership", () => {
     architecture("office"); expect(canvas().manifest.asset).toBe("precinct-courtyard.glb");
     openRoom(7, "debrief_replay"); fireEvent.click(screen.getByRole("button", { name: "Review this local capture" }));
     expect(readSession().recording?.scene_context).toEqual(COURTYARD_SCENE_CONTEXT);
-    expect(readSession().recording?.world_events?.filter((event) => event.kind === "camera")).toHaveLength(1);
+    expect(readSession().recording?.world_events.filter((event) => event.kind === "camera")).toHaveLength(1);
     expect(transport).not.toHaveBeenCalled();
   });
   it("lets a validated recording own geometry separately from preference and legacy absence always selects Office", async () => {
@@ -193,10 +270,10 @@ describe("combined recorded architecture ownership", () => {
     expect(screen.getByRole("status", { name: "Rendering status" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review this local capture" }));
     expect(readSession().recording?.scene_context).toEqual(OFFICE_SCENE_CONTEXT);
-    expect(readSession().recording?.world_events?.filter((event) => event.kind === "camera")).toHaveLength(1);
+    expect(readSession().recording?.world_events.filter((event) => event.kind === "camera")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
     fireEvent.click(screen.getByRole("button", { name: "Open precinct map and fast travel" }));
-    fireEvent.click(screen.getByRole("button", { name: /6 Interview room/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^6\s*Interview room/ }));
     expect(screen.getByRole("button", { name: /Enter interview/ })).toBeTruthy();
     expect(transport).not.toHaveBeenCalled();
   });

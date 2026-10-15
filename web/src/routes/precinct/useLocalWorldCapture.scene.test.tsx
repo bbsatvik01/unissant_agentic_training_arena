@@ -13,7 +13,11 @@ describe("mounted-scene capture seam", () => {
   it("subscribes to actual staff playback and invalidates the prefix synchronously", () => {
     const scene = createMountedSceneContext(); scene.set(OFFICE_SCENE_CONTEXT);
     const { result } = renderHook(() => useLocalWorldCapture(packet, "idle", false, scene));
-    act(() => { result.current.controller.start(); result.current.onCameraSample(camera); });
+    const beforeStart = result.current.onCameraSample;
+    act(() => { result.current.controller.start(); });
+    act(() => { beforeStart(camera); });
+    expect(result.current.snapshot.count).toBe(0);
+    act(() => { result.current.onCameraSample(camera); });
     act(() => { localStaffPlaybackActivity.set(true); });
     expect(result.current.snapshot).toMatchObject({ status: "blocked", issue: "audio-enabled", count: 1 });
     act(() => { localStaffPlaybackActivity.set(false); result.current.onCameraSample(camera); });
@@ -36,7 +40,11 @@ describe("mounted-scene capture seam", () => {
     const first = createMountedSceneContext(); first.set(OFFICE_SCENE_CONTEXT);
     const second = createMountedSceneContext(); second.set(OFFICE_SCENE_CONTEXT);
     const { result, rerender } = renderHook((source: typeof first) => useLocalWorldCapture(packet, "idle", false, source), { initialProps: first });
-    act(() => { result.current.controller.start(); result.current.onCameraSample(camera); });
+    const beforeStart = result.current.onCameraSample;
+    act(() => { result.current.controller.start(); });
+    act(() => { beforeStart(camera); });
+    expect(result.current.snapshot.count).toBe(0);
+    act(() => { result.current.onCameraSample(camera); });
     rerender(second); expect(result.current.snapshot).toMatchObject({ status: "blocked", issue: "scene-changed", count: 1 });
     expect(result.current.local?.exportRecording().ok).toBe(true);
   });
