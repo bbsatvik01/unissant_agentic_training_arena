@@ -333,6 +333,11 @@ def _record_version(ctx: Ctx, outcome: Outcome) -> str | None:
 
 
 async def run_gym(cfg: RunConfig, port: AgentPort, root: Path, phoenix: Phoenix | None = None) -> registry.Experiment:
+    with registry_lock(root):
+        return await _run_gym(cfg, port, root, phoenix)
+
+
+async def _run_gym(cfg: RunConfig, port: AgentPort, root: Path, phoenix: Phoenix | None) -> registry.Experiment:
     started = registry.now()
     meta, examples = load_dataset(root)
     champ = Champion.load(root, cfg.candidate_id)
@@ -380,12 +385,17 @@ async def run_gym(cfg: RunConfig, port: AgentPort, root: Path, phoenix: Phoenix 
 
 
 @contextmanager
-def _promotion_lock(root: Path) -> Iterator[None]:
-    """One promotion at a time on this checkout (an exclusive lock file under the git-ignored run directory)."""
-    path = root / RUN_DIR / "promote.lock"
+def registry_lock(root: Path) -> Iterator[None]:
+    """One gym run or promotion at a time on this checkout: an exclusive, non-blocking lock under the git-ignored
+    run directory, held from a run's version allocation to its publication, and across a promotion."""
+    path = root / RUN_DIR / "registry.lock"
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a") as handle:
-        fcntl.flock(handle, fcntl.LOCK_EX)
+        try:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            msg = "another coach gym run or promotion holds the registry; wait for it to finish"
+            raise GymError(msg) from exc
         try:
             yield
         finally:
@@ -396,7 +406,7 @@ async def promote(root: Path, version_id: str, by: str, register: Connector | No
     """A human's promotion of a challenger whose holdout verdict says promote, against the champion it was graded
     against. With `register`, the version is registered in `arena.candidates` first (idempotent): the promotion
     is recorded only after that succeeded, so a failed registration leaves the challenger promotable again."""
-    with _promotion_lock(root):
+    with registry_lock(root):
         current = registry.current_versions(root)
         event = current.get(version_id)
         if event is None or event.status != "challenger":

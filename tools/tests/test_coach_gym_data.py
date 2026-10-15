@@ -123,6 +123,8 @@ def test_a_dev_trial_is_read_with_its_labels(scripted: Scripted) -> None:
     assert record.human_labels == {2: "evasion"}  # the raters split on t01, so R1 keeps it
     r1_params = [p for q, p in conn.executed if q == data.R1]
     assert r1_params == [(f"{source}:referee_subject",)]  # a replay trial reads its source transcript's R1
+    human_params = [p for q, p in conn.executed if q == data.HUMAN_LABELS]
+    assert human_params == [(sorted([tid, source], key=str),)]  # and the human labels of that same transcript
 
 
 def test_an_unjudged_trial_has_no_labels() -> None:

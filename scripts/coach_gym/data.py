@@ -7,9 +7,10 @@ the trial list cannot return one, and a direct read of a hidden trial id (`fetch
 
 Read per trial: the public packet and the variant's role (`sealed.evaluator_packets.role`, the ground truth),
 answered turns, released records, R1's stored labels (`sealed.judgments`, `<trial>:referee_subject`; a replay
-trial's are its source corpus transcript's) and the human T-LAB calibration labels for the trial (a turn takes
-the human label only when every human who rated it agrees). Also the dev variants' private and evaluator
-canaries, which the cheat check must never find in a candidate or a lesson.
+trial's are its source corpus transcript's) and the human T-LAB calibration labels of that same transcript (the
+source's and the replay's own; a turn takes the human label only when every human who rated it agrees). Also
+the dev variants' private and evaluator canaries, which the cheat check must never find in a candidate or a
+lesson.
 """
 
 from __future__ import annotations
@@ -62,7 +63,7 @@ R1 = (
 HUMAN_LABELS = (
     "select j.payload from sealed.judgments j join arena.trials t on t.id = j.trial_id"
     " join arena.case_variants v on v.id = t.variant_id join arena.case_families f on f.id = v.family_id"
-    " where f.split = 'dev' and j.trial_id = %s and j.kind = 'calibration' and j.payload ->> 'task' = 'T-LAB'"
+    " where f.split = 'dev' and j.trial_id = any(%s) and j.kind = 'calibration' and j.payload ->> 'task' = 'T-LAB'"
     " order by j.created_at"
 )
 CANARIES = (
@@ -115,7 +116,8 @@ async def fetch_trial(connect: Connector, trial_id: str) -> TrialRecord:
     turns = await _rows(connect, TURNS, (tid,))
     released = await _rows(connect, RELEASED, (tid,))
     r1 = await _rows(connect, R1, (f"{r1_trial}:referee_subject",))
-    humans = await _rows(connect, HUMAN_LABELS, (tid,))
+    # Human labels of the same transcript: a replay's source corpus transcript's (as for R1) and its own.
+    humans = await _rows(connect, HUMAN_LABELS, (sorted({tid, UUID(str(r1_trial))}, key=str),))
     return TrialRecord(
         trial_id=trial_id,
         family_code=str(family_code),

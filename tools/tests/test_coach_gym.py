@@ -605,7 +605,7 @@ def test_a_systemic_failure_inside_gepa_is_raised_not_stepped_over(tmp_path: Pat
         optimize(adapter, Search(examples, examples[:2], reflection, max_evals=20))
 
 
-def test_cancelling_the_search_stops_new_calls_and_waits_for_the_worker() -> None:
+def test_cancelling_the_search_stops_new_calls_and_waits_for_their_cleanup_and_the_worker() -> None:
     actions: list[str] = []
 
     async def main() -> None:
@@ -614,8 +614,12 @@ def test_cancelling_the_search_stops_new_calls_and_waits_for_the_worker() -> Non
         async def call(i: int) -> int:
             actions.append(f"start{i}")
             started.set()
-            await asyncio.sleep(0.05)
-            actions.append(f"end{i}")
+            try:
+                await asyncio.sleep(1)
+                actions.append(f"end{i}")
+            finally:
+                await asyncio.sleep(0.05)  # a settlement that takes a while (the port settles in `finally`)
+                actions.append(f"cleanup{i}")
             return i
 
         def worker(bridge: Bridge, halt: Halt) -> None:
@@ -633,10 +637,24 @@ def test_cancelling_the_search_stops_new_calls_and_waits_for_the_worker() -> Non
         with pytest.raises(asyncio.CancelledError):
             await task
         actions.append("cancelled")
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.2)
 
     run(main())
-    assert actions == ["start1", "CancelledError", "SearchHaltedError", "worker done", "cancelled"]
+    assert actions == ["start1", "cleanup1", "CancelledError", "SearchHaltedError", "worker done", "cancelled"]
+
+
+def test_runs_and_promotions_take_the_registry_one_at_a_time(tmp_path: Path) -> None:
+    root = gym_root(tmp_path)
+    _dataset(root)
+    p, _ = port(SMART)
+    with gym.registry_lock(root):
+        with pytest.raises(gym.GymError, match="holds the registry"):
+            run(gym.run_gym(gym.RunConfig("gym-a", "A1", Decimal(5), "fake", max_evals=20), p, root))
+        with pytest.raises(gym.GymError, match="holds the registry"):
+            run(gym.promote(root, "A1@1.2.0", "owner"))
+    event = registry.champion(root, "A1").model_copy(update={"status": "challenger", "run_id": "gym-b"})
+    with pytest.raises(registry.RegistryError, match="already on record"):
+        registry.append_versions(root, [event])  # a challenger can never overwrite an existing version's status
 
 
 def test_promotion_needs_todays_champion_and_records_only_after_registration(tmp_path: Path) -> None:

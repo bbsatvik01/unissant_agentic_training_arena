@@ -14,7 +14,6 @@ reflection prompt.
 from __future__ import annotations
 
 import asyncio
-import concurrent.futures
 import logging
 import threading
 from collections.abc import Callable, Coroutine, Mapping, Sequence
@@ -325,12 +324,23 @@ def optimize(adapter: GymAdapter, search: Search) -> OptimizeResult:
 
 async def run_in_thread[T](fn: Callable[[Bridge, Halt], T]) -> T:
     """Run blocking GEPA code in a worker thread with a bridge back to this event loop. If this task is cancelled,
-    the search is halted, every bridged call in flight is cancelled, no new one is accepted, and the worker is
-    awaited before the cancellation propagates (so nothing keeps calling once the caller's resources close)."""
+    the search is halted, no new call is accepted, every bridged call in flight is cancelled AND awaited through its
+    own cleanup (the port settles its reservation in `finally`), and the worker is awaited, before the cancellation
+    propagates: nothing still runs once the caller closes its resources."""
     loop = asyncio.get_running_loop()
     halt = Halt()
-    pending: set[concurrent.futures.Future[Any]] = set()
+    tasks: set[asyncio.Task[Any]] = set()  # the bridged calls running on this loop
     lock = threading.Lock()
+
+    async def tracked[R](coro: Coroutine[Any, Any, R]) -> R:
+        task = asyncio.current_task()
+        if task is not None:
+            tasks.add(task)
+        try:
+            return await coro
+        finally:
+            if task is not None:
+                tasks.discard(task)
 
     def bridge[R](coro: Coroutine[Any, Any, R]) -> R:
         with lock:
@@ -338,13 +348,8 @@ async def run_in_thread[T](fn: Callable[[Bridge, Halt], T]) -> T:
                 coro.close()
                 msg = f"the search is halted ({halt.reason}); no new call"
                 raise SearchHaltedError(msg)
-            future = asyncio.run_coroutine_threadsafe(coro, loop)
-            pending.add(future)
-        try:
-            return future.result()
-        finally:
-            with lock:
-                pending.discard(future)
+            future = asyncio.run_coroutine_threadsafe(tracked(coro), loop)
+        return future.result()
 
     worker = asyncio.ensure_future(asyncio.to_thread(fn, bridge, halt))
     try:
@@ -352,7 +357,12 @@ async def run_in_thread[T](fn: Callable[[Bridge, Halt], T]) -> T:
     except asyncio.CancelledError:
         with lock:
             halt.stop("cancelled")
-            for future in pending:
-                future.cancel()
+        # Let any call submitted just before the halt start, then cancel every one and wait for its cleanup.
+        await asyncio.sleep(0)
+        running = set(tasks)
+        for task in running:
+            task.cancel()
+        if running:
+            await asyncio.wait(running)
         await asyncio.wait({worker})
         raise

@@ -169,6 +169,15 @@ def champion(root: Path, candidate_id: str) -> VersionEvent:
 
 
 def append_versions(root: Path, events: Sequence[VersionEvent]) -> None:
+    """Append version events. A `challenger` event names a new version only: reusing a version id already on
+    record (another run's challenger, a champion, an official version) is refused, so a status is never
+    overwritten by a second run's result."""
+    known = set(current_versions(root))
+    for event in events:
+        if event.status == "challenger" and event.version_id in known:
+            msg = f"{event.version_id} is already on record; a challenger needs a new version"
+            raise RegistryError(msg)
+        known.add(event.version_id)
     _append(root, VERSIONS, events)
 
 
