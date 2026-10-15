@@ -13,6 +13,7 @@ import { adjustInspectionCamera, createInspectionCamera, inspectionView, stepIns
 import { moveWithPeople, type CrowdState } from "../../lib/precinct/crowdNavigation";
 import { advanceStaffCrowd, createStaffCrowd, staffCrowdPeople } from "../../lib/precinct/staffCrowd";
 import { advanceCadence } from "../../lib/precinct/cadence";
+import { liveNavigationFrame } from "../../lib/precinct/liveNavigationFrame";
 import { interviewCamera, INVESTIGATOR_SEAT } from "../../lib/precinct/interviewStage";
 import { seatedNavigation, type ExplorationPose } from "../../lib/precinct/seatedNavigation";
 import type { WorkStyle } from "../../lib/agent-work/model";
@@ -24,7 +25,9 @@ import { reviewerForSceneV2, withheldObservationActorsV2 } from "../../lib/preci
 import { PrecinctReviewPanel, ReviewPanelChairV2 } from "./PrecinctReviewPanel";
 import { PrecinctActorReplay } from "./PrecinctActorReplay";
 import { applyRecordedCameraV1 } from "./recordedCameraV1";
-import { nextTier, WINDOW, type Tier } from "../../lib/world/quality";
+import type { Tier } from "../../lib/world/quality";
+import { PrecinctRenderPolicy, precinctDiagnosticsEnabled, usePrecinctDpr } from "./PrecinctRenderPolicy";
+import { PrecinctPerformanceProbe } from "./PrecinctPerformanceProbe";
 import { WalkingAvatar } from "./WalkingAvatar";
 import { PrecinctStaff } from "./PrecinctStaff";
 import { StaffSpeechFrameInvalidation } from "./StaffSpeechFrameInvalidation";
@@ -135,28 +138,6 @@ function Environment() {
       target.dispose(); room.dispose(); pmrem.dispose();
     };
   }, [get]);
-  return null;
-}
-
-/** Lower rendering cost before changing the world or its controls. */
-function AdaptiveQuality({ tier, onChange }: { readonly tier: Tier; readonly onChange: (tier: Tier) => void }) {
-  const get = useThree((state) => state.get);
-  const intervals = useRef<number[]>([]);
-  useEffect(() => {
-    const context = get().gl.getContext();
-    const debug = context.getExtension("WEBGL_debug_renderer_info");
-    const renderer: unknown = debug === null ? "" : context.getParameter(debug.UNMASKED_RENDERER_WEBGL);
-    if (typeof renderer === "string" && /swiftshader|llvmpipe|software/i.test(renderer) && tier !== "low") onChange("low");
-  }, [get, onChange, tier]);
-  useFrame((_state, delta) => {
-    if (tier === "low") return;
-    intervals.current.push(delta * 1000);
-    if (intervals.current.length >= WINDOW) {
-      const next = nextTier(tier, intervals.current);
-      intervals.current = [];
-      if (next !== tier) onChange(next);
-    }
-  });
   return null;
 }
 
@@ -273,7 +254,6 @@ export function Controls(props: PrecinctCanvasProps & { readonly crowd?: RefObje
     const camera = state.camera;
     const p = live.current;
     p.onBeforeFrame?.(Number.isFinite(dt) ? Math.max(0, dt) : 0);
-    const seconds = Number.isFinite(dt) ? Math.max(0, Math.min(dt, MAX_FRAME_SECONDS)) : 0;
     const replay = p.replayActors !== undefined;
     const pad = connectedGamepad();
     // The sole camera writer owns inspection too; no live navigation or canonical clock is mutated.
@@ -337,7 +317,6 @@ export function Controls(props: PrecinctCanvasProps & { readonly crowd?: RefObje
     const mode = p.cameraMode === "free" && !free ? "first" : p.cameraMode;
     const canWalk = !isSeated && p.active && !p.paused && !document.hidden && document.hasFocus() && !uiTarget(document.activeElement);
     if (!free) inspection.current = null;
-    manualLook.current = Math.max(0, manualLook.current - seconds);
 
     // Paused or modal exploration never consumes commands or moves the trainee.
     const command = p.travel.current;
@@ -353,14 +332,18 @@ export function Controls(props: PrecinctCanvasProps & { readonly crowd?: RefObje
       }
     }
 
-    let forward = 0; let strafe = 0;
+    // One render/capture clock; only live navigation is integrated in bounded substeps.
+    // Inactive/hidden frames retain the old no-movement/reconciliation behavior.
+    const elapsed = Number.isFinite(dt) ? Math.max(0, dt) : 0;
+    const frame = liveNavigationFrame(p.paused || !p.active || document.hidden ? Math.min(elapsed, MAX_FRAME_SECONDS) : elapsed);
+    let forward = 0; let strafe = 0; let yawInput = 0; let pitchInput = 0;
     let sprint = false;
     const pressed = pad?.buttons[0]?.pressed ?? false;
     if (canWalk) {
       forward = Number(keys.current.has("KeyW")) - Number(keys.current.has("KeyS"));
       strafe = Number(keys.current.has("KeyD")) - Number(keys.current.has("KeyA"));
-      let yawInput = Number(keys.current.has("ArrowLeft")) - Number(keys.current.has("ArrowRight"));
-      let pitchInput = Number(keys.current.has("ArrowUp")) - Number(keys.current.has("ArrowDown"));
+      yawInput = Number(keys.current.has("ArrowLeft")) - Number(keys.current.has("ArrowRight"));
+      pitchInput = Number(keys.current.has("ArrowUp")) - Number(keys.current.has("ArrowDown"));
       sprint = keys.current.has("ShiftLeft") || keys.current.has("ShiftRight");
       if (pad !== null) {
         const [x, y] = controllerDeadzone(pad.axes[0] ?? 0, pad.axes[1] ?? 0);
@@ -368,41 +351,50 @@ export function Controls(props: PrecinctCanvasProps & { readonly crowd?: RefObje
         forward -= y; strafe += x; yawInput -= rx; pitchInput -= ry;
         sprint ||= pad.buttons[10]?.pressed ?? false;
       }
-      look.current = turn(look.current, yawInput * seconds * 1.7, pitchInput * seconds * 1.3);
-      if (yawInput !== 0 || pitchInput !== 0) manualLook.current = 1.5;
       if (pressed && !lastButton.current && nearest.current !== null) p.onInteract(nearest.current);
     }
     // Latch even while paused/focused, so a held button cannot fire upon resuming.
     lastButton.current = pressed;
-    const before = position.current;
-    const people = p.crowd === undefined ? [] : staffCrowdPeople(p.crowd.current);
-    if (canWalk && (forward !== 0 || strafe !== 0)) {
-      path.current = []; arrivalYaw.current = null;
-      position.current = moveWithPeople(before, inputMovement(forward, strafe, look.current.yaw, sprint, seconds), p.manifest.colliders, people, PLAYER_RADIUS);
-    } else if (canWalk) {
-      const target = path.current[routeIndex.current];
-      if (target !== undefined) {
-        const dx = target[0] - before[0]; const dz = target[2] - before[2]; const distance = Math.hypot(dx, dz);
-        if (distance > 0.00001) {
-          const length = Math.min(distance, WALK_SPEED * seconds);
-          position.current = moveWithPeople(before, [dx / distance * length, 0, dz / distance * length], p.manifest.colliders, people, PLAYER_RADIUS);
-          if (!p.reducedMotion && manualLook.current === 0) look.current = { ...look.current, yaw: Math.atan2(-dx, -dz) };
-          if (length > 0 && Math.hypot(position.current[0] - before[0], position.current[2] - before[2]) < 0.000001) path.current = [];
-        }
-        if (Math.hypot(target[0] - position.current[0], target[2] - position.current[2]) < 0.0001) {
-          routeIndex.current += 1;
-          if (routeIndex.current >= path.current.length && arrivalYaw.current !== null) {
-            look.current = { ...look.current, yaw: arrivalYaw.current }; arrivalYaw.current = null;
+    let travelled = 0;
+    // A zero-delta frame still reconciles the live tier once, without movement.
+    for (let substep = 0; substep < Math.max(1, frame.steps); substep += 1) {
+      const seconds = frame.stepSeconds;
+      manualLook.current = Math.max(0, manualLook.current - seconds);
+      if (canWalk) {
+        look.current = turn(look.current, yawInput * seconds * 1.7, pitchInput * seconds * 1.3);
+        if (yawInput !== 0 || pitchInput !== 0) manualLook.current = 1.5;
+      }
+      const before = position.current;
+      const people = p.crowd === undefined ? [] : staffCrowdPeople(p.crowd.current);
+      if (canWalk && (forward !== 0 || strafe !== 0)) {
+        path.current = []; arrivalYaw.current = null;
+        position.current = moveWithPeople(before, inputMovement(forward, strafe, look.current.yaw, sprint, seconds), p.manifest.colliders, people, PLAYER_RADIUS);
+      } else if (canWalk) {
+        const target = path.current[routeIndex.current];
+        if (target !== undefined) {
+          const dx = target[0] - before[0]; const dz = target[2] - before[2]; const distance = Math.hypot(dx, dz);
+          if (distance > 0.00001) {
+            const length = Math.min(distance, WALK_SPEED * seconds);
+            position.current = moveWithPeople(before, [dx / distance * length, 0, dz / distance * length], p.manifest.colliders, people, PLAYER_RADIUS);
+            if (!p.reducedMotion && manualLook.current === 0) look.current = { ...look.current, yaw: Math.atan2(-dx, -dz) };
+            if (length > 0 && Math.hypot(position.current[0] - before[0], position.current[2] - before[2]) < 0.000001) path.current = [];
+          }
+          if (Math.hypot(target[0] - position.current[0], target[2] - position.current[2]) < 0.0001) {
+            routeIndex.current += 1;
+            if (routeIndex.current >= path.current.length && arrivalYaw.current !== null) {
+              look.current = { ...look.current, yaw: arrivalYaw.current }; arrivalYaw.current = null;
+            }
           }
         }
       }
+      if (canWalk) travelled += Math.hypot(position.current[0] - before[0], position.current[2] - before[2]);
+      if (p.crowd !== undefined) p.crowd.current = advanceStaffCrowd(p.crowd.current, p.manifest, {
+        tier: p.tier, delta: seconds, paused: p.paused || !p.active || document.hidden, reducedMotion: p.reducedMotion,
+        replay: false, playerPosition: isSeated ? INVESTIGATOR_SEAT.position : position.current,
+      });
     }
-    speed.current = canWalk && seconds > 0 ? Math.hypot(position.current[0] - before[0], position.current[2] - before[2]) / seconds : 0;
-    bodyTravel.current = { distance: canWalk ? Math.hypot(position.current[0] - before[0], position.current[2] - before[2]) : 0, speed: speed.current };
-    if (p.crowd !== undefined) p.crowd.current = advanceStaffCrowd(p.crowd.current, p.manifest, {
-      tier: p.tier, delta: seconds, paused: p.paused || !p.active || document.hidden, reducedMotion: p.reducedMotion,
-      replay: false, playerPosition: isSeated ? INVESTIGATOR_SEAT.position : position.current,
-    });
+    speed.current = canWalk && frame.elapsedSeconds > 0 ? travelled / frame.elapsedSeconds : 0;
+    bodyTravel.current = { distance: travelled, speed: speed.current };
     const [x, y, z] = position.current;
     focus.set(x, y + EYE_HEIGHT, z);
     const anchor = isSeated && !free ? interviewCamera(p.cameraMode, p.paused) : null;
@@ -464,6 +456,7 @@ export function Controls(props: PrecinctCanvasProps & { readonly crowd?: RefObje
 }
 
 export default function PrecinctCanvas(props: PrecinctCanvasProps) {
+  const dpr = usePrecinctDpr(props.tier);
   const crowd = useRef(createStaffCrowd(props.tier));
   const playingStaffAudio = useSyncExternalStore(localStaffPlaybackActivity.subscribe, localStaffPlaybackActivity.getSnapshot, localStaffPlaybackActivity.getServerSnapshot);
   const interview = props.interview;
@@ -485,10 +478,13 @@ export default function PrecinctCanvas(props: PrecinctCanvasProps) {
   }
   const sceneMoving = interview?.present === true && !props.paused && !interview.work.paused && !props.reducedMotion;
   const staffSpeechMoving = staffSpeechNeedsFrames(playingStaffAudio, props.paused, props.reducedMotion, replay);
-  return <Canvas frameloop={replay || (props.active && (!props.paused || props.cameraMode === "free")) || sceneMoving || staffSpeechMoving ? "always" : "demand"} tabIndex={0} camera={{ position: [0, EYE_HEIGHT, -2.4], fov: 66, near: 0.08, far: 120 }} dpr={props.tier === "high" ? [1, 1.75] : props.tier === "medium" ? [1, 1.25] : 0.75} gl={{ antialias: false, powerPreference: "high-performance", toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.1 }} aria-label={interview?.present === true && interview.seated ? "Seated interview. Use the interview controls to ask or leave. Paused free camera: WASD pans, Q/E lowers/raises, arrows or drag orbit, wheel zooms, Shift moves faster." : "Explorable precinct. WASD walks, arrows look, E interacts. Paused free inspection: WASD pans, Q/E lowers/raises, arrows or drag orbit, wheel zooms, Shift moves faster."}>
+  const continuous = replay || (props.active && (!props.paused || props.cameraMode === "free")) || sceneMoving || staffSpeechMoving;
+  return <Canvas frameloop={continuous ? "always" : "demand"} tabIndex={0} camera={{ position: [0, EYE_HEIGHT, -2.4], fov: 66, near: 0.08, far: 120 }} dpr={dpr} gl={{ antialias: false, powerPreference: "high-performance", toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.1 }} aria-label={interview?.present === true && interview.seated ? "Seated interview. Use the interview controls to ask or leave. Paused free camera: WASD pans, Q/E lowers/raises, arrows or drag orbit, wheel zooms, Shift moves faster." : "Explorable precinct. WASD walks, arrows look, E interacts. Paused free inspection: WASD pans, Q/E lowers/raises, arrows or drag orbit, wheel zooms, Shift moves faster."}>
     <StaffSpeechFrameInvalidation moving={staffSpeechMoving} />
     <color attach="background" args={["#d5dfe0"]} /><fog attach="fog" args={["#d5dfe0", 55, 100]} />
-    <AdaptiveQuality tier={props.tier} onChange={props.onTierChange} /><Environment /><hemisphereLight args={["#f8f6ee", "#70797b", 1.6]} />
+    <PrecinctRenderPolicy tier={props.tier} continuous={continuous} onChange={props.onTierChange} />
+    {precinctDiagnosticsEnabled() ? <PrecinctPerformanceProbe tier={props.tier} continuous={continuous} sceneAsset={precinctAsset(props.manifest)} /> : null}
+    <Environment /><hemisphereLight args={["#f8f6ee", "#70797b", 1.6]} />
     <directionalLight position={[-12, 16, 6]} intensity={3} color="#fff1d5" />
     <pointLight position={[0, 3, -6]} intensity={45} distance={18} color="#ffe5c2" />
     {props.tier !== "low" ? <><pointLight position={[0, 3, -17]} intensity={25} distance={15} color="#f3eddf" /><pointLight position={[0, 3, -29]} intensity={25} distance={15} color="#f3eddf" /></> : null}

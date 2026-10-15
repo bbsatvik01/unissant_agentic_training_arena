@@ -1,0 +1,95 @@
+{
+  "measurement": "Actual Controls, synthetic supplied frame deltas, one second straight walking then a separate one second arrow turn. This is not browser FPS.",
+  "rows": [
+    {
+      "variant": "instrumentation-only-baseline",
+      "hz": 5,
+      "simulatedSecondsPerPhase": 1,
+      "measuredStraightWalkingMetres": 0.6000000000000005,
+      "measuredSeparateYawRadians": 0.42500000000000426,
+      "expectedWalkSpeedMetresPerSecond": 2.4,
+      "combinedTurnAndWalkPathInvarianceMeasured": false
+    },
+    {
+      "variant": "instrumentation-only-baseline",
+      "hz": 10,
+      "simulatedSecondsPerPhase": 1,
+      "measuredStraightWalkingMetres": 1.200000000000001,
+      "measuredSeparateYawRadians": 0.8500000000000085,
+      "expectedWalkSpeedMetresPerSecond": 2.4,
+      "combinedTurnAndWalkPathInvarianceMeasured": false
+    },
+    {
+      "variant": "instrumentation-only-baseline",
+      "hz": 20,
+      "simulatedSecondsPerPhase": 1,
+      "measuredStraightWalkingMetres": 2.4000000000000017,
+      "measuredSeparateYawRadians": 1.700000000000017,
+      "expectedWalkSpeedMetresPerSecond": 2.4,
+      "combinedTurnAndWalkPathInvarianceMeasured": false
+    },
+    {
+      "variant": "instrumentation-only-baseline",
+      "hz": 30,
+      "simulatedSecondsPerPhase": 1,
+      "measuredStraightWalkingMetres": 2.4000000000000017,
+      "measuredSeparateYawRadians": 1.6999999999999993,
+      "expectedWalkSpeedMetresPerSecond": 2.4,
+      "combinedTurnAndWalkPathInvarianceMeasured": false
+    },
+    {
+      "variant": "instrumentation-only-baseline",
+      "hz": 60,
+      "simulatedSecondsPerPhase": 1,
+      "measuredStraightWalkingMetres": 2.4000000000000017,
+      "measuredSeparateYawRadians": 1.699999999999946,
+      "expectedWalkSpeedMetresPerSecond": 2.4,
+      "combinedTurnAndWalkPathInvarianceMeasured": false
+    },
+    {
+      "variant": "optimized-candidate",
+      "hz": 5,
+      "simulatedSecondsPerPhase": 1,
+      "measuredStraightWalkingMetres": 2.4000000000000017,
+      "measuredSeparateYawRadians": 1.700000000000017,
+      "expectedWalkSpeedMetresPerSecond": 2.4,
+      "combinedTurnAndWalkPathInvarianceMeasured": false
+    },
+    {
+      "variant": "optimized-candidate",
+      "hz": 10,
+      "simulatedSecondsPerPhase": 1,
+      "measuredStraightWalkingMetres": 2.4000000000000017,
+      "measuredSeparateYawRadians": 1.700000000000017,
+      "expectedWalkSpeedMetresPerSecond": 2.4,
+      "combinedTurnAndWalkPathInvarianceMeasured": false
+    },
+    {
+      "variant": "optimized-candidate",
+      "hz": 20,
+      "simulatedSecondsPerPhase": 1,
+      "measuredStraightWalkingMetres": 2.4000000000000017,
+      "measuredSeparateYawRadians": 1.700000000000017,
+      "expectedWalkSpeedMetresPerSecond": 2.4,
+      "combinedTurnAndWalkPathInvarianceMeasured": false
+    },
+    {
+      "variant": "optimized-candidate",
+      "hz": 30,
+      "simulatedSecondsPerPhase": 1,
+      "measuredStraightWalkingMetres": 2.4000000000000017,
+      "measuredSeparateYawRadians": 1.6999999999999993,
+      "expectedWalkSpeedMetresPerSecond": 2.4,
+      "combinedTurnAndWalkPathInvarianceMeasured": false
+    },
+    {
+      "variant": "optimized-candidate",
+      "hz": 60,
+      "simulatedSecondsPerPhase": 1,
+      "measuredStraightWalkingMetres": 2.4000000000000017,
+      "measuredSeparateYawRadians": 1.699999999999946,
+      "expectedWalkSpeedMetresPerSecond": 2.4,
+      "combinedTurnAndWalkPathInvarianceMeasured": false
+    }
+  ]
+}

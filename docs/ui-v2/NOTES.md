@@ -1,5 +1,15 @@
 # UI v2 implementation notes
 
+## 2026-10-15 21:14 UTC — measured Office pair and performance candidate integration
+
+[Issue 19](https://github.com/bbsatvik01/unissant_agentic_training_arena/issues/19) now has actual production measurements, not inferred FPS. At 1440×900 / Low / DPR 0.75 on cloud SwiftShader, the baseline rendered 53 frames over 70.073 seconds (0.756 FPS); the candidate rendered 52 over 61.643 seconds (0.844 FPS). Frame p50/p95/p99 were 1248.8/2076.2/2761.8 ms and 1164.1/1436.9/3340.9 ms respectively. Both are severely slow and fail the frame-pacing target. Both retain failed five-second cold-entry gates and nonzero overall exit status. Their separately warmed samples pass completeness checks with no runtime/network errors or hidden/demand contamination.
+
+Both samples measured 78 draw calls and triangle p50 140,375 at 729,000 drawing-buffer pixels. Candidate movement completes 24 walking legs versus six in the baseline because bounded live substeps correct slow walking at low frame rates. Different viewpoints, movement cycles, one additional candidate texture set and ordinary run variability prevent attributing the FPS difference to isolated rendering speed. [Full evidence and limitations](PRECINCT-PERFORMANCE-VALIDATION.md). Courtyard timing and actual MacBook Air M5 sustained 60 FPS remain unmeasured.
+
+The reviewed candidate is now integrated by manifest-checked files and two narrow Canvas/crowd-test patches. It adds bounded viewport/DPR budgets, opt-in read-only counters, demand-aware adaptive sampling, and bounded live movement substeps while preserving all 27 pinned replay interpretation dependencies. Isolated strict app/tools, zero-warning lint, 194 focused assertions and production build pass; fresh combined full-gate validation remains pending. The earlier green `6758285` gate does not validate this new candidate or the separate recorder revision-3b.
+
+A fresh current Gitleaks scan at docs checkpoint `db1e8c6` scanned 688 commits and reports exactly the same two reviewed non-secret fingerprints. [Redacted fingerprint proof](security-current-db1e8c6.json). No policy suppression was made. The optional voiced browser recorder now receives the sole heavy-job lane; dictation and Coach Lab validation follow it.
+
 ## 2026-10-15 21:01 UTC — combined web gate passes
 
 Remote `675828519bcc3c6b045df2630c12003974595c8b` passes the complete unchanged [web check](https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38805119435/job/116664177672): all-project zero-warning lint, strict types, 232 suites / 2,682 tests in both normal and coverage runs, unchanged coverage floors, and a 3.10-second production build. Coverage is 97.83% statements, 95.86% branches, 99.11% functions and 99.22% lines. [Machine-readable proof](combined-web-check-6758285.json). All three original renderer-fallback assertions now pass; no assertion or timeout was changed.

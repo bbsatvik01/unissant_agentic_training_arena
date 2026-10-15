@@ -1,0 +1,28 @@
+{
+  "verified_at_utc": "2026-10-15T21:12:00Z",
+  "head": "db1e8c6d138cd54ee79d5b48d51842ce0aef729a",
+  "scanner": "gitleaks8.30.1",
+  "scope": "Default all-fetched-refs history; unchanged repository configuration, no custom log-opts or baseline suppression",
+  "commits": 688,
+  "bytes_scanned": 32230179,
+  "elapsed_seconds": 4.81,
+  "exit_code": 1,
+  "raw_redacted_report_sha256": "d40de9d6fdeb6e78b18477bb6c271a6b3f7b82e7f77e1c36f31b2f21ac25f4c3",
+  "findings": [
+    {
+      "RuleID": "generic-api-key",
+      "File": "docs/ui-v2/courtyard-asset-proof/courtyard-module-preservation.json",
+      "StartLine": 712,
+      "Commit": "9cd148b0590b7563d994308b4dcfa3d91e12c0f0",
+      "Fingerprint": "9cd148b0590b7563d994308b4dcfa3d91e12c0f0:docs/ui-v2/courtyard-asset-proof/courtyard-module-preservation.json:generic-api-key:712"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "File": "web/src/lib/precinct/npcVisitMemory.ts",
+      "StartLine": 8,
+      "Commit": "82dbfe0bcf6dd78557a1357ab6f105ea50c7c776",
+      "Fingerprint": "82dbfe0bcf6dd78557a1357ab6f105ea50c7c776:web/src/lib/precinct/npcVisitMemory.ts:generic-api-key:8"
+    }
+  ],
+  "review": "Both fingerprints exactly match the previously inspected public localStorage namespace and original Blender geometry hash. No credential was found in these two values. This is local reproduction, not a detailed CI artifact."
+}

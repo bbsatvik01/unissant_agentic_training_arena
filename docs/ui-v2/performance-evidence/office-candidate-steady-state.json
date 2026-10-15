@@ -1,0 +1,1370 @@
+{
+  "status": "steady-state-completed-cold-start-failed",
+  "readiness": {
+    "originalGateMs": 5000,
+    "initialReady": false,
+    "initialFailure": "Error: expect(locator).toBeEnabled() failed\n\nLocator: getByRole('button', { name: 'Enter the precinct', exact: true })\nExpected: enabled\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeEnabled\" getByRole('button', { name: 'Enter the precinct', exact: true }) with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Enter the precinct', exact: true })\n\n    at captureRawStack (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeEnabled (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at benchmarkPrecinct (/workspace/shared/precinct-performance-ab-20261015/candidate/web/tools/precinct-performance.ts:150:95)",
+    "initialGateElapsedMs": 5042.084743000001,
+    "diagnosticOnly": false,
+    "slowStartDiagnostic": true,
+    "captureErrors": [
+      "Cold-start screenshot unavailable: page.screenshot: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - taking page screenshot\u001b[22m\n\u001b[2m  - waiting for fonts to load...\u001b[22m\n\u001b[2m  - fonts loaded\u001b[22m\n\n    at benchmarkPrecinct (/workspace/shared/precinct-performance-ab-20261015/candidate/web/tools/precinct-performance.ts:160:24)"
+    ],
+    "followupLimitMs": 60000,
+    "followupReady": true,
+    "followupElapsedMs": 4233.0927489999995,
+    "failureEvidence": [
+      "cold-start-failure.html"
+    ]
+  },
+  "requests": [
+    {
+      "path": "/",
+      "resourceType": "document",
+      "startedMs": 1848.2146369999998,
+      "responseMs": 1890.5954880000002,
+      "finishedMs": 1967.288871,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098485665.7158,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 1.485,
+        "responseStart": 26.364,
+        "responseEnd": 55.279
+      }
+    },
+    {
+      "path": "/assets/index-ettryF_G.js",
+      "resourceType": "script",
+      "startedMs": 1969.7888340000002,
+      "responseMs": 2361.562854,
+      "finishedMs": 2362.558715,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098485787.145,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 0.683,
+        "responseStart": 30.832,
+        "responseEnd": 254.077
+      }
+    },
+    {
+      "path": "/assets/jsx-runtime-D3jfb0Ew.js",
+      "resourceType": "script",
+      "startedMs": 1975.3749529999998,
+      "responseMs": 2126.5740539999997,
+      "finishedMs": 2132.537435,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098485791.915,
+        "domainLookupStart": 1.42,
+        "domainLookupEnd": 1.43,
+        "connectStart": 1.43,
+        "secureConnectionStart": -1,
+        "connectEnd": 1.537,
+        "requestStart": 1.836,
+        "responseStart": 22.473,
+        "responseEnd": 72.092
+      }
+    },
+    {
+      "path": "/assets/index-Ci14sePE.css",
+      "resourceType": "stylesheet",
+      "startedMs": 1976.9575419999999,
+      "responseMs": 2014.150953,
+      "finishedMs": 2148.6068029999997,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098485792.3572,
+        "domainLookupStart": 0.512,
+        "domainLookupEnd": 0.534,
+        "connectStart": 0.534,
+        "secureConnectionStart": -1,
+        "connectEnd": 1.077,
+        "requestStart": 1.32,
+        "responseStart": 18.844,
+        "responseEnd": 168.835
+      }
+    },
+    {
+      "path": "/assets/PrecinctCanvas-CnakTLx4.js",
+      "resourceType": "script",
+      "startedMs": 3040.5566230000004,
+      "responseMs": 3429.8871640000007,
+      "finishedMs": 3430.6871790000005,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098486860.793,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 3.577,
+        "responseStart": 11.627,
+        "responseEnd": 146.347
+      }
+    },
+    {
+      "path": "/assets/RoomEnvironment-BHuNn4AT.js",
+      "resourceType": "script",
+      "startedMs": 3041.727642,
+      "responseMs": 3454.9653,
+      "finishedMs": 3455.577924,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098486861.832,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 2.642,
+        "responseStart": 17.356,
+        "responseEnd": 173.622
+      }
+    },
+    {
+      "path": "/favicon.svg",
+      "resourceType": "other",
+      "startedMs": 3427.6332920000004,
+      "responseMs": 3614.589094,
+      "finishedMs": 3614.6257210000003,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098487243.498,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 5.494,
+        "responseStart": 11.454,
+        "responseEnd": 26.231
+      }
+    },
+    {
+      "path": "/world/precinct.glb",
+      "resourceType": "fetch",
+      "startedMs": 5866.226891,
+      "responseMs": 6347.379966,
+      "finishedMs": 11784.824471999998,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098489681.534,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 1.494,
+        "responseStart": 14.435,
+        "responseEnd": 6900.763
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 5868.580154,
+      "responseMs": 6341.904292,
+      "finishedMs": 11481.354915999998,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098489684.115,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 1.09,
+        "responseStart": 9.664,
+        "responseEnd": 1331.137
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 5869.308984,
+      "responseMs": 6345.686526,
+      "finishedMs": 11493.079560999999,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098489684.9968,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 0.858,
+        "responseStart": 9.136,
+        "responseEnd": 1309.478
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_06/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 5872.677875,
+      "responseMs": 6347.949036,
+      "finishedMs": 11509.893321,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098489686.9841,
+        "domainLookupStart": 0.517,
+        "domainLookupEnd": 1.238,
+        "connectStart": 1.238,
+        "secureConnectionStart": -1,
+        "connectEnd": 1.421,
+        "requestStart": 1.512,
+        "responseStart": 16.806,
+        "responseEnd": 1343.003
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/body.jpg",
+      "resourceType": "image",
+      "startedMs": 11879.565810999999,
+      "responseMs": 12601.793323,
+      "finishedMs": 12602.491117,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098495734.226,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 7.472,
+        "responseStart": 16.135,
+        "responseEnd": 241.728
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/body_n.jpg",
+      "resourceType": "image",
+      "startedMs": 11880.213526,
+      "responseMs": 12602.781767999999,
+      "finishedMs": 12603.082416,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098495735.0562,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 7.924,
+        "responseStart": 15.388,
+        "responseEnd": 243.732
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/head.jpg",
+      "resourceType": "image",
+      "startedMs": 11880.767419,
+      "responseMs": 12606.632316,
+      "finishedMs": 12607.036587999999,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098495735.2231,
+        "domainLookupStart": 3.908,
+        "domainLookupEnd": 4.033,
+        "connectStart": 4.033,
+        "secureConnectionStart": -1,
+        "connectEnd": 6.207,
+        "requestStart": 8.037,
+        "responseStart": 17.922,
+        "responseEnd": 246.008
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/head_n.jpg",
+      "resourceType": "image",
+      "startedMs": 11882.793606,
+      "responseMs": 12607.213826,
+      "finishedMs": 12607.473063,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098495735.363,
+        "domainLookupStart": 5.244,
+        "domainLookupEnd": 5.257,
+        "connectStart": 5.257,
+        "secureConnectionStart": -1,
+        "connectEnd": 7.166,
+        "requestStart": 8.212,
+        "responseStart": 17.862,
+        "responseEnd": 247.398
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/opacity.png",
+      "resourceType": "image",
+      "startedMs": 11883.748243999999,
+      "responseMs": 12603.282266999999,
+      "finishedMs": 12606.279274999999,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098495735.6008,
+        "domainLookupStart": 5.254,
+        "domainLookupEnd": 5.263,
+        "connectStart": 5.263,
+        "secureConnectionStart": -1,
+        "connectEnd": 6.957,
+        "requestStart": 8.109,
+        "responseStart": 17.453,
+        "responseEnd": 247.886
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/body.jpg",
+      "resourceType": "image",
+      "startedMs": 11885.055714999999,
+      "responseMs": 12607.543274,
+      "finishedMs": 12608.207735,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098495735.899,
+        "domainLookupStart": 5.23,
+        "domainLookupEnd": 5.259,
+        "connectStart": 5.259,
+        "secureConnectionStart": -1,
+        "connectEnd": 6.675,
+        "requestStart": 7.914,
+        "responseStart": 17.423,
+        "responseEnd": 243.005
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/body_n.jpg",
+      "resourceType": "image",
+      "startedMs": 11889.629058999999,
+      "responseMs": 12611.362068999999,
+      "finishedMs": 12611.722571999999,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098495857.687,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 3.156,
+        "responseStart": 7.249,
+        "responseEnd": 260.077
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/head.jpg",
+      "resourceType": "image",
+      "startedMs": 11890.247567999999,
+      "responseMs": 12611.945117,
+      "finishedMs": 12612.578653999999,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098495860.374,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 2.382,
+        "responseStart": 6.639,
+        "responseEnd": 259.776
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/head_n.jpg",
+      "resourceType": "image",
+      "startedMs": 11891.389250999999,
+      "responseMs": 12618.431911,
+      "finishedMs": 12618.688317999999,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098495860.6,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 2.272,
+        "responseStart": 10.36,
+        "responseEnd": 271.372
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_06/body.jpg",
+      "resourceType": "image",
+      "startedMs": 11893.876052,
+      "responseMs": 12618.996953,
+      "finishedMs": 12619.115012999999,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098495861.426,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 1.796,
+        "responseStart": 12.794,
+        "responseEnd": 274.47
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_06/body_n.jpg",
+      "resourceType": "image",
+      "startedMs": 11894.207738,
+      "responseMs": 12612.735584,
+      "finishedMs": 12613.072005,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098495863.211,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 0.469,
+        "responseStart": 5.28,
+        "responseEnd": 272.617
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_06/head.jpg",
+      "resourceType": "image",
+      "startedMs": 11896.459320999998,
+      "responseMs": 12618.765244,
+      "finishedMs": 12618.942966999999,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098495863.4438,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 0.28,
+        "responseStart": 8.106,
+        "responseEnd": 271.362
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_06/head_n.jpg",
+      "resourceType": "image",
+      "startedMs": 11920.261745,
+      "responseMs": 12619.160624999999,
+      "finishedMs": 12619.352421,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098495878.3901,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 4.518,
+        "responseStart": 13.002,
+        "responseEnd": 280.584
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 34677.042192,
+      "responseMs": 34734.539336,
+      "finishedMs": 34788.068352,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098518491.106,
+        "domainLookupStart": 2.127,
+        "domainLookupEnd": 2.22,
+        "connectStart": 2.22,
+        "secureConnectionStart": -1,
+        "connectEnd": 2.915,
+        "requestStart": 3.105,
+        "responseStart": 5.985,
+        "responseEnd": 55.094
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/body.jpg",
+      "resourceType": "image",
+      "startedMs": 35057.191476,
+      "responseMs": 35122.01211,
+      "finishedMs": 35123.506532,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098518881.419,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 11.679,
+        "responseStart": 18.157,
+        "responseEnd": 117.681
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/body_n.jpg",
+      "resourceType": "image",
+      "startedMs": 35057.858870000004,
+      "responseMs": 35125.325056,
+      "finishedMs": 35145.478818,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098518881.6929,
+        "domainLookupStart": 11.104,
+        "domainLookupEnd": 11.129,
+        "connectStart": 11.129,
+        "secureConnectionStart": -1,
+        "connectEnd": 11.503,
+        "requestStart": 11.566,
+        "responseStart": 31.835,
+        "responseEnd": 132.382
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/head.jpg",
+      "resourceType": "image",
+      "startedMs": 35058.214016000005,
+      "responseMs": 35124.287054,
+      "finishedMs": 35133.026503,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098518891.871,
+        "domainLookupStart": 4.08,
+        "domainLookupEnd": 4.092,
+        "connectStart": 4.092,
+        "secureConnectionStart": -1,
+        "connectEnd": 4.661,
+        "requestStart": 4.834,
+        "responseStart": 21.364,
+        "responseEnd": 124.455
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/head_n.jpg",
+      "resourceType": "image",
+      "startedMs": 35058.610855000006,
+      "responseMs": 35145.561932000004,
+      "finishedMs": 35175.501963,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098518892.205,
+        "domainLookupStart": 3.955,
+        "domainLookupEnd": 3.96,
+        "connectStart": 3.96,
+        "secureConnectionStart": -1,
+        "connectEnd": 4.334,
+        "requestStart": 4.919,
+        "responseStart": 35.876,
+        "responseEnd": 151.933
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/opacity.png",
+      "resourceType": "image",
+      "startedMs": 35058.964675,
+      "responseMs": 35150.114236,
+      "finishedMs": 35175.480936,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098518892.3608,
+        "domainLookupStart": 3.88,
+        "domainLookupEnd": 3.891,
+        "connectStart": 3.891,
+        "secureConnectionStart": -1,
+        "connectEnd": 4.195,
+        "requestStart": 5.772,
+        "responseStart": 35.777,
+        "responseEnd": 152.115
+      }
+    }
+  ],
+  "buildAssets": [
+    {
+      "path": "/assets/index-Ci14sePE.css",
+      "bytes": 138769,
+      "sha256": "dec25bf7fdb65464ae9df06d13f885219a361e338885ca372e744ad85acc352b"
+    },
+    {
+      "path": "/assets/index-ettryF_G.js",
+      "bytes": 2466829,
+      "sha256": "580642699404d787a70958677941484eba27e3f0a7c66f1ae48a3a397dfb50d7"
+    },
+    {
+      "path": "/assets/jsx-runtime-D3jfb0Ew.js",
+      "bytes": 8901,
+      "sha256": "a2c68294426b0ded53fa2d6c97bb39c4a51f99e5e4b23e7953a2c69298e361f8"
+    },
+    {
+      "path": "/assets/PrecinctCanvas-CnakTLx4.js",
+      "bytes": 302301,
+      "sha256": "b240ddf1b9c179023afef167bf0c2f1ba274a9604af83abea45c63df75cc3e33"
+    },
+    {
+      "path": "/assets/RoomEnvironment-BHuNn4AT.js",
+      "bytes": 959546,
+      "sha256": "c1ca9ba149df6b935f0dadff4bb8dff9c3791f347893f5360b3b1674406ae870"
+    },
+    {
+      "path": "/avatars/Business_Female_01/avatar.glb",
+      "bytes": 1747872,
+      "sha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2"
+    },
+    {
+      "path": "/avatars/Business_Female_01/body_n.jpg",
+      "bytes": 207836,
+      "sha256": "ed66976001f9316aba07ae747147d270896ec9c6adeecc4f570079faa7fdabca"
+    },
+    {
+      "path": "/avatars/Business_Female_01/body.jpg",
+      "bytes": 150493,
+      "sha256": "0c340ed502930f4f474bc75678236b48fb620cd360ffc33b230122029f08be93"
+    },
+    {
+      "path": "/avatars/Business_Female_01/head_n.jpg",
+      "bytes": 268806,
+      "sha256": "f14db1f2c7cd06741620e2816cbcce096f59b409139b8854d004badc625de7fb"
+    },
+    {
+      "path": "/avatars/Business_Female_01/head.jpg",
+      "bytes": 228716,
+      "sha256": "a0c4d8d88a7ccb7464e94c473fb2a89531c22dbe0aa63df8d1fd67a6fbfc61e1"
+    },
+    {
+      "path": "/avatars/Business_Female_01/opacity.png",
+      "bytes": 293137,
+      "sha256": "8068f18c812dd38bee42c54a81d7d406cb9a6f911ec2d56bf548ebb8e9136992"
+    },
+    {
+      "path": "/avatars/Business_Male_02/avatar.glb",
+      "bytes": 1626492,
+      "sha256": "17b4ca9fec7eb2f369ec4b8be34e606e9cf30dabd7e49f1d32042c60c086d24f"
+    },
+    {
+      "path": "/avatars/Business_Male_02/body_n.jpg",
+      "bytes": 240721,
+      "sha256": "7191ab42c58715225934ae80d68546b66b6f6d9b3e5dc52ecd9e7b2bb2eb9792"
+    },
+    {
+      "path": "/avatars/Business_Male_02/body.jpg",
+      "bytes": 136735,
+      "sha256": "d0b9d3b209cba698ce79096cd39b4edc4d40de07bbac7a5c7e4f599d75f85d2c"
+    },
+    {
+      "path": "/avatars/Business_Male_02/head_n.jpg",
+      "bytes": 205892,
+      "sha256": "62955b3e6c654bcbf148e73b136144ac6ae3271137c8906ff6b7072091e0f72c"
+    },
+    {
+      "path": "/avatars/Business_Male_02/head.jpg",
+      "bytes": 172570,
+      "sha256": "cdb2ed753952ae02ec517f06bda7761d8df625a2d1d2d535aad07fa34d83ac17"
+    },
+    {
+      "path": "/avatars/Business_Male_02/opacity.png",
+      "bytes": 245105,
+      "sha256": "5b18691cd0d2c1a5b3addd38e06e3249cc2a885edbefa36341b8e9cc00b5dfdf"
+    },
+    {
+      "path": "/avatars/Business_Male_04/avatar.glb",
+      "bytes": 1186692,
+      "sha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51"
+    },
+    {
+      "path": "/avatars/Business_Male_04/body_n.jpg",
+      "bytes": 341212,
+      "sha256": "c8e255a09b02fc7b8569f368da22891bc413d9c8cd8c0eeee9072fbba1f891cd"
+    },
+    {
+      "path": "/avatars/Business_Male_04/body.jpg",
+      "bytes": 171399,
+      "sha256": "b1d81314507a28946b8520e258befa10b6436953b2de3a0ec58b37dbfea7e911"
+    },
+    {
+      "path": "/avatars/Business_Male_04/head_n.jpg",
+      "bytes": 184387,
+      "sha256": "c4e7839a130a72fa5512baa62e76946866a1493bf4415634b45f7fdaf303acdd"
+    },
+    {
+      "path": "/avatars/Business_Male_04/head.jpg",
+      "bytes": 178406,
+      "sha256": "c7221882489e50a24626a2abbfccb3f3ec9dbc7567abec19b3ddf494dc6a0ff4"
+    },
+    {
+      "path": "/avatars/Business_Male_06/avatar.glb",
+      "bytes": 1420560,
+      "sha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b"
+    },
+    {
+      "path": "/avatars/Business_Male_06/body_n.jpg",
+      "bytes": 195002,
+      "sha256": "c2216f2aca76f24ccc56dca7feaccd3201d65e5bf83a7f777dce43d24be78d87"
+    },
+    {
+      "path": "/avatars/Business_Male_06/body.jpg",
+      "bytes": 142627,
+      "sha256": "2cce232d0082faa08927133a2212306336a3b88f21ed8398ece24a444644e8b4"
+    },
+    {
+      "path": "/avatars/Business_Male_06/head_n.jpg",
+      "bytes": 247814,
+      "sha256": "105f75e6ef4462ee29da7e8202f1bbf98a83540741a472645dd45443c3143018"
+    },
+    {
+      "path": "/avatars/Business_Male_06/head.jpg",
+      "bytes": 186663,
+      "sha256": "97997a8c631b932f285c90092410a05cee9b2ccc24298804cc011ede5bd176cd"
+    },
+    {
+      "path": "/world/precinct.glb",
+      "bytes": 3075764,
+      "sha256": "a9801458da3ff10911d49d03ba80cfa60eae9a70e42121b67a3066ec9aab9e9e"
+    }
+  ],
+  "loadedArtifactFingerprint": "b1d8bbf9456a2be5b49330851d4eaf2b27e299b2400d5395bf78fdb4b7c1e6c7",
+  "options": {
+    "url": "http://127.0.0.1:4186/?precinctPerf=1&precinctPerfPinned=1",
+    "output": "/workspace/shared/precinct-performance-ab-20261015/candidate/results/native-office-low-v4-slow-start",
+    "seconds": 60,
+    "warmup": 15,
+    "dpr": 2,
+    "scene": "office",
+    "tier": "low",
+    "camera": "third",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "software": true,
+    "headed": false,
+    "readinessDiagnostics": false,
+    "slowStartDiagnostic": true,
+    "machineLabel": "Not supplied; device model unverified"
+  },
+  "browserVersion": "154.0.8037.57",
+  "movement": [
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.2
+      },
+      "after": {
+        "x": 0,
+        "z": -5.400000000000001
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.400000000000001
+      },
+      "after": {
+        "x": 0,
+        "z": -4.2
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.2
+      },
+      "after": {
+        "x": 0,
+        "z": -5.400000000000001
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.400000000000001
+      },
+      "after": {
+        "x": 0,
+        "z": -4.2
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.2
+      },
+      "after": {
+        "x": 0,
+        "z": -5.400000000000001
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.400000000000001
+      },
+      "after": {
+        "x": 0,
+        "z": -4.2
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.2
+      },
+      "after": {
+        "x": 0,
+        "z": -5.400000000000001
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.400000000000001
+      },
+      "after": {
+        "x": 0,
+        "z": -4.2
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.2
+      },
+      "after": {
+        "x": 0,
+        "z": -5.400000000000001
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.400000000000001
+      },
+      "after": {
+        "x": 0,
+        "z": -4.2
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.2
+      },
+      "after": {
+        "x": 0,
+        "z": -5.400000000000001
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.400000000000001
+      },
+      "after": {
+        "x": 0,
+        "z": -4.0691999999999995
+      },
+      "distance": 1.3308000000000018
+    },
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.0691999999999995
+      },
+      "after": {
+        "x": 0,
+        "z": -5.2692000000000005
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.2692000000000005
+      },
+      "after": {
+        "x": 0,
+        "z": -4.0691999999999995
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.0691999999999995
+      },
+      "after": {
+        "x": 0,
+        "z": -5.2692000000000005
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.2692000000000005
+      },
+      "after": {
+        "x": 0,
+        "z": -4.0691999999999995
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.0691999999999995
+      },
+      "after": {
+        "x": 0,
+        "z": -5.2692000000000005
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.2692000000000005
+      },
+      "after": {
+        "x": 0,
+        "z": -4.0691999999999995
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.0691999999999995
+      },
+      "after": {
+        "x": 0,
+        "z": -5.2692000000000005
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.2692000000000005
+      },
+      "after": {
+        "x": 0,
+        "z": -4.074479999989272
+      },
+      "distance": 1.1947200000107285
+    },
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.074479999989272
+      },
+      "after": {
+        "x": 0,
+        "z": -5.274479999989273
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.274479999989273
+      },
+      "after": {
+        "x": 0,
+        "z": -4.074479999989272
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.074479999989272
+      },
+      "after": {
+        "x": 0,
+        "z": -5.274479999989273
+      },
+      "distance": 1.200000000000001
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.274479999989273
+      },
+      "after": {
+        "x": 0,
+        "z": -4.074479999989272
+      },
+      "distance": 1.200000000000001
+    }
+  ],
+  "turns": [
+    {
+      "key": "ArrowLeft",
+      "quaternionDistance": 0.2121004046560024
+    },
+    {
+      "key": "ArrowRight",
+      "quaternionDistance": 0.2121004046560024
+    }
+  ],
+  "errors": [],
+  "blockedRequests": [],
+  "host": {
+    "platform": "linux",
+    "release": "6.18.44",
+    "arch": "x64",
+    "cpuModels": [
+      "INTEL(R) XEON(R) PLATINUM 8573C"
+    ]
+  },
+  "protocol": "Production app, no video/screenshot during timed interval, warmed assets, real Playwright keyboard holds, visible minimap displacement assertions. This does not validate live backend/model behavior.",
+  "report": {
+    "durationMs": 61642.5,
+    "framesRendered": 52,
+    "averageRenderedFps": 0.8435738329886037,
+    "frameIntervalMs": {
+      "samples": 51,
+      "retained": 51,
+      "dropped": 0,
+      "p50": 1164.0999999940395,
+      "p95": 1436.8999999985099,
+      "p99": 3340.89999999851,
+      "max": 3340.89999999851
+    },
+    "cpuFrameAndRenderSubmissionMs": {
+      "samples": 52,
+      "retained": 52,
+      "dropped": 0,
+      "p50": 8.5,
+      "p95": 25.5,
+      "p99": 27.799999997019768,
+      "max": 27.799999997019768
+    },
+    "drawCalls": {
+      "samples": 52,
+      "retained": 52,
+      "dropped": 0,
+      "p50": 78,
+      "p95": 78,
+      "p99": 78,
+      "max": 78
+    },
+    "triangles": {
+      "samples": 52,
+      "retained": 52,
+      "dropped": 0,
+      "p50": 140375,
+      "p95": 140375,
+      "p99": 140697,
+      "max": 140697
+    },
+    "dpr": {
+      "samples": 52,
+      "retained": 52,
+      "dropped": 0,
+      "p50": 0.75,
+      "p95": 0.75,
+      "p99": 0.75,
+      "max": 0.75
+    },
+    "drawingBufferPixels": {
+      "samples": 52,
+      "retained": 52,
+      "dropped": 0,
+      "p50": 729000,
+      "p95": 729000,
+      "p99": 729000,
+      "max": 729000
+    },
+    "inputToRenderSubmissionMs": {
+      "samples": 26,
+      "retained": 26,
+      "dropped": 0,
+      "p50": 1041.2999999970198,
+      "p95": 1285.8000000044703,
+      "p99": 1356.2999999970198,
+      "max": 1356.2999999970198
+    },
+    "eventTimingDurationMs": {
+      "samples": 25,
+      "retained": 25,
+      "dropped": 0,
+      "p50": 4672,
+      "p95": 5560,
+      "p99": 6736,
+      "max": 6736
+    },
+    "longTaskMs": {
+      "samples": 3,
+      "retained": 3,
+      "dropped": 0,
+      "p50": 68,
+      "p95": 80,
+      "p99": 80,
+      "max": 80
+    },
+    "intervalsOver20Ms": 51,
+    "intervalsOver33_34Ms": 51,
+    "intervalsOver50Ms": 51,
+    "hiddenFrames": 0,
+    "demandFrames": 0,
+    "visibilityInterruptions": 0,
+    "tierFrames": {
+      "low": 52,
+      "medium": 0,
+      "high": 0
+    },
+    "gpuFrameMs": null,
+    "actualInputToPhotonMs": null,
+    "schema": "arena.precinct-render-performance.v1",
+    "production": true,
+    "sceneAsset": "/world/precinct.glb",
+    "renderer": {
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "vendor": "Google Inc. (Google)",
+      "unmaskedAvailable": true,
+      "softwareRenderer": true,
+      "contextLost": false,
+      "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+      "shadowsEnabled": false,
+      "geometries": 93,
+      "textures": 82,
+      "programs": 21,
+      "actualGpuMemoryBytes": null,
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "deviceDpr": 2,
+      "hardwareConcurrency": 9
+    },
+    "scene": {
+      "meshes": 78,
+      "uncullableMeshes": 27,
+      "shadowCastingMeshes": 9,
+      "uniqueMaterials": 72,
+      "transparentMaterials": 3,
+      "materialTextures": 19,
+      "unknownTextureDimensions": 0,
+      "textureDimensions": [
+        {
+          "width": 1536,
+          "height": 864,
+          "mipmaps": true
+        },
+        {
+          "width": 1536,
+          "height": 864,
+          "mipmaps": true
+        },
+        {
+          "width": 1536,
+          "height": 864,
+          "mipmaps": true
+        },
+        {
+          "width": 2048,
+          "height": 628,
+          "mipmaps": true
+        },
+        {
+          "width": 2048,
+          "height": 810,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 512,
+          "height": 512,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 512,
+          "height": 512,
+          "mipmaps": true
+        }
+      ],
+      "materialTextureRgba8MiBEstimate": 101.89583333333331,
+      "textureEstimateCaveat": "RGBA8 + mip-chain estimate, deduplicated by Texture. Excludes environment/render targets; real formats, compression and driver allocation differ. Not measured VRAM."
+    },
+    "budgets": {
+      "low": {
+        "dpr": 0.75,
+        "pixels": 1500000,
+        "drawCalls": 140,
+        "triangles": 500000,
+        "textureMiB": 192
+      },
+      "medium": {
+        "dpr": 1.25,
+        "pixels": 2500000,
+        "drawCalls": 200,
+        "triangles": 800000,
+        "textureMiB": 256
+      },
+      "high": {
+        "dpr": 1.75,
+        "pixels": 4000000,
+        "drawCalls": 260,
+        "triangles": 1100000,
+        "textureMiB": 384
+      }
+    },
+    "observers": {
+      "longtask": true,
+      "event": true
+    },
+    "measurementNotes": [
+      "Frame intervals are measured after actual R3F render submissions. No synthetic frames or FPS.",
+      "CPU duration includes frame callbacks and WebGL submission; it is not GPU execution time.",
+      "Input proxy is canvas movement key dispatch to next render submission. It is not input-to-photon latency.",
+      "Event Timing duration is browser-reported event-to-next-presentation estimate, rounded and thresholded at 16 ms; unsupported or zero samples means unavailable, not zero latency.",
+      "Long tasks use browser PerformanceObserver (>=50 ms); unsupported means unavailable.",
+      "No diagnostic export is sent over the network. No typed text, actor truth labels, credentials or case payloads are recorded."
+    ]
+  },
+  "evaluation": {
+    "complete": true,
+    "timingPassed": false,
+    "result": "software-renderer diagnostic only; no hardware acceptance",
+    "targetHardwareAcceptance": "Not inferred. Verify the MacBook Air M5 model, native browser, power/thermal state and a >=300-second run before claiming that target.",
+    "thresholds": {
+      "averageRenderedFpsMin": 58,
+      "frameIntervalP50MaxMs": 17.5,
+      "frameIntervalP95MaxMs": 20,
+      "frameIntervalP99MaxMs": 33.333333333333336,
+      "over33_34MsFractionMax": 0.01
+    }
+  }
+}

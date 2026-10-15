@@ -1,5 +1,10 @@
 # Security job diagnosis: ui-v2 at 6758285
 
+## Subsequent exact local scanner check, 21:12 UTC
+
+A fresh pinned Gitleaks 8.30.1 scan at `db1e8c6` used unchanged default all-fetched-refs history, with 100% redaction and no suppression. It scanned 688 commits / 32.23 MB in 4.81 seconds and exited 1 with exactly the two previously reviewed non-secret fingerprints: the public NPC localStorage namespace in `82dbfe0` and original Blender geometry hash in `9cd148b`. [Machine-readable reproduction](security-current-db1e8c6.json). This closes the current local correspondence question; CI's own count-only logs still do not expose fingerprints. No exception, secret-scanning policy or dependency was changed. The investigation below records what its earlier remote logs alone established.
+
+
 Verified read-only on 2026-10-15, approximately 21:01 UTC. Repository: `bbsatvik01/unissant_agentic_training_arena` only. No repository changes, GitHub mutations, dependency updates, scanners, tests, builds, or browser automation were performed. Public advisory metadata was read separately, without opening any other repository.
 
 ## Decision summary

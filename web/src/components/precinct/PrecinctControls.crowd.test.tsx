@@ -43,16 +43,16 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); canvas.remove(); harness.callbacks.clear(); harness.state = null; vi.restoreAllMocks(); });
 
-describe("one Controls-owned live crowd step", () => {
-  it("advances once after the canonical clock, before camera sampling, with the bounded frame delta", () => {
+describe("one Controls-owned bounded live navigation frame", () => {
+  it("runs bounded crowd substeps between one canonical clock tick and camera sample", () => {
     const p = props(); const order: string[] = []; const ref = { current: staffCrowd.createStaffCrowd(p.tier) };
     const original = staffCrowd.advanceStaffCrowd;
     const advance = vi.spyOn(staffCrowd, "advanceStaffCrowd").mockImplementation((...args) => { order.push("crowd"); return original(...args); });
     render(<Controls {...p} crowd={ref} onBeforeFrame={() => { order.push("clock"); }} onCameraSample={() => { order.push("camera"); }} />);
     expect(harness.callbacks.size).toBe(1); tick(1);
-    expect(order).toEqual(["clock", "crowd", "camera"]); expect(advance).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(["clock", "crowd", "crowd", "crowd", "crowd", "crowd", "camera"]); expect(advance).toHaveBeenCalledTimes(5);
     expect(advance).toHaveBeenLastCalledWith(expect.anything(), p.manifest, expect.objectContaining({ delta: 0.05, replay: false, playerPosition: [0, 0, -2.4] }));
-    tick(0.01); expect(advance).toHaveBeenCalledTimes(2); expect(harness.callbacks.size).toBe(1);
+    tick(0.01); expect(advance).toHaveBeenCalledTimes(6); expect(harness.callbacks.size).toBe(1);
   });
   it("does not simulate or reconcile crowd in recorded or free replay, including a tier change", () => {
     const p = props(); const initial = staffCrowd.createStaffCrowd("high"); const ref = { current: initial };
@@ -69,8 +69,10 @@ describe("one Controls-owned live crowd step", () => {
     expect(ref.current).toBe(initial); expect(advance).toHaveBeenLastCalledWith(initial, p.manifest, expect.objectContaining({ paused: true, delta: 0.05 }));
     view.rerender(<Controls {...p} crowd={ref} paused />); tick(10); expect(ref.current).toBe(initial);
     view.rerender(<Controls {...p} crowd={ref} reducedMotion />); tick(10); expect(ref.current).toBe(initial);
-    view.rerender(<Controls {...p} crowd={ref} />); tick(10);
-    expect(advance).toHaveBeenLastCalledWith(initial, p.manifest, expect.objectContaining({ paused: false, reducedMotion: false, delta: 0.05 }));
+    view.rerender(<Controls {...p} crowd={ref} />); advance.mockClear(); tick(10);
+    expect(advance).toHaveBeenCalledTimes(5);
+    expect(advance).toHaveBeenNthCalledWith(1, initial, p.manifest, expect.objectContaining({ paused: false, reducedMotion: false, delta: 0.05 }));
+    expect(ref.current.agents.find((agent) => agent.id === "staff:patrol")?.waitRemaining).toBeCloseTo(8.75);
   });
   it("uses the actual people sweep for player walking rather than crossing a stationary colleague", () => {
     const p = props(); const state = staffCrowd.createStaffCrowd("low");
