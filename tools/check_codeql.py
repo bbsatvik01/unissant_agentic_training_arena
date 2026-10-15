@@ -4,8 +4,10 @@ For each language: build a database from the scoped source root, analyze it with
 security-extended suite, and count SARIF results. Fails closed: a missing, empty or malformed SARIF, a
 failed database build (CodeQL refuses one with no source for the language) or analysis, or any result.
 
-``--sarif FILE...`` only validates existing SARIF files with the same rules: .github/workflows/codeql.yml
-runs it on the codeql-action output, so CI cannot accept a report this gate rejects.
+``--sarif FILE...`` only validates existing SARIF files with the same rules, for a report produced any
+other way than this module's own ``--out`` path. CodeQL runs only locally, inside `make sec-check` --
+never as a GitHub Actions workflow, since code-scanning upload needs a GitHub Advanced Security license
+this private repo does not carry.
 """
 
 import argparse

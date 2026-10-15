@@ -16,8 +16,11 @@ def pinned(variable: str) -> str:
     return match.group(1)
 
 
-def test_the_four_workflows_exist() -> None:
-    assert set(WORKFLOWS) == {"ci.yml", "codeql.yml", "pr-title.yml", "security.yml"}
+def test_the_three_workflows_exist() -> None:
+    # CodeQL (security-extended) runs only locally, inside `make sec-check` (tools/check_codeql.py):
+    # code-scanning upload needs a GitHub Advanced Security license this private repo does not carry,
+    # so there is no codeql.yml workflow (owner decision, 2026-10-15).
+    assert set(WORKFLOWS) == {"ci.yml", "pr-title.yml", "security.yml"}
 
 
 def test_no_workflow_filters_paths() -> None:
@@ -49,15 +52,6 @@ def test_security_runs_the_python_scans_and_the_complete_gitleaks_scan_through_m
     security = WORKFLOWS["security.yml"]
     assert "run: make deps-sync bandit semgrep pip-audit licenses" in security
     assert "run: make tools-sync gitleaks SYNC_TOOLS=gitleaks" in security
-
-
-def test_codeql_uses_the_local_validator_scope_and_suite() -> None:
-    codeql = WORKFLOWS["codeql.yml"]
-    assert "run: python3 -m tools.check_codeql --sarif codeql-results/*.sarif" in codeql
-    assert "config-file: ./tools/codeql/python.yml" in codeql
-    assert "queries: security-extended" in codeql
-    assert "tools: linked" in codeql
-    assert f"CodeQL {pinned('CQ')}" in codeql
 
 
 def test_ci_scanners_run_the_versions_ensure_tools_pins() -> None:
