@@ -95,3 +95,12 @@ grant select on training.v_my_world_events to arena_public;
 -- arena_referee reads every training table (S4 4.2), these batches too.
 grant select on training.world_event_batches to arena_referee;
 create policy world_event_batches_referee on training.world_event_batches for select to arena_referee using (true);
+
+-- -----------------------------------------------------------------------------
+-- 2. Colleague NPC chat (D-035). Free open-model endpoints answer first and spend nothing; when none answers, the
+-- reply comes from Gemini on Vertex through the spend guard as call kind `npc` (purpose npc.chat). ops.call_limits
+-- equals cost_model.LIMITS['npc'] and arena_core.spend.limits LIMITS (input 72,000 bytes: the persona prompt, at
+-- most 12 history lines and the message, 400 characters each at up to 12 escaped bytes a character, and the repair
+-- allowance; output 1,000 tokens). The model, gemini-3.5-flash-lite, is already priced. Append-only (AR010).
+-- -----------------------------------------------------------------------------
+insert into ops.call_limits (call_kind, input_limit, output_limit) values ('npc', 72000, 1000);

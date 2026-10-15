@@ -75,9 +75,9 @@ select is(
         (select string_agg(call_kind, ',' order by call_kind) from ops.call_limits),
         (select count(*) from ops.model_prices where model = 'gemini-3.1-pro-preview')::text,
         (select kill_switch from ops.config)::text],
-  array['equal', 'card,deep,final,portrait,referee,subject,tts,voice_design', '0', 'false'],
-  'BU-01 seed: exactly the buckets of --plan-json (the one global bucket, no parent) at $0; the seven runtime call '
-  || 'kinds plus portrait (no generate or validate, D-014; no retranscribe, D7); no gemini-3.1-pro-preview price');
+  array['equal', 'card,deep,final,npc,portrait,referee,subject,tts,voice_design', '0', 'false'],
+  'BU-01 seed: exactly the buckets of --plan-json (the one global bucket, no parent) at $0; the runtime call '
+  || 'kinds (npc added by UI v2) plus portrait (no generate or validate, D-014; no retranscribe, D7); no gemini-3.1-pro-preview price');
 
 select tests.throws($$ select ops.set_bucket_ceiling('demo', 'global', 1.00, 'bu21') $$, 'AR007',
   'child bucket ceilings exceed their parent',

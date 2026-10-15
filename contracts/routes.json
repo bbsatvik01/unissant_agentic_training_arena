@@ -282,6 +282,26 @@
   {
     "service": "arena-api",
     "method": "GET",
+    "path": "/api/npc",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "The colleague NPCs (id, name, role, voice; UI v2)",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "POST",
+    "path": "/api/npc/chat",
+    "auth": "session",
+    "csrf": true,
+    "purpose": "One colleague NPC reply {reply, voice_id} (UI v2, D-035)",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
     "path": "/api/health",
     "auth": "none",
     "csrf": false,

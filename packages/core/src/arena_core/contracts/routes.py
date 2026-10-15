@@ -113,6 +113,26 @@ class WorldEventBatch(Contract):
     events: Annotated[list[WorldEvent], Field(min_length=1, max_length=2000)]
 
 
+NPC_TEXT_MAX_CHARS = 400
+
+
+class NpcTurn(Contract):
+    """One earlier line of an NPC conversation; `user`/`assistant` are accepted as the chat-style names of the
+    trainee and the NPC."""
+
+    role: Literal["investigator", "user", "npc", "assistant"]
+    text: Annotated[str, StringConstraints(min_length=1, max_length=NPC_TEXT_MAX_CHARS)]
+
+
+class NpcChatRequest(Contract):
+    """`POST /api/npc/chat` (UI v2, D-035): the trainee's message to one colleague NPC and the conversation so far
+    (at most 12 lines, kept by the client)."""
+
+    npc_id: Annotated[str, StringConstraints(pattern=r"^[a-z][a-z_]{1,31}$")]
+    message: Annotated[str, StringConstraints(min_length=1, max_length=NPC_TEXT_MAX_CHARS)]
+    history: list[NpcTurn] = Field(default_factory=list, max_length=12)
+
+
 class DebriefScoring(Contract):
     """`GET /api/sessions/{id}/debrief` before the debrief is published (S5 5.4)."""
 
@@ -224,6 +244,8 @@ ROUTES: tuple[Route, ...] = (
     Route(API, "POST", "/api/telemetry/contract-violation", "session", "Client projection re-check failed (log only)"),
     Route(API, "GET", "/api/trials/{id}/recording", "session", "The trial's recording (arena.recording.v2, D-021)"),
     Route(API, "POST", "/api/trials/{id}/world-events", "session", "One 3D-world telemetry batch (UI v2)"),
+    Route(API, "GET", "/api/npc", "session", "The colleague NPCs (id, name, role, voice; UI v2)"),
+    Route(API, "POST", "/api/npc/chat", "session", "One colleague NPC reply {reply, voice_id} (UI v2, D-035)"),
     Route(API, "GET", "/api/health", "none", "Liveness only"),
     Route(SUBJECT, "POST", "/internal/answer", "caller:api_or_tournament", "One subject turn"),
     Route(SUBJECT, "GET", "/internal/voice/ws", "caller:api", "Voice relay leg"),

@@ -35,7 +35,7 @@ async def post_world_events(
             return JSONResponse({"code": "batch_too_large"}, status_code=413)
     try:
         batch = WorldEventBatch.model_validate_json(bytes(body))
-    except ValidationError:
+    except ValidationError:  # silent-ok: the answer is the 422; the client's batch is never echoed or logged
         return JSONResponse({"code": "invalid_request"}, status_code=422)
     try:
         batch_no = await db.record_world_events(trial_id, [e.model_dump(mode="json") for e in batch.events])

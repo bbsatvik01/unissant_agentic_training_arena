@@ -23,6 +23,7 @@ DATA_CLASSES: dict[CallType, frozenset[DataClass]] = {
     CallType.FINAL: frozenset({"public"}),
     CallType.REFEREE: frozenset({"evaluator"}),
     CallType.PORTRAIT: frozenset({"public"}),
+    CallType.NPC: frozenset({"public"}),
 }
 
 
