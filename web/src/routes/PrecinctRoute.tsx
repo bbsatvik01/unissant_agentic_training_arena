@@ -4,7 +4,7 @@ import { actualPrecinctWorld, PRECINCT_WORLDS, type KnownPrecinctWorld } from ".
 import { navigatedPrecinctManifest } from "../lib/precinct/knownWorldNavigation";
 import { PrecinctNavigationStatus } from "../components/precinct/PrecinctNavigationStatus";
 import { precinctAsset, precinctMinimapFrame } from "../lib/precinct/worldVariant";
-import { createSceneReadiness } from "../lib/precinct/sceneReadiness";
+import { createSceneReadiness, reportSceneUnavailable } from "../lib/precinct/sceneReadiness";
 import { selectPrecinctWorld, type PrecinctWorldId, type SceneChangeState } from "../lib/precinct/sceneSelection";
 import { PrecinctWorldSelector } from "../components/precinct/PrecinctWorldSelector";
 import { localStaffPlaybackActivity } from "../lib/precinct/localStaffPlaybackActivity";
@@ -213,9 +213,10 @@ export function PrecinctRoute({ onDossierUiEvent, onInterviewUiEvent, onCameraSa
     captureScene.set(sceneIdentity?.context ?? null);
   }, [sceneScope, sceneIdentity, captureScene]);
   const onUnavailable = useCallback(() => {
-    if (!sceneScope.markUnavailable()) return;
-    captureScene.set(null);
-    setRenderState({ scope: sceneScope, ready: true, flat: true });
+    reportSceneUnavailable(sceneScope, () => {
+      captureScene.set(null);
+      setRenderState({ scope: sceneScope, ready: true, flat: true });
+    });
   }, [sceneScope, captureScene]);
   const resume = useCallback(() => { setPaused(false); setCameraMode((mode) => mode === "free" ? "first" : mode); }, [setCameraMode]);
   const hotspot = manifest.hotspots.find((item) => item.id === pose.hotspot);

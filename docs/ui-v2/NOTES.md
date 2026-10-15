@@ -1,5 +1,11 @@
 # UI v2 implementation notes
 
+## 2026-10-15 20:49 UTC — initial renderer-fallback ordering repair
+
+At `1cb1bd5`, the complete [web CI](https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38803342799/job/116658299568) passes all-project lint and strict typecheck, then runs 232 suites / 2,679 tests: 2,676 pass and three existing renderer-fallback assertions fail. Coverage/build are not reached. The error-boundary artwork mounted, but its child commit callback ran before the parent layout effect activated the scene guard; the unavailable notice and accessible entry state were never published. This is a real lifecycle defect, not a timed-out assertion.
+
+`reportSceneUnavailable` now reports synchronously for an active scene, or retries once in the same scene's next microtask after mount. Expired scenes still cannot publish or become ready. The route uses that helper; all three existing failed assertions remain unchanged. New focused cases cover initial child-before-parent ordering, synchronous active-scene invalidation and cancellation before/after expiry. Ten direct assertions on the actual helper pass; fresh full React/integration/coverage validation is still pending. The independent production A/B copies remain frozen and are not silently updated during measurement.
+
 ## 2026-10-15 20:36 UTC — aggregate lint completes; two source diagnostics corrected
 
 Full-project [web lint at e52122c](https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38802346166/job/116654641255) completed without heap exhaustion and reported exactly two typed-rule errors: the capture-audio boundary compared an already-typed boolean to false, and one scene-context assertion used a shorthand void expression. The boundary now explicitly accepts an unknown callback result and retains its exact fail-closed runtime comparison; malformed results are covered alongside false/true/throwing callbacks. Braces make the scene assertion comply without changing its expectation. No lint rule or test is removed. Fresh aggregate validation is pending; the local CPU lane is reserved for the isolated performance A/B.

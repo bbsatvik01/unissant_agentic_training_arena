@@ -14,3 +14,11 @@ export function createSceneReadiness(id: PrecinctWorldId) {
     isReady: (): boolean => active && ready,
   };
 }
+
+/** Child error-boundary commit callbacks can precede the parent's mount effect.
+ * Retry once after that commit, while retaining the same scene's expiry guard. */
+export function reportSceneUnavailable(scene: ReturnType<typeof createSceneReadiness>, notify: () => void): void {
+  const report = () => { if (scene.markUnavailable()) notify(); };
+  if (scene.isActive()) report();
+  else queueMicrotask(report);
+}
