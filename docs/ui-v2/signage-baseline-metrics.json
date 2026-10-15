@@ -1,0 +1,165 @@
+{
+  "asset": "precinct.glb",
+  "fileBytes": 5484180,
+  "meshes": 38,
+  "triangles": 116034,
+  "textures": 0,
+  "labels": [
+    {
+      "id": "case_board_title",
+      "found": true,
+      "triangles": 265,
+      "bounds": {
+        "min": [
+          3.89949893951416,
+          2.827577590942383,
+          -9.734999656677246
+        ],
+        "max": [
+          5.8480448722839355,
+          2.956958532333374,
+          -9.734999656677246
+        ]
+      },
+      "capHeightMeters": 0.126959,
+      "backingClearanceMeters": 0.025,
+      "planarityMeters": 0.0,
+      "minOutwardNormal": 1.0,
+      "capPixelsAt1080LowDpr": {
+        "2m": 39.59,
+        "5m": 15.84,
+        "8m": 9.9
+      }
+    },
+    {
+      "id": "case_board_subtitle",
+      "found": true,
+      "triangles": 538,
+      "bounds": {
+        "min": [
+          3.9241604804992676,
+          2.4773645401000977,
+          -9.729999542236328
+        ],
+        "max": [
+          5.358792781829834,
+          2.5368432998657227,
+          -9.729999542236328
+        ]
+      },
+      "capHeightMeters": 0.046843,
+      "backingClearanceMeters": 0.03,
+      "planarityMeters": 0.0,
+      "minOutwardNormal": 1.0,
+      "capPixelsAt1080LowDpr": {
+        "2m": 14.61,
+        "5m": 5.84,
+        "8m": 3.65
+      }
+    },
+    {
+      "id": "first_card_title",
+      "found": true,
+      "triangles": 189,
+      "bounds": {
+        "min": [
+          3.9140827655792236,
+          2.0820159912109375,
+          -9.661999702453613
+        ],
+        "max": [
+          4.568892955780029,
+          2.13596773147583,
+          -9.661999702453613
+        ]
+      },
+      "capHeightMeters": 0.045968,
+      "backingClearanceMeters": 0.007,
+      "planarityMeters": 0.0,
+      "minOutwardNormal": 1.0,
+      "capPixelsAt1080LowDpr": {
+        "2m": 14.33,
+        "5m": 5.73,
+        "8m": 3.58
+      }
+    },
+    {
+      "id": "interview_door_number",
+      "found": true,
+      "triangles": 46,
+      "bounds": {
+        "min": [
+          2.255000114440918,
+          1.658997654914856,
+          -11.185333251953125
+        ],
+        "max": [
+          2.255000114440918,
+          1.7125345468521118,
+          -11.100905418395996
+        ]
+      },
+      "capHeightMeters": 0.052535,
+      "backingClearanceMeters": 0.005,
+      "planarityMeters": 0.0,
+      "minOutwardNormal": 1.0,
+      "capPixelsAt1080LowDpr": {
+        "2m": 16.38,
+        "5m": 6.55,
+        "8m": 4.1
+      }
+    },
+    {
+      "id": "interview_door_label",
+      "found": true,
+      "triangles": 89,
+      "bounds": {
+        "min": [
+          2.255000114440918,
+          1.4800000190734863,
+          -11.185657501220703
+        ],
+        "max": [
+          2.255000114440918,
+          1.5122509002685547,
+          -10.929586410522461
+        ]
+      },
+      "capHeightMeters": 0.032251,
+      "backingClearanceMeters": 0.005,
+      "planarityMeters": 0.0,
+      "minOutwardNormal": 1.0,
+      "capPixelsAt1080LowDpr": {
+        "2m": 10.06,
+        "5m": 4.02,
+        "8m": 2.51
+      }
+    },
+    {
+      "id": "hall_curiosity",
+      "found": true,
+      "triangles": 186,
+      "bounds": {
+        "min": [
+          -0.9255285263061523,
+          2.8988726139068604,
+          -15.458999633789062
+        ],
+        "max": [
+          -0.4761480391025543,
+          2.959101438522339,
+          -15.458999633789062
+        ]
+      },
+      "capHeightMeters": 0.059101,
+      "backingClearanceMeters": 0.006,
+      "planarityMeters": 0.0,
+      "minOutwardNormal": 1.0,
+      "capPixelsAt1080LowDpr": {
+        "2m": 18.43,
+        "5m": 7.37,
+        "8m": 4.61
+      }
+    }
+  ]
+}

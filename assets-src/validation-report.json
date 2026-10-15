@@ -4,12 +4,12 @@
   "hotspots": 12,
   "navigationNodes": 30,
   "rooms": 11,
-  "triangles": 116034,
+  "triangles": 116267,
   "meshMaterialGroups": 38,
   "runtimeAsset": "precinct.glb",
-  "runtimeBytes": 5484180,
-  "runtimeSha256": "6a66b29117866a5279d43507d979f2664ce28b59306c09f6322a1d5c9be1a37b",
-  "sourceBytes": 1269529,
+  "runtimeBytes": 5668084,
+  "runtimeSha256": "dc6c19271bf1c7c93717240ae125029706823747d9945ad34a3aba2c7fd294b8",
+  "sourceBytes": 1235259,
   "allNavigationLinksClearAtCapsuleRadius": 0.28,
   "allNodesReachable": true
 }

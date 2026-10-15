@@ -2,7 +2,7 @@
 
 An original, single-storey Washington, DC-inspired investigation training environment, modeled specifically for this project. The architecture, furnishings, reception feature, mission boards, desks, chair assemblies, archive cases, signage layout, sculptural awards, lights, map diagram, foliage, civic facade, and row-house streetscape are authored from geometric primitives and custom meshes in the included Blender Python script. No third-party models, stock textures, downloaded photos, real agency insignia, or fictional character faces are included. The streetscape is a fictional setting inspired by DC architectural types, not a geographic reconstruction or a real agency facility.
 
-The generated scene and source are intended for modification and commercial integration in the commissioning user's training application. Text uses the installed DejaVu Sans typeface, converted to mesh in the runtime GLB. The self-contained Blender file packs that font for editable signage. DejaVu changes are public domain; the underlying Bitstream Vera font has a permissive commercial-use license. Its required notices and license are included in FONT_LICENSE.txt. No font attribution is required in the game UI; retain the supplied license with distributed source/assets.
+The generated scene and source are intended for modification and commercial integration in the commissioning user's training application. Text uses the installed DejaVu Sans typeface, including its Bold face for important wayfinding, converted to mesh in the runtime GLB. The self-contained Blender file packs those font faces for editable signage. DejaVu changes are public domain; the underlying Bitstream Vera font has a permissive commercial-use license. Its required notices and license are included in FONT_LICENSE.txt. No font attribution is required in the game UI; retain the supplied license with distributed source/assets.
 
 ## Deliverables
 
@@ -16,7 +16,7 @@ The generated scene and source are intended for modification and commercial inte
 
 ## Rebuild
 
-Using Blender 5.2.2 LTS, run these commands from the repository root. `blender` means your installed Blender executable; use its full local path if it is not on PATH.
+The signage readability rebuild was verified with Blender 4.3.2. Run these commands from the repository root. `blender` means your installed Blender executable; use its full local path if it is not on PATH.
 
     blender --background --threads 6 --factory-startup --python assets-src/build_precinct.py
     python assets-src/validate_manifest.py
@@ -53,4 +53,9 @@ The room IDs are lobby, board_wall, corridor, open_office, dossier, briefing, in
 
 ## Verified runtime budget
 
-The final runtime scene is approximately 5.48 MB, with 116,034 triangles across 38 material groups. The packed editable source is approximately 1.3 MB. Both are below the 25 MB per-file target. See validation-report.json for exact measured counts and navigation checks. The source retains editable lettering and richer bevels; the GLB uses planar typography and single-segment bevels on tiny edges for efficient rendering.
+The final runtime scene is approximately 5.67 MB, with 116,267 triangles across 38 material groups. The packed editable source is approximately 1.24 MB. Both are below the 25 MB per-file target. See validation-report.json for exact measured counts and navigation checks. The source retains editable lettering and richer bevels; the GLB uses planar typography and single-segment bevels on tiny edges for efficient rendering.
+
+
+## Signage readability revision
+
+Important wayfinding uses larger, width-fitted DejaVu Sans Bold vector lettering on the original plaques. The change preserves all collider and navigation coordinates and adds no image texture or runtime font dependency. The existing FONT_LICENSE.txt notice also covers the Bold face. For a full rebuild, ARENA_DEJAVU_SIGN_FONT can point to DejaVuSans-Bold.ttf; by default it is searched beside ARENA_DEJAVU_FONT. If unavailable, the ordinary configured font is used; use the packed-source exporter for identical lettering. See ../docs/ui-v2/signage-readability-review.md for the measured diagnosis and verification status.

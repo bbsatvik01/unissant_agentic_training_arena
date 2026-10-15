@@ -149,3 +149,7 @@ Pinned to full commit SHAs, each resolved with `git ls-remote` on the official r
 Signage uses DejaVu Sans, packed in the editable `.blend` and converted to geometry in the runtime GLB. DejaVu changes are public domain; the underlying Bitstream Vera font is copyright © 2003 Bitstream, Inc., with permissive use, modification, and distribution terms. The complete required notices and license are retained in `assets-src/FONT_LICENSE.txt`. Keep those notices with distributed source/assets; no in-game attribution panel is required by the font license. The Blender software itself is an authoring tool, not bundled runtime content.
 
 The UI v2 compass favicon (`web/public/favicon.svg`) is original vector artwork authored for this application.
+
+## UI v2 precinct wayfinding revision
+
+Larger wayfinding uses original typography/layout with DejaVu Sans Bold under the same DejaVu/Bitstream Vera license recorded for the precinct. Both regular and bold font faces are packed into the editable source; license text is in `assets-src/FONT_LICENSE.txt`.

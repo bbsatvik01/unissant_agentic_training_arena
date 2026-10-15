@@ -50,3 +50,11 @@ The managed cloud browser exposes no WebGL context. Its entry, directory, keyboa
 ### Next checkpoint
 
 [Issue 8](https://github.com/bbsatvik01/unissant_agentic_training_arena/issues/8) covers reception, fictional staff, explicit local visit memory and an evidence-first public briefing. NPC, monitor and world-replay code is prepared separately and is not presented as shipped in this slice. Docker/Postgres are unavailable here, so development uses bundled recordings and explicit local mocks; no real-model or hosted backend is started.
+
+## 2026-10-15 — asset-gate and wayfinding checkpoint
+
+PR title is now `feat(web): add UI v2 playable precinct and movement`; the new title-lint run passed. The remote `make py-check` failure at `5279845` was caused by 528 Ruff violations in the four added authoring scripts, not evidence of a secret leak or a frontend regression. The seven current authoring/audit scripts now pass pinned Ruff 0.16.8 check and format-check across the whole checkout (465 files), with no root configuration changes. Typed helpers and explicit validation guards preserve geometry and keep validation active under optimized Python. [Verification details](asset-script-gate-check.json) record normalized AST comparisons, actual GLB/manifest checks and limitations.
+
+The editable Blender source and runtime export now contain larger width-fitted bold wayfinding. All non-performance manifest fields, 255 non-typography construction calls, 38 material groups and zero textures are retained. The scene is 5.67 MB / 116,267 triangles. See the [signage review](signage-readability-review.md). Integrated low-tier visual acceptance is pending the reception screenshot pass; hardware-GPU acceptance remains unmeasured.
+
+The prior full web gate and screenshots remain the verified slice-01 checkpoint. PR-wide CI is **not yet green**: the replacement asset commit must receive a fresh remote Python result, and the database job was still running at the last check. The local checkout lacks the full Python environment and pinned gate binaries; no full local `make py-check` pass is claimed. Uncommitted reception work is being validated separately for issue 8.
