@@ -1,5 +1,11 @@
 # UI v2 implementation notes
 
+## 2026-10-15 20:36 UTC — aggregate lint completes; two source diagnostics corrected
+
+Full-project [web lint at e52122c](https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38802346166/job/116654641255) completed without heap exhaustion and reported exactly two typed-rule errors: the capture-audio boundary compared an already-typed boolean to false, and one scene-context assertion used a shorthand void expression. The boundary now explicitly accepts an unknown callback result and retains its exact fail-closed runtime comparison; malformed results are covered alongside false/true/throwing callbacks. Braces make the scene assertion comply without changing its expectation. No lint rule or test is removed. Fresh aggregate validation is pending; the local CPU lane is reserved for the isolated performance A/B.
+
+The same commit's [Python job](https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38802346166/job/116654642155) passes Ruff, formatting, mypy, isolation, cost parity, ratchet and dependency policy, then stops before pytest at the two previously documented historical oversized GLBs. The separate [main Python diagnosis](main-py-baseline-diagnosis.md) establishes a different missing-Docker fixture failure on main; neither is relabelled as a web regression or a successful aggregate check.
+
 ## 2026-10-15 20:29 UTC — full lint process memory failure and bounded correction
 
 Remote merged checkpoint `293ea9c` started the full unchanged pnpm check chain. [Web CI](https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38801190197/job/116650344962) stopped during whole-project ESLint at about 2 GiB of V8 heap, with exit 134 and an explicit JavaScript heap-out-of-memory error. Types/tests/coverage/build were not reached in that job. The earlier 38-file lint and 444 focused tests remain valid bounded checks, not aggregate acceptance.

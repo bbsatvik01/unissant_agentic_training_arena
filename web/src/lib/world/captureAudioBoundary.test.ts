@@ -15,6 +15,9 @@ describe("real playback flag is a silent-capture boundary", () => {
   it("fails a broken activity reader closed without introducing an audio or clock owner", () => {
     expect(uncapturedAudioActive(undefined)).toBe(false); expect(uncapturedAudioActive(() => false)).toBe(false);
     expect(uncapturedAudioActive(() => true)).toBe(true);
+    for (const malformed of [undefined, null, 0, "false", {}]) {
+      expect(uncapturedAudioActive(() => malformed)).toBe(true);
+    }
     expect(uncapturedAudioActive(() => { throw new Error("owner unavailable"); })).toBe(true);
   });
   it("refuses local Start and fresh Arm during playback", () => {

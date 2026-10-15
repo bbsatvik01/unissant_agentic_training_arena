@@ -73,7 +73,7 @@ describe("bounded recorded scene compatibility", () => {
   it("publishes only actual scene readiness changes and isolates a failed capture observer", () => {
     const source = createMountedSceneContext(); const notify = vi.fn(); const remove = source.subscribe(notify);
     source.subscribe(() => { throw new Error("capture failed"); });
-    expect(() => source.set(OFFICE_SCENE_CONTEXT)).not.toThrow(); expect(notify).toHaveBeenCalledOnce();
+    expect(() => { source.set(OFFICE_SCENE_CONTEXT); }).not.toThrow(); expect(notify).toHaveBeenCalledOnce();
     source.set({ ...OFFICE_SCENE_CONTEXT }); expect(notify).toHaveBeenCalledOnce();
     remove(); source.set(null); expect(notify).toHaveBeenCalledOnce(); expect(source.read()).toBeNull();
   });
