@@ -321,11 +321,14 @@ class ArenaDb:
 
     async def released(self, trial: UUID) -> list[dict[str, Any]]:
         rows = await self.fetch(
-            "select record_id, released_after_exchanges, content::text from arena.v_released_evidence"
+            "select record_id, released_after_exchanges, content::text, title from arena.v_released_evidence"
             " where trial_id = %s order by release_seq",
             (trial,),
         )
-        return [{"record_id": r[0], "released_after_exchanges": int(r[1]), "content": json.loads(r[2])} for r in rows]
+        return [
+            {"record_id": r[0], "released_after_exchanges": int(r[1]), "content": json.loads(r[2]), "title": r[3]}
+            for r in rows
+        ]
 
     async def public_packet(self, variant: UUID) -> dict[str, Any] | None:
         rows = await self.fetch("select public_packet::text from arena.v_dev_cases where variant_id = %s", (variant,))

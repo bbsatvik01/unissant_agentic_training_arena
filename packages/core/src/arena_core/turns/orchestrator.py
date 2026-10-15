@@ -93,6 +93,27 @@ def refusal(exc: ArenaError) -> TurnRefusedError:
     return TurnRefusedError(status, code, exc.message)
 
 
+def coach_call[T: BaseModel](
+    schema: type[T], call: CoachCall, inputs: CoachInputs, manifest: CandidateManifest, ctx: CallContext
+) -> AgentCall[T]:
+    """One coach call (S2 4.1): the candidate's prompt over `inputs`, at its manifest's model, thinking and
+    timeouts, validated against the turn's citation context. Shared by a text turn and a voice exchange's card."""
+    prompt = build_coach_prompt(inputs.view, load_prompts(manifest), call)
+    limit = manifest.limits[call]
+    return AgentCall(
+        model=VertexModel(limit.model_id),
+        thinking=ThinkingLevel(limit.thinking_level.lower()),
+        system=prompt.system_instruction,
+        messages=(Message("user", prompt.user_message),),
+        schema=schema,
+        context=ctx,
+        timeout_s=limit.attempt_timeout_ms / 1000,
+        deadline_s=limit.deadline_ms / 1000,
+        validation_context=inputs.citations,
+        salt=prompt.salt,
+    )
+
+
 @dataclass(frozen=True)
 class _Step:
     """One coach step: the call, its trial and turn, its work item, the version it is bound to, its key."""
@@ -247,20 +268,7 @@ class Orchestrator:
     def _call[T: BaseModel](
         self, schema: type[T], call: CoachCall, inputs: CoachInputs, manifest: CandidateManifest, ctx: CallContext
     ) -> AgentCall[T]:
-        prompt = build_coach_prompt(inputs.view, load_prompts(manifest), call)
-        limit = manifest.limits[call]
-        return AgentCall(
-            model=VertexModel(limit.model_id),
-            thinking=ThinkingLevel(limit.thinking_level.lower()),
-            system=prompt.system_instruction,
-            messages=(Message("user", prompt.user_message),),
-            schema=schema,
-            context=ctx,
-            timeout_s=limit.attempt_timeout_ms / 1000,
-            deadline_s=limit.deadline_ms / 1000,
-            validation_context=inputs.citations,
-            salt=prompt.salt,
-        )
+        return coach_call(schema, call, inputs, manifest, ctx)
 
     def _context(self, step: _Step) -> CallContext:
         return CallContext(

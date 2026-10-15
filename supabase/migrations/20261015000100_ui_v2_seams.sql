@@ -163,3 +163,46 @@ grant select, insert on training.assignments, training.annotations to arena_refe
 create policy assignments_referee on training.assignments for all to arena_referee using (true) with check (true);
 create policy annotations_referee on training.annotations for all to arena_referee using (true) with check (true);
 
+-- -----------------------------------------------------------------------------
+-- 4. Voice sessions are scored (UI v2 amendment to D7): after a voice session ends, arena-referee runs the same R3
+-- over its stored exchanges as over a text session's turns and publishes a scored debrief.v1. publish_debrief is
+-- replaced so every new debrief is scored; it is otherwise unchanged (debriefs published unscored before this
+-- migration stay as they are, and the table's envelope check still reads both shapes).
+-- -----------------------------------------------------------------------------
+create or replace function training.publish_debrief(p_session uuid, p_payload jsonb)
+returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_s   training.sessions;
+  v     arena.trials;
+  v_d   training.debriefs;
+  v_seq integer;
+begin
+  perform ledger.require_read_committed();
+  select * into v_s from training.sessions where id = p_session;
+  if not found then
+    raise exception using errcode = 'AR001', message = 'session not found';
+  end if;
+  v := arena._lock_trial(v_s.trial_id);
+  if v.status not in ('finalized', 'terminated') then
+    raise exception using errcode = 'AR001', message = 'a debrief follows the end of the session';
+  end if;
+  -- Envelope of S3 5.7 debrief.v1, the same check as the table's (SG3-34); text and voice sessions alike are
+  -- scored (UI v2 amendment to D7).
+  if not coalesce(training.debrief_envelope_ok(p_payload), false)
+     or p_payload ->> 'session_id' is distinct from p_session::text
+     or (p_payload ->> 'scored')::boolean is distinct from true then
+    raise exception using errcode = 'AR007', message = 'debrief payload must match the debrief.v1 envelope (S3 5.7)';
+  end if;
+  select * into v_d from training.debriefs where session_id = p_session;
+  if found then
+    if v_d.payload = p_payload then
+      return jsonb_build_object('outcome', 'exists', 'sha256', v_d.sha256,
+                                'seq', (select e.seq from arena.trial_events e where e.trial_id = v.id and e.kind = 'debrief_ready'));
+    end if;
+    raise exception using errcode = 'AR003', message = 'a session has one debrief';
+  end if;
+  insert into training.debriefs (session_id, payload) values (p_session, p_payload) returning * into v_d;
+  v_seq := arena._emit(v, 'debrief_ready', null, jsonb_build_object('session_id', p_session, 'sha256', v_d.sha256));
+  return jsonb_build_object('outcome', 'published', 'sha256', v_d.sha256, 'seq', v_seq);
+end $$;

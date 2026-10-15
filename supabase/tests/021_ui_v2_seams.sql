@@ -1,11 +1,13 @@
 -- 021_ui_v2_seams.sql (UI v2 seams, migration 20261015000100; owner D-034..D-036): the world telemetry batches
 -- (recording v2) on the owner's own training trial only; the NPC call kind; instructor assignments and notes
--- (written by arena_referee only, read by the trial's owner only).
+-- (written by arena_referee only, read by the trial's owner only); and scored voice debriefs.
 begin;
 \ir harness/fixtures.psql
-select plan(12);
+select plan(14);
 
 select tests.users();
+create temp table t_plan on commit drop as select :'plan'::jsonb as plan;
+select tests.apply_plan(plan) from t_plan;  -- the voice session in VS-01 reserves against the global ceiling
 select tests.family('UIV2', 'dev');
 select set_config('arena.actor_id', tests.uid('A')::text, true);
 create temp table ui on commit drop as
@@ -142,6 +144,58 @@ select is(tests.sqlstate(format('select tests.as_role(%L, %L)', 'arena_referee',
     'insert into training.assignments (user_id, variant_id, assigned_by) values (%L, %L, %L) returning null::jsonb',
     tests.uid('B'), tests.variant('UIV2', 'deceptive'), tests.uid('C')))), '23505',
   'IN-04 a trainee holds one assignment per case');
+
+-- ---------------------------------------------------------------------------- VS-01
+-- A voice session's trial, ended: its debrief is scored like a text session's (UI v2 amendment to D7), and an
+-- unscored payload is now refused for any session.
+create function pg_temp.voice_finalized() returns uuid
+language plpgsql as $$
+declare
+  v_trial uuid; v_ticket uuid; v_res uuid; v_session text; v_wi uuid;
+begin
+  perform tests.family('UIV2V', 'dev');
+  perform set_config('arena.actor_id', tests.uid('C')::text, true);
+  v_trial := (training.start_session(tests.variant('UIV2V', 'truthful'), 'practice', tests.candidate('assistant', 'A1'),
+    tests.candidate('subject', 'S1'), true, 'ui-v2-voice-c') ->> 'trial_id')::uuid;
+  v_ticket := (training.redeem_access_ticket(training.issue_access_ticket('voice', v_trial), 'voice') ->> 'ticket_id')::uuid;
+  perform tests.as_role('arena_subject', format('select to_jsonb(training.claim_voice_ticket(%L, %L, %L, %L))',
+    v_ticket, tests.uid('C'), v_trial, 'practice'));
+  v_res := (tests.as_role('arena_subject', format('select ops.reserve_voice(%L, %L, %L, %L, %L, null)',
+    'ui-v2-voice-res', 'global', 'voice_session', 'voice.session', v_trial)) ->> 'id')::uuid;
+  v_session := tests.as_role('arena_subject', format('select to_jsonb(training.open_voice_session(%L, %L))',
+    v_ticket, v_res)) #>> '{}';
+  perform tests.as_role('arena_subject', format('select training.record_voice_exchange(%L, 1::smallint, %L)',
+    v_session, jsonb_build_array(jsonb_build_object('role', 'investigator', 'text', 'Q1', 'partial', false),
+                                 jsonb_build_object('role', 'subject', 'text', 'A1', 'partial', false))));
+  perform tests.as_role('arena_subject', format('select to_jsonb(training.close_voice_session(%L, %L)::text)',
+    v_session, '1000'));
+  perform tests.as_role('arena_subject', format('select ops.settle_voice_reservation(%L, %L)', v_res, 'released'));
+  v_wi := (arena.open_work_item(v_trial, 'finalize', tests.k(v_trial, 1, 'finalize', 'ui-v2-voice'))
+           ->> 'work_item_id')::uuid;
+  perform arena.finalize_trial(v_trial, v_wi, jsonb_build_object('label', 'insufficient_evidence', 'likelihood',
+    'roughly_even_chance', 'confidence', 'low', 'rationale', 'voice', 'basis_flag_refs', '[]'::jsonb,
+    'cited_turns', '[]'::jsonb, 'cited_records', '[]'::jsonb, 'corroboration_needed', '[]'::jsonb));
+  perform set_config('arena.actor_id', tests.uid('A')::text, true);
+  return v_trial;
+end $$;
+create temp table vst on commit drop as select pg_temp.voice_finalized() as trial;
+create temp table vs on commit drop as
+  select s.id as session from training.sessions s where s.trial_id = (select trial from vst);
+create function pg_temp.debrief(p_scored boolean) returns jsonb
+language sql as $$
+  select jsonb_build_object('schema_version', 'debrief.v1', 'session_id', (select session from vs)::text,
+    'scored', p_scored, 'outcome', jsonb_build_object('role', 'truthful', 'correct_finding', false,
+      'committed_label', 'insufficient_evidence', 'resolution', 'vs'))
+    || case when p_scored then jsonb_build_object('rubric', '{}'::jsonb, 'scorecards', '{}'::jsonb,
+                                                   'provenance', '{}'::jsonb) else '{}'::jsonb end
+$$;
+select is(tests.error(format('select tests.as_role(%L, %L)', 'arena_referee', format(
+    'select training.publish_debrief(%L, %L)', (select session from vs), pg_temp.debrief(false)))),
+  'AR007: debrief payload must match the debrief.v1 envelope (S3 5.7)',
+  'VS-01 an unscored debrief is refused, a voice session''s too');
+select is(tests.as_role('arena_referee', format('select training.publish_debrief(%L, %L)',
+    (select session from vs), pg_temp.debrief(true))) ->> 'outcome', 'published',
+  'VS-02 a voice session''s debrief is published scored, like a text session''s');
 
 select * from finish();
 rollback;

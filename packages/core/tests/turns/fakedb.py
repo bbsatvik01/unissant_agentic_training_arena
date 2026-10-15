@@ -460,7 +460,12 @@ class FakeArenaDb(ArenaDb):
         if self.hidden_unrevealed:
             return []
         return [
-            {"record_id": r["record_id"], "released_after_exchanges": r["after_exchanges"], "content": r["content"]}
+            {
+                "record_id": r["record_id"],
+                "released_after_exchanges": r["after_exchanges"],
+                "content": r["content"],
+                "title": r["title"],
+            }
             for r in self.releases
         ]
 

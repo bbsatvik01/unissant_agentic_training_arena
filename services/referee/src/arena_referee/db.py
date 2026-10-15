@@ -29,6 +29,7 @@ from arena_core.scoring.inclusion import Exec, RevealBlockedError
 from arena_core.scoring.kpi import LatencyRow
 from arena_core.scoring.ranking import IG_CHECK_NAMES, IG_ITEMS, IsolationResult, isolation_result
 from arena_core.scoring.rubric import RubricResult
+from arena_core.voice.transcript import voice_turns
 from arena_referee.debrief import DebriefDeps, DebriefProvenance, SessionInfo
 from arena_referee.mapping import TrialData
 from arena_referee.scoring import ScoringDeps
@@ -134,6 +135,8 @@ async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
         transcript = [
             {"turn_no": r[0], "question": r[1], "answer": r[2], "question_source": r[3]} for r in await cur.fetchall()
         ]
+    if not transcript:
+        transcript = await _voice_transcript(connect, trial_uuid)
 
     async with connect() as conn:
         cur = await one_statement(
@@ -168,6 +171,24 @@ async def fetch_trial_data(connect: Connector, trial_id: str) -> TrialData:
         final_finding=final_finding,
         unavailable_turns=unavailable_turns,
     )
+
+
+async def _voice_transcript(connect: Connector, trial: UUID) -> list[dict[str, Any]]:
+    """A voice session's turns (UI v2 amendment to D7): its stored exchanges as question-and-answer turns
+    (`arena_core.voice.transcript`), every question the investigator's own. Empty for any trial without
+    exchanges, so a text trial with no answered turn still reads as an empty transcript."""
+    async with connect() as conn:
+        cur = await one_statement(
+            conn,
+            "select exchange_no, lines from training.voice_exchanges where trial_id = %s order by exchange_no",
+            (trial,),
+        )
+        rows = await cur.fetchall()
+    turns = voice_turns([{"exchange_no": r[0], "lines": r[1]} for r in rows])
+    return [
+        {"turn_no": t["turn_no"], "question": t["question"], "answer": t["answer"], "question_source": "investigator"}
+        for t in turns
+    ]
 
 
 # ---------------------------------------------------------------- tournament lifecycle (S5 5.3; WP-17)
