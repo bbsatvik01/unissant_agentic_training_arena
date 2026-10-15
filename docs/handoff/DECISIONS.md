@@ -195,3 +195,7 @@
 - **Decision:** coordinator, under the owner's "do not overspend on hidden authoring" directive. After one replacement round, 12 families passed CX, but no subset of 12, 11 or 10 meets S1 7.5's style/level balance (AC-S1-16); the largest balanced subset is 9 (levels 3/3/3, max_phi 0.350). Seal those 9 (18 cases) rather than authoring more; the balance gate is not weakened.
 - **Effect:** the sealed tournament has 9 hidden families; the zero-event FPR bound is wider than at 15 (reported honestly, S3 5.2).
 - **Reversibility:** expensive after the seal.
+
+## 2026-10-15 · D-034 UI v2 by Codex (ChatGPT app, GPT-6 Astra); coordinator hardens backend
+- **Decision:** owner. The current 3D UI is judged cluttered and hand-built. A UI v2 (explorable precinct world: walk-in, reception, colleagues, case-file room, desk reading, calling the subject, interrogation with first/third-person cameras, coach and panel that move/talk, exact movement-level replay, findable leaderboard and past runs, agent-work screens from TechnoMile's war room) will be built by Codex in the ChatGPT app from a prompt the coordinator writes after research and owner alignment; the coordinator merges it later. In parallel the coordinator hardens the backend: voice mode scored and coached, replay events for world movement, leaderboard/history APIs, and optional free-tier LLM agents (TechnoMile setup) for colleague NPCs, subject to the no-Chinese-models rule.
+- **Reversibility:** moderate.
