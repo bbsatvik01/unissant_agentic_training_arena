@@ -106,15 +106,18 @@ under `web/public/`; use Git LFS for any file over 25 MB. Everything you create 
 original or open-licensed for commercial use and listed in `ATTRIBUTIONS.md`. Characters are fictional:
 never base a face or voice on a real person.
 
-## Tech you may use (your choice; these are suggestions)
+## Tech: your call
 
-React 19 + TypeScript strict + Vite (existing `web/`), three.js, @react-three/fiber, drei, @react-three/rapier,
-ecctrl (character controller), recast-navigation-js (crowd/pathfinding), @react-three/postprocessing,
-GSAP (free incl. plugins), Motion (UI transitions), three.js PositionalAudio. Add any high-quality,
-open-licensed library that improves realism. Respect `web/pnpm-workspace.yaml` minimumReleaseAge and the
-licence gate.
+The only hard requirement: the finished experience runs in a desktop browser, served by the existing
+`web/` app against the existing backend. Inside that, choose whatever stack, engine, libraries, tools and
+workflow give the best result; you may restructure or replace the current `web/` code as you see fit.
 
-Install these Codex skills before starting (`$skill-installer`, or copy into `.agents/skills/`):
+Optional suggestions from us (ignore any that you can beat): React 19 + TypeScript + Vite (current `web/`),
+three.js, @react-three/fiber, drei, @react-three/rapier, ecctrl (character controller), recast-navigation-js
+(crowd/pathfinding), @react-three/postprocessing, GSAP, Motion, three.js PositionalAudio, TalkingHead-style
+lip sync. Keep libraries open-licensed and recorded in `ATTRIBUTIONS.md`.
+
+Optional Codex skills that may help (`$skill-installer`, or copy into `.agents/skills/`):
 openai/plugins `react-three-fiber-game`; enzed/r3f-skills (`r3f-physics`, `r3f-lighting`);
 openaec-foundation three.js skills (`threejs-impl-physics`, `threejs-impl-drei`, `threejs-impl-audio`);
 gamedev-skills shader skills if you write shaders.
