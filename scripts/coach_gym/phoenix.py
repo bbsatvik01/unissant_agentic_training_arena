@@ -3,7 +3,8 @@
 Phoenix's documented REST routes: `POST /v1/datasets/upload?sync=true` (create a dataset from inputs, outputs and
 metadata), `GET /v1/datasets/{id}/examples`, `POST /v1/datasets/{id}/experiments`, `POST /v1/experiments/{id}/runs`
 and `POST /v1/experiment_evaluations` (annotator `CODE`: the gym's grader). The URL is operator configuration
-(`PHOENIX_BASE_URL`), never run data. Only dev-split examples exist to upload (`Example.split` is `dev` by type).
+(`PHOENIX_BASE_URL` or the tracer's `PHOENIX_OTLP_ENDPOINT`, with `PHOENIX_API_KEY`), never run data. Only
+dev-split examples exist to upload (`Example.split` is `dev` by type).
 """
 
 from __future__ import annotations
@@ -19,6 +20,8 @@ from arena_core.coachgym.registry import now
 
 TIMEOUT_S = 30.0
 BASE_URL_VAR = "PHOENIX_BASE_URL"
+OTLP_ENDPOINT_VAR = "PHOENIX_OTLP_ENDPOINT"
+API_KEY_VAR = "PHOENIX_API_KEY"
 
 
 class PhoenixError(RuntimeError):
@@ -131,5 +134,11 @@ class Phoenix:
 
 
 def phoenix_from(env: Mapping[str, str]) -> Phoenix | None:
-    url = env.get(BASE_URL_VAR, "").strip()
-    return Phoenix(url, httpx.Client(timeout=TIMEOUT_S)) if url else None
+    """The operator's Phoenix: `PHOENIX_BASE_URL`, else the `PHOENIX_OTLP_ENDPOINT` base the tracer exports to (the
+    same Phoenix, WP-07), with `PHOENIX_API_KEY` as the bearer key when set; None when neither URL is set."""
+    url = env.get(BASE_URL_VAR, "").strip() or env.get(OTLP_ENDPOINT_VAR, "").strip()
+    if not url:
+        return None
+    key = env.get(API_KEY_VAR, "").strip()
+    headers = {"authorization": f"Bearer {key}"} if key else {}
+    return Phoenix(url, httpx.Client(timeout=TIMEOUT_S, headers=headers))

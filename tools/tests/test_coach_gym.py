@@ -41,6 +41,7 @@ from scripts.coach_gym.evaluate import BudgetExhaustedError, CardEvaluator, Mete
 from scripts.coach_gym.fake import FAKE_ADDITION, FAKE_GYM_REPLIES, FAKE_LESSON, instruction_reply, lessons_reply
 from scripts.coach_gym.optimize import GymAdapter, HoldoutLeakError, OptimizeResult, ReflectionLM
 from scripts.coach_gym.reflect import GymLessons, LessonDraft, proposals, reflector_input
+from tools import proc
 
 
 def run[T](coro: Coroutine[Any, Any, T]) -> T:
@@ -472,3 +473,9 @@ def test_forbidden_strings_cover_case_ids_canaries_and_tokens() -> None:
 
 def test_the_repo_holdout_and_registry_are_readable() -> None:
     assert registry.versions_view(REPO)  # the committed coachlab/ parses (the API serves it)
+
+
+def test_the_module_entry_point_runs() -> None:
+    result = proc.run("python", ["-m", "scripts.coach_gym", "report"], cwd=REPO)
+    assert result.returncode == 0, result.stderr
+    assert [v["id"] for v in json.loads(result.stdout)["versions"]][:1] == ["A1@1.1.0"]

@@ -96,3 +96,8 @@ def test_phoenix_is_operator_configuration() -> None:
     configured = phoenix_from({"PHOENIX_BASE_URL": BASE})
     assert configured is not None
     assert configured.base_url == BASE
+    assert "authorization" not in configured.client.headers
+    traced = phoenix_from({"PHOENIX_OTLP_ENDPOINT": "http://127.0.0.1:7007", "PHOENIX_API_KEY": "k"})
+    assert traced is not None
+    assert traced.base_url == "http://127.0.0.1:7007"
+    assert traced.client.headers["authorization"] == "Bearer k"
