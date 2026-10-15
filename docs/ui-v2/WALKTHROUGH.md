@@ -2,7 +2,7 @@
 
 Tracking: [issue 14](https://github.com/bbsatvik01/unissant_agentic_training_arena/issues/14).
 
-Status: capture tooling authored; no successful video is claimed until its report and artifact are reviewed.
+Status: a reviewed 66.76-second arrival/reception excerpt is available. The full-case walkthrough still needs its transition failure resolved; no voice result or completed locomotion polish is claimed.
 
 `web/tools/precinct-walkthrough.ts --start-local-mock` is an explicit developer-only CLI. It uses the existing local Vite origin, a newly owned loopback-only fixture process and a fresh Chromium context with software WebGL. It records actual DOM controls and keyboard-driven movement. It never substitutes generated pictures or fabricated API responses for gameplay. External requests, microphone access, speech synthesis, Web Audio and audio playback are refused.
 
@@ -19,3 +19,11 @@ Required review before delivery: successful owned-process shutdown, zero externa
 The first full recording failed waiting for the case-selection button after local acknowledgement. The actual arrival/reception prefix was reviewed, but its brief third-person interval did not prove that the lazy-loaded character body was visible. Retain the failed raw artifact/report; do not call it a completed walkthrough.
 
 The bounded `--start-local-mock --arrival-reception` mode is intended for an honest shorter excerpt. It waits for the six actual walking-avatar asset responses to finish before recording third-person movement, then shows the check-in and a fixed reception reply. Successful execution still requires visual inspection of movement and readable dialogue before delivery. Full tools typecheck and zero-warning lint passed after this correction; no actual video acceptance is claimed by the typecheck.
+
+## Reviewed Office excerpt — 16:06 UTC
+
+The second bounded capture completed with zero runtime errors, failed requests, external calls or audio attempts. Its owned local fixture exited with code 0 and no teardown diagnostic. All six actual walking-body resources returned successfully before the third-person sequence. The raw VP8 browser recording is 101.56 s at 1440×900, 8,356,701 bytes, SHA-256 `fd0b08c182283811fb45fd48ccb8d3ef577286ec5fca91730e8e6331225a8a3e`.
+
+The delivered H.264 MP4 is 66.76 s, 1440×960, 1,740,589 bytes, SHA-256 `39cb0d2059c173ad7b0c258c1436733cd207d16b5a977ab1ceb22d923c614709`. It trims the first 34.8 s of initial loading and adds a 60-pixel editorial strip below the unchanged 1440×900 recording. No frame interpolation, substituted gameplay, added voice or hidden failed segment occurs in this short scope. The entire failed earlier full attempt remains a separate diagnostic.
+
+Reviewed frames show the visible third-person body and slight/stiff movement, first-person return, explicit reception check-in and the readable original topic reply. Software rendering provides limited motion quality; the clip is not evidence of smooth hardware locomotion or a measured hardware frame rate. The capture's success means its bounded UI sequence and safety guards passed, not that every product acceptance item passed. The strip explicitly says early browser preview, scripted text and silent. The full unchanged web gate remains pending.
