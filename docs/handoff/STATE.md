@@ -4,6 +4,12 @@
 - **Branch:** `main` (local only, no remote yet)
 - **Phase:** 1, build (D-013). GCP spend $0. Deadline 2026-11-02 (D-005); slice gate 2026-10-18.
 
+## UI v2 wave (2026-10-15; hold lifted by owner)
+- UI v2 is built by Codex (ChatGPT app, GPT-6 Astra) from docs/ui-v2/codex-prompt.md on branch ui-v2 of the GitHub repo (bbsatvik01/unissant_agentic_training_arena, private, empty until the first push).
+- Running: pre-push fixes (a138b421e997cad50, fix/prepush: source-map-js exclusion, CodeQL path fix, trufflehog fixture, CI web-check job, remove codeql.yml, CLAUDE.md); Coach Gym (a295794ec8e9b4661, feat/coach-gym, GEPA + ACE playbook + PROCTOR gates over Phoenix dev datasets); UI v2 backend seams (a97beecbb5e5bd194, feat/ui-v2-seams: world-events + recording v2, NPC chat on free models, instructor APIs, voice scored + coached).
+- Local stack up on real Gemini for the owner (make dev, bg bb7nlfo5d).
+- Calibration batch (feat/calibration-batch, 2 commits + uncommitted work) paused; resume after the push.
+
 ## HOLD 4 (owner, 2026-10-13): checkpoint and hold
 - Do not dispatch new work; let the one running agent (calibration batch aa11884a8c667c2de, feat/calibration-batch, f9b7be2 committed) finish; merge it on report.
 - Done: all core features merged; real Gemini end to end (text, designed TTS voices, live voice on gemini-3.8-live); real dev tournament ca6c4b9b revealed on hosted; hidden split SEALED (n=9, seal fdc96908..., docs/seal/hidden-split.md); KPI-1 setup for P01/P02; spend ~ $7 of $74.
