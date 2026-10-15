@@ -108,3 +108,4 @@
 - 97052f0 hidden split sealed on hosted (n=9, seal fdc96908cde1...); cases/hidden and authoring Codex sessions deleted
 - f1c393c first push of main to github.com/bbsatvik01/unissant_agentic_training_arena (private)
 - 6e8a784 merge Coach Gym (D-036); no real run yet
+- bdd7e94 merge UI v2 seams; hosted: applied 20261015000100_ui_v2_seams; free-LLM keys copied from TechnoMile into git-ignored .env.local (owner-authorized D-035)
