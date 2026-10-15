@@ -51,6 +51,7 @@ class GlbScene(TypedDict):
     meshes: list[Mesh]
     materials: list[Material]
     textures: NotRequired[list[object]]
+    extensionsUsed: NotRequired[list[str]]
 
 
 class LabelAudit(TypedDict):
@@ -90,6 +91,11 @@ def read_glb(path: Path) -> tuple[GlbScene, bytes, int]:
     json_length, chunk_type = struct.unpack_from("<II", data, 12)
     require(chunk_type == JSON_CHUNK, "Expected GLB JSON chunk")
     scene = cast(GlbScene, json.loads(data[20 : 20 + json_length]))
+    require(
+        not any(name.endswith("meshopt_compression") for name in scene.get("extensionsUsed", [])),
+        "Compressed geometry requires decoding first. Run node assets-src/decode_runtime.mjs "
+        "--output /tmp/precinct-audit.glb, then audit that temporary file. Do not commit it.",
+    )
     binary_length, chunk_type = struct.unpack_from("<II", data, 20 + json_length)
     require(chunk_type == BINARY_CHUNK, "Expected GLB binary chunk")
     binary = data[28 + json_length : 28 + json_length + binary_length]

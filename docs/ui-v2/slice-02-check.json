@@ -1,0 +1,57 @@
+{
+  "checkpoint": "reception and briefing with losslessly compressed precinct",
+  "verifiedAt": "2026-10-15T10:32:41Z",
+  "baseRemoteCommit": "e7da5df40abdb3e2efc3b92a5ea99608c840289f",
+  "sourceStatus": "verified scoped checkpoint before local commit",
+  "command": "cd web && pnpm check",
+  "node": "24.21.0",
+  "pnpm": "11.0.8",
+  "exitCode": 0,
+  "lint": "passed",
+  "typecheck": "passed",
+  "testFiles": 84,
+  "tests": 1500,
+  "coverageTestFiles": 84,
+  "coverageTests": 1500,
+  "coveragePercent": {
+    "statements": 98.27,
+    "branches": 94.91,
+    "functions": 99.18,
+    "lines": 99.63
+  },
+  "build": "passed",
+  "assetBytes": 3075764,
+  "assetSha256": "a9801458da3ff10911d49d03ba80cfa60eae9a70e42121b67a3066ec9aab9e9e",
+  "otherChecks": [
+    "actual asset decoder/manifest/navigation",
+    "Ruff and format for assets-src",
+    "no-rigging",
+    "dependency policy",
+    "snapshot committed-file budget (history separate)",
+    "git diff --check"
+  ],
+  "unchangedGates": true,
+  "remaining": [
+    "Historical oversized blobs need owner-authorized clean branch decision",
+    "Remote Python tests/coverage not reached; remote database job separate",
+    "Hardware GPU 60fps, physical controller and audible device-local voice verification"
+  ],
+  "browser": {
+    "verifiedAt": "2026-10-15T10:38:27Z",
+    "checksPassed": 38,
+    "checksTotal": 38,
+    "screenshots": 10,
+    "viewports": [
+      "1440x900",
+      "1920x1080"
+    ],
+    "renderMode": "actual WebGL 2 / ANGLE SwiftShader",
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "failedRequests": 0,
+    "httpErrors": 0,
+    "remoteOrApiRequests": 0,
+    "independentVisualReview": "all ten images inspected",
+    "localVoice": "none installed; full-subtitle fallback verified"
+  }
+}

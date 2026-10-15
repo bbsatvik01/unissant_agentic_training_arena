@@ -28,11 +28,11 @@ export interface TravelCommand {
 }
 
 export const STATIONS = [
-  { id: "lobby", label: "Reception", short: "Reception", key: "1", anchor: [0, 0, -3.3], yaw: 0, description: "Check in, meet your desk officer, and begin your shift." },
+  { id: "lobby", label: "Reception", short: "Reception", key: "1", anchor: [-6.2, 0, -5.7], yaw: Math.atan2(0.1, 2.72), description: "Check in, meet your desk officer, and begin your shift." },
   { id: "board_wall", label: "Case board", short: "Cases", key: "2", anchor: [8.2, 0, -7.4], yaw: -Math.PI / 2, description: "Choose a synthetic case and review the investigation objective." },
   { id: "open_office", label: "Open office", short: "Office", key: "3", anchor: [-5.4, 0, -13.1], yaw: Math.PI / 2, description: "Talk technique with colleagues. They never know the case answers." },
   { id: "dossier", label: "Your desk", short: "Desk", key: "4", anchor: [-5.2, 0, -22], yaw: Math.PI / 2, description: "Read the public case dossier and keep an evidence-based notebook." },
-  { id: "briefing", label: "Sergeant briefing", short: "Briefing", key: "5", anchor: [-5.2, 0, -28], yaw: 0, description: "Review your objective, interview limits, and the ground rule." },
+  { id: "briefing", label: "Sergeant briefing", short: "Briefing", key: "5", anchor: [-4.3, 0, -29.1], yaw: Math.PI, description: "Review your objective, interview limits, and the ground rule." },
   { id: "interview", label: "Interview room", short: "Interview", key: "6", anchor: [5.7, 0, -12.5], yaw: -Math.PI / 2, description: "Practice neutral questions with a simulated subject." },
   { id: "observation", label: "Observation room", short: "Observation", key: "7", anchor: [4.8, 0, -18], yaw: 0, description: "Watch the coaches and review panel work behind the glass." },
   { id: "debrief", label: "Replay theater", short: "Replay", key: "8", anchor: [5, 0, -22], yaw: -Math.PI / 2, description: "Review recorded interviews and the evidence behind each finding." },

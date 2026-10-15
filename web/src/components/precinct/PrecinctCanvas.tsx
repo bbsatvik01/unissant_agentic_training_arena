@@ -2,6 +2,7 @@ import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { ACESFilmicToneMapping, Group, Light, Mesh, PerspectiveCamera, PMREMGenerator, Vector3 } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 import { controllerDeadzone, EYE_HEIGHT, findWaypointRoute, hasLineOfSight, inputMovement, isWalkable, MAX_FRAME_SECONDS, moveWithCollisions, nearestHotspot, turn, WALK_SPEED } from "../../lib/precinct/movement";
@@ -10,6 +11,7 @@ import type { CameraMode, LookAngles, Vec3 } from "../../lib/precinct/types";
 import { INVESTIGATOR } from "../../lib/world/cast";
 import { nextTier, WINDOW, type Tier } from "../../lib/world/quality";
 import { WalkingAvatar } from "./WalkingAvatar";
+import { PrecinctStaff } from "./PrecinctStaff";
 import type { PlayerPose, PrecinctManifest, TravelCommand } from "./sceneTypes";
 
 interface Props {
@@ -44,7 +46,9 @@ function connectedGamepad(): Gamepad | null {
 
 function Architecture({ onReady }: { readonly onReady: () => void }) {
   const invalidate = useThree((state) => state.invalidate);
-  const gltf = useLoader(GLTFLoader, "/world/precinct.glb");
+  const gltf = useLoader(GLTFLoader, "/world/precinct.glb", (loader) => {
+    loader.setMeshoptDecoder(MeshoptDecoder);
+  });
   const scene = useMemo(() => {
     const copy = gltf.scene.clone(true);
     copy.traverse((object) => {
@@ -353,6 +357,7 @@ export default function PrecinctCanvas(props: Props) {
     <pointLight position={[0, 3, -6]} intensity={45} distance={18} color="#ffe5c2" />
     {props.tier !== "low" ? <><pointLight position={[0, 3, -17]} intensity={25} distance={15} color="#f3eddf" /><pointLight position={[0, 3, -29]} intensity={25} distance={15} color="#f3eddf" /></> : null}
     <Suspense fallback={null}><Architecture onReady={props.onReady} /></Suspense>
+    <PrecinctStaff paused={props.paused || !props.active} reducedMotion={props.reducedMotion} tier={props.tier} />
     <Controls {...props} />
   </Canvas>;
 }

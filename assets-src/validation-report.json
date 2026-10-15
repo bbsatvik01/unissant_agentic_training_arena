@@ -7,9 +7,16 @@
   "triangles": 116267,
   "meshMaterialGroups": 38,
   "runtimeAsset": "precinct.glb",
-  "runtimeBytes": 5668084,
-  "runtimeSha256": "dc6c19271bf1c7c93717240ae125029706823747d9945ad34a3aba2c7fd294b8",
+  "runtimeBytes": 3075764,
+  "runtimeSha256": "a9801458da3ff10911d49d03ba80cfa60eae9a70e42121b67a3066ec9aab9e9e",
   "sourceBytes": 1235259,
+  "sourceSha256": "06b48bf734e22a47f21caa8c5a1e6b1505586b42c5fa3c6b0f347e0ec2c942a5",
+  "committedFileLimitBytes": 5242880,
+  "compression": "EXT_meshopt_compression",
+  "decodedBufferViews": 112,
+  "decodedBinarySha256": "f20cc5a41164dde0d4dd8fd5a41893a0c4e888be93d1f9b5491a8549f56e241e",
+  "losslessGeometryVerified": true,
+  "historySizeGateResolved": false,
   "allNavigationLinksClearAtCapsuleRadius": 0.28,
   "allNodesReachable": true
 }

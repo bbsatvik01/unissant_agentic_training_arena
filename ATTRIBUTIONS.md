@@ -150,6 +150,12 @@ Signage uses DejaVu Sans, packed in the editable `.blend` and converted to geome
 
 The UI v2 compass favicon (`web/public/favicon.svg`) is original vector artwork authored for this application.
 
-## UI v2 precinct wayfinding revision
+## UI v2 precinct staff and signage
 
-Larger wayfinding uses original typography/layout with DejaVu Sans Bold under the same DejaVu/Bitstream Vera license recorded for the precinct. Both regular and bold font faces are packed into the editable source; license text is in `assets-src/FONT_LICENSE.txt`.
+- Reception, sergeant, office and patrol motion: original procedural walking, idle, counter-work and seated gestures authored for this project in `web/src/lib/precinct/staff.ts` and `web/src/components/precinct/PrecinctStaff.tsx`. Uses the existing Microsoft Rocketbox MIT meshes/textures credited above; no Mixamo or additional animation files.
+- Larger wayfinding: original typography/layout using DejaVu Sans Bold under the same DejaVu/Bitstream Vera license recorded for the precinct. Both regular and bold font faces are packed into the editable source; license text is in `assets-src/FONT_LICENSE.txt`.
+- Optional NPC/briefing speech uses installed device-local voices only after explicit playback; no downloaded voice asset or third-party TTS service is bundled. Characters and scripted dialogue remain fictional.
+
+## UI v2 lossless precinct compression
+
+The precinct runtime uses `EXT_meshopt_compression`, encoded with meshoptimizer 1.1.1 by Arseny Kapoulkine under the MIT license ([official project](https://github.com/zeux/meshoptimizer)). The authoring-only encoder is exactly pinned as a development dependency in `web/package.json`, with its existing npm integrity in `web/pnpm-lock.yaml`; the complete notice is retained in `assets-src/MESHOPT_LICENSE.txt`. The browser uses the Meshopt decoder already bundled with Three.js 0.186.1. No new runtime dependency, package version or third-party geometry is added. Original compression/verification scripts live in `assets-src`; they preserve all geometry, material, source and navigation content without quantization or simplification. Reproduction and evidence are documented in `assets-src/ASSET_PROVENANCE.md` and `docs/ui-v2/precinct-compression-review.md`.

@@ -8,7 +8,9 @@ The generated scene and source are intended for modification and commercial inte
 
 - northstar-precinct.blend: editable semantic source, materials, packed typeface, lights, and two eye-level cameras
 - build_precinct.py + manifest_tools.py: reproducible scene, renders, optimized GLB, and runtime manifest
-- export_runtime.py: quick runtime export from the saved .blend, without rerendering
+- export_runtime.py: quick uncompressed intermediate export from the saved .blend, without rerendering
+- compress_runtime.mjs: required lossless post-export compression, pinned MIT tooling and byte-for-byte verification
+- decode_runtime.mjs + compression-report.json: actual decoder verification and temporary uncompressed audit export
 - ../web/public/world/precinct.glb: static material-batched runtime scene
 - ../web/public/world/precinct-manifest.json: rooms, hotspots, collision AABBs, portal graph, spawn, and lighting guidance
 - lobby-preview.png + corridor-preview.png: eye-level Cycles review renders
@@ -19,21 +21,28 @@ The generated scene and source are intended for modification and commercial inte
 The signage readability rebuild was verified with Blender 4.3.2. Run these commands from the repository root. `blender` means your installed Blender executable; use its full local path if it is not on PATH.
 
     blender --background --threads 6 --factory-startup --python assets-src/build_precinct.py
+    node assets-src/compress_runtime.mjs
     python assets-src/validate_manifest.py
 
 For a fast source/GLB/manifest rebuild while keeping the existing preview renders:
 
     blender --background --threads 6 --factory-startup --python assets-src/build_precinct.py -- --skip-renders
+    node assets-src/compress_runtime.mjs
     python assets-src/validate_manifest.py
 
 For a runtime-only export from the editable, packed Blender source:
 
     blender --background --threads 6 --python assets-src/export_runtime.py
+    node assets-src/compress_runtime.mjs
     python assets-src/validate_manifest.py
 
-Every path is resolved relative to the script, so invocation from another working directory also works. Both exporters write `web/public/world/precinct.glb` and set the manifest's `asset` field to `precinct.glb`, matching the app's loading URL. The validator reads the integrated runtime files and writes its report only to `assets-src/validation-report.json`.
+Every path is resolved relative to the script, so invocation from another working directory also works. Both Blender exporters write an uncompressed intermediate to `web/public/world/precinct.glb`; the required compression step replaces it losslessly. Both exporters set the manifest's `asset` field to `precinct.glb`, matching the app's loading URL. The validator reads the integrated runtime files and writes its report only to `assets-src/validation-report.json`.
 
-The scripts use only the Python standard library and Blender bpy/mathutils; there are no network dependencies. The supplied `.blend` packs DejaVu Sans, so runtime-only export does not require a system font installation. A full rebuild searches the usual Linux DejaVu Sans location; on another system, set `ARENA_DEJAVU_FONT` to the installed DejaVuSans.ttf file before invoking Blender. If that font is absent, Blender's bundled font is used and lettering will differ. Use the packed-source export for identical lettering without installing any fonts.
+The Blender scripts use the Python standard library and Blender bpy/mathutils. The required post-export step uses Node.js, meshoptimizer 1.1.1 (MIT), and the same Meshopt decoder bundled in the existing Three.js runtime. The encoder is an exact development dependency in the single sanctioned web/package.json manifest, with its integrity pinned in web/pnpm-lock.yaml. Install the web dependencies through that frozen lockfile first:
+
+    (cd web && pnpm install --frozen-lockfile)
+
+Meshoptimizer 1.1.1 was already present transitively in the web lockfile and is now explicitly declared as authoring-only tooling; no new package version or runtime dependency is introduced. All compression, decoding and validation are local after installation; no source asset is uploaded. Keep assets-src/MESHOPT_LICENSE.txt with the tooling. Every Blender export is an intermediate that must pass the Node compression command above before committing. The standalone uncompressed export is intentionally rejected by validate_manifest.py. The supplied `.blend` packs DejaVu Sans, so runtime-only export does not require a system font installation. A full rebuild searches the usual Linux DejaVu Sans location; on another system, set `ARENA_DEJAVU_FONT` to the installed DejaVuSans.ttf file before invoking Blender. If that font is absent, Blender's bundled font is used and lettering will differ. Use the packed-source export for identical lettering without installing any fonts.
 
 The complete build is authoritative for navigation metadata. A runtime-only export preserves that metadata and refreshes chair bounds from the editable source. After moving architectural walls, desks, or other major furniture, update the corresponding source definitions and run the complete build; editing the Blender geometry alone does not automatically regenerate all navigation data.
 
@@ -53,9 +62,25 @@ The room IDs are lobby, board_wall, corridor, open_office, dossier, briefing, in
 
 ## Verified runtime budget
 
-The final runtime scene is approximately 5.67 MB, with 116,267 triangles across 38 material groups. The packed editable source is approximately 1.24 MB. Both are below the 25 MB per-file target. See validation-report.json for exact measured counts and navigation checks. The source retains editable lettering and richer bevels; the GLB uses planar typography and single-segment bevels on tiny edges for efficient rendering.
+The compressed runtime scene is exactly 3,075,764 bytes (2.93 MiB), with 116,267 triangles across 38 material groups. The packed editable source is 1,235,259 bytes. Both are below the unchanged repository committed-file cap of 5,242,880 bytes (5 MiB), which is stricter than the brief's 25 MB LFS threshold. Compression saves 2,592,320 bytes (45.7354%) compared with the 5,668,084-byte signage export and preserves every decoded attribute/index byte, scene/material field, collider, and navigation coordinate. See validation-report.json for exact measured counts and navigation checks. The source retains editable lettering and richer bevels; the GLB uses planar typography and single-segment bevels on tiny edges for efficient rendering.
 
 
 ## Signage readability revision
 
 Important wayfinding uses larger, width-fitted DejaVu Sans Bold vector lettering on the original plaques. The change preserves all collider and navigation coordinates and adds no image texture or runtime font dependency. The existing FONT_LICENSE.txt notice also covers the Bold face. For a full rebuild, ARENA_DEJAVU_SIGN_FONT can point to DejaVuSans-Bold.ttf; by default it is searched beside ARENA_DEJAVU_FONT. If unavailable, the ordinary configured font is used; use the packed-source exporter for identical lettering. See ../docs/ui-v2/signage-readability-review.md for the measured diagnosis and verification status.
+
+
+## Meshopt runtime and safe signage auditing
+
+`precinct.glb` requires `EXT_meshopt_compression`. Register `MeshoptDecoder` from `three/examples/jsm/libs/meshopt_decoder.module.js` with `GLTFLoader.setMeshoptDecoder` before loading it. The decoder is bundled in the existing Three.js dependency; no CDN, external decoder request, runtime dependency addition, quantization, mesh simplification, or geometry reordering is involved. Geometry decodes to the same bytes as the uncompressed export.
+
+`validate_manifest.py` verifies the 5 MiB cap, required extension, actual decoded geometry/index ranges, every decoded buffer-view hash, the full decoded binary hash, source hash, unchanged scene metadata, navigation and manifest statistics. It requires Node.js and the installed web dependencies; the compression encoder package is needed only to compress.
+
+The raw Python typography audit deliberately rejects compressed geometry. For an audit, decode to a new temporary file outside the repository first, then audit that copy:
+
+    node assets-src/decode_runtime.mjs --output /tmp/precinct-audit.glb
+    python assets-src/audit_signage.py /tmp/precinct-audit.glb
+
+The decoder refuses to overwrite an existing output file. It verifies that the complete temporary GLB equals the original export's SHA-256. The decoded audit copy is larger than the committed-file cap: never commit it. The editable Blender source and historical review renders remain unchanged. Browser/render acceptance is a separate integration check; the compressor establishes exact asset preservation, not a hardware-GPU result.
+
+Shrinking the current runtime does not resolve `push-clean` failures from oversized GLBs already in branch history. No gate, exemption, history, or Git operation is changed by this compression workflow.

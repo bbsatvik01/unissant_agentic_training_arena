@@ -269,7 +269,7 @@ async function captureViewport(browser: Browser, viewport: { width: number; heig
       if (await page.locator("canvas").count() > 0) await page.locator("canvas").focus();
       else await page.locator("body").click({ position: { x: 720, y: 400 } });
       await page.keyboard.press("Digit1");
-      await expect.poll(async () => await marker(page), { timeout: frameTimeout }).toContain("translate(0 -3.3)");
+      await expect.poll(async () => await marker(page), { timeout: frameTimeout }).toContain("translate(-6.2 -5.7)");
       return await marker(page);
     });
 
