@@ -1,5 +1,11 @@
 # UI v2 implementation notes
 
+## 2026-10-15 20:29 UTC — full lint process memory failure and bounded correction
+
+Remote merged checkpoint `293ea9c` started the full unchanged pnpm check chain. [Web CI](https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38801190197/job/116650344962) stopped during whole-project ESLint at about 2 GiB of V8 heap, with exit 134 and an explicit JavaScript heap-out-of-memory error. Types/tests/coverage/build were not reached in that job. The earlier 38-file lint and 444 focused tests remain valid bounded checks, not aggregate acceptance.
+
+The web lint script now launches the same installed ESLint CLI on the same `.` file scope and `--max-warnings 0`, with a finite 4096 MiB old-space allowance. No rules, ignores, typed-project settings, test/coverage thresholds, assertions or check-chain stages change. This allocation applies only to the developer/CI lint process, not the shipped browser app. The command is being revalidated in a fresh full CI run; no pass is claimed yet.
+
 ## 2026-10-15 20:19 UTC — genuine main merge focused gate passes
 
 The resolved main `693c8c1` merge now passes strict app/tools types, zero-warning lint on 38 changed web paths, and all 444/444 tests across 25 focused suites. All 66 pinned inputs were rechecked after execution. [Exact merge verification](merge-validation-2026-10-15.md) preserves the initial 441/444 attempt: two diagnostic wording mismatches were corrected without changing validators/tests, and a variable first-route timeout was profiled and subsequently passed under its original five-second limit. No timeout, assertion, lint policy or coverage floor changed. The full aggregate web gate and actual combined browser/audio acceptance remain pending.
