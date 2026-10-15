@@ -24,14 +24,14 @@ dependencies = [
 [dependency-groups]
 dev = [
   "bandit==1.9.4",
-  "diff-cover==10.5.1",
+  "diff-cover==10.6.0",
   # Coach Gym optimizer (D-036; scripts/coach_gym): GEPA reflective prompt evolution, MIT, no runtime dependencies
   # of its own. An operator tool only, so it lives here and never in a service image (Dockerfile: --no-dev).
   "gepa==0.1.4",
   # arena-referee's own route tests dispatch real ASGI requests against FastAPI's TestClient alternative
   # (starlette.testclient triggers a deprecation warning under -W error; httpx's own ASGITransport does not).
   "httpx==0.28.1",
-  "mypy==2.3.1",
+  "mypy==2.4.0",
   # Tests read the agent port's per-attempt spans back (S5 3.6); version matches arena-core's own runtime
   # dependency (WP-07's observability install), never drifting apart from the real SDK tests run against.
   "opentelemetry-sdk==1.45.0",
@@ -40,7 +40,7 @@ dev = [
   "pytest-cov==7.1.0",
   # tools/check_no_rigging.py reads workflow YAML as YAML (PyYAML was already locked through bandit).
   "pyyaml==6.0.3",
-  "ruff==0.16.8",
+  "ruff==0.16.10",
   "types-jsonschema==4.26.0.20260518",
   "types-pyyaml==6.0.12.20260906",
 ]
