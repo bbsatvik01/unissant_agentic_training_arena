@@ -210,7 +210,8 @@ def test_all_steps_pass(repo: Path) -> None:
     assert len(subject_suite) == 1, log
     assert len(spend_suite) == 1, log
     assert parity[0] < subject_suite[0] < spend_suite[0]
-    assert "-W error" in log[subject_suite[0]]
+    # D-036: the Coach Gym's dev-only dataset SQL runs in the same suite, on the real migrated database
+    assert all(arg in log[subject_suite[0]] for arg in ("-W error", "tools/tests/it_coach_gym.py"))
     assert "-W error" in log[spend_suite[0]]
     # the tournament suite runs on its own server, after that server is migrated: never the one the spend-guard
     # suite reads (the tournament suite commits a ceiling and spend rows the spend-guard suite must never see)

@@ -308,3 +308,32 @@ real-smoke:
 	@test -n "$$ARENA_SUBJECT_DSN" || { echo "ARENA_SUBJECT_DSN is not set in the environment"; exit 2; }
 	$(UV_RUN) python -m scripts.probes.real_smoke --family "$(FAMILY)" $(if $(COACH),--coach "$(COACH)") \
 		$(if $(SUBJECT),--subject "$(SUBJECT)")
+
+# Coach Gym (D-036; scripts/coach_gym; operator-invoked, never part of make check). ARENA_REFEREE_DSN set in the
+# shell for the dataset, the run and REGISTER=1. The dataset reads DEV-split trials only (the SQL filters on
+# split; a hidden trial is refused). coach-gym-run: ARENA_MODEL_MODE=fake for zero spend, else Gemini on Vertex
+# (ARENA_GCP_PROJECT=cna-guardian), every call through the agent port and the database spend guard, BUDGET (USD,
+# at most 20) capping the whole run. coach-promote is the human approval: it re-verifies the frozen manifest and,
+# with REGISTER=1, registers it in arena.candidates (new practice sessions and the next roster then use it).
+#   make coach-gym-dataset [PHOENIX=1]
+#   make coach-gym-run BUDGET=<usd> [CANDIDATE=A1] [MAX_EVALS=300] [PHOENIX=1]
+#   make coach-gym-report
+#   make coach-gym-lessons [APPROVE=<id> | REJECT=<id>] [BY=<name>]
+#   make coach-promote VERSION=A1@1.2.0 BY=<name> [REGISTER=1]
+.PHONY: coach-gym-dataset coach-gym-run coach-gym-report coach-gym-lessons coach-promote
+coach-gym-dataset:
+	@test -n "$$ARENA_REFEREE_DSN" || { echo "ARENA_REFEREE_DSN is not set in the environment"; exit 2; }
+	$(UV_RUN) python -m scripts.coach_gym dataset $(if $(PHOENIX),--phoenix)
+coach-gym-run:
+	@test -n "$(BUDGET)" || { echo "usage: ARENA_REFEREE_DSN=... make coach-gym-run BUDGET=<usd> [CANDIDATE=A1]"; exit 2; }
+	@test -n "$$ARENA_REFEREE_DSN" || { echo "ARENA_REFEREE_DSN is not set in the environment"; exit 2; }
+	$(UV_RUN) python -m scripts.coach_gym run --budget "$(BUDGET)" --candidate "$(or $(CANDIDATE),A1)" \
+		$(if $(MAX_EVALS),--max-evals "$(MAX_EVALS)") $(if $(PHOENIX),--phoenix)
+coach-gym-report:
+	@$(UV_RUN) python -m scripts.coach_gym report
+coach-gym-lessons:
+	$(UV_RUN) python -m scripts.coach_gym lessons $(if $(APPROVE),--approve "$(APPROVE)") \
+		$(if $(REJECT),--reject "$(REJECT)") $(if $(BY),--by "$(BY)")
+coach-promote:
+	@test -n "$(VERSION)" -a -n "$(BY)" || { echo "usage: make coach-promote VERSION=A1@1.2.0 BY=<name> [REGISTER=1]"; exit 2; }
+	$(UV_RUN) python -m scripts.coach_gym promote --version "$(VERSION)" --by "$(BY)" $(if $(REGISTER),--register)
