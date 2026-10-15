@@ -1,8 +1,30 @@
-# UI v2 brief for Codex (GPT-6 Astra): the DC Precinct training world
+# UI v2 brief (ChatGPT dots agent, GPT-6 Astra): the DC Precinct training world
 
-You are building UI v2 of the Investigative AI Training Arena, a local training app for investigators.
+You are building UI v2 of the Investigative AI Training Arena, a local training app for investigators, as a long-running agent with your own computer.
 Work in this repository on a new branch `ui-v2`. Everything you need from the backend already exists
 or is listed under "Backend seams" with an exact shape you can mock until it lands.
+
+## How you work on this (you are a long-running agent on your own computer)
+
+- Repository: `github.com/bbsatvik01/unissant_agentic_training_arena` (private). Clone it, create branch
+  `ui-v2` from `main`, push to `ui-v2` often (at least every working session), and open a pull request into
+  `main` per playable slice. Never push to `main`, never force-push, never rewrite history.
+- Toolchain: Python 3.12 + uv (`uv sync --locked`), Node 24.21 + pnpm via corepack (`cd web && pnpm install
+  --frozen-lockfile`), Docker if available. Blender and Unity are installed on your computer: use them
+  for authoring (see "Building your own assets").
+- You have no access to our cloud (Vertex AI, Supabase) and need none. Develop against:
+  (1) recordings with no backend at all (`recordings/*.json`; `real-F01-deceptive-coached.json` is a real
+  Gemini run), and (2) the full stack in free fake-model mode on a local database: `make dev-db` then
+  `make dev-local` (needs Docker; F01-F03 seeded; user `dev@arena.local`). If Docker is unavailable, use
+  recordings plus mocks of the routes below. Never add secrets, keys or `.env*` files to the repo.
+- Scope of your changes: `web/` (rebuild it as you see fit), `assets-src/`, `web/public/`, `docs/ui-v2/`,
+  `ATTRIBUTIONS.md`. Do not change backend code (`packages/`, `services/`, `supabase/`): a separate team is
+  building the backend seams listed below in parallel; mock them in `web/` until they appear on `main`,
+  then `git merge main` into `ui-v2`.
+- Autonomy: work without asking for routine decisions. Ask the owner only before anything that costs
+  money, uses a non-open licence, or changes this brief's goals.
+- Report back to the owner in this chat after each slice: what is playable, 3-5 screenshots, the PR link,
+  and what is next. Keep `docs/ui-v2/NOTES.md` current so anyone can pick up where you left off.
 
 ## What the product is (read first)
 
