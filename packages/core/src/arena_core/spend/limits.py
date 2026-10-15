@@ -28,6 +28,7 @@ class CallType(StrEnum):
     PORTRAIT = "portrait"
     TTS = "tts"
     VOICE_DESIGN = "voice_design"
+    NPC = "npc"
 
 
 class VertexModel(StrEnum):
@@ -73,6 +74,11 @@ LIMITS: dict[CallType, CallLimits] = {
     # 400-character description at up to 12 escaped bytes each plus the request JSON; output: the model's hard
     # output-token limit (16,384), since CreateVoice takes no output cap (the sample is about 1,100 tokens).
     CallType.VOICE_DESIGN: CallLimits(6_000, 16_384, 60.0, frozenset()),
+    # A colleague NPC's reply on the Gemini fallback (UI v2, D-035; the free endpoints spend nothing): the persona
+    # prompt plus at most 12 history lines and the message, each at most 400 characters at up to 12 escaped bytes
+    # a character, and the repair allowance; output: a short spoken reply at MINIMAL thinking
+    # (cost_model.LIMITS['npc']).
+    CallType.NPC: CallLimits(72_000, 1_000, 15.0, frozenset({VertexModel.FLASH_LITE_35})),
 }
 
 
@@ -94,6 +100,7 @@ DEFAULT_TIMING: dict[CallType, CallTiming] = {
     CallType.PORTRAIT: CallTiming(60.0, 120.0),
     CallType.TTS: CallTiming(60.0, 60.0),
     CallType.VOICE_DESIGN: CallTiming(60.0, 60.0),
+    CallType.NPC: CallTiming(10.0, 20.0),
 }
 
 # S5 3.3 / S2 1, 2: thinking is MINIMAL on every call type except the referee. The referee's rows pair model and
@@ -122,4 +129,5 @@ PURPOSES: dict[CallType, frozenset[str]] = {
     CallType.PORTRAIT: frozenset({"portrait.image"}),
     CallType.TTS: frozenset({"tts"}),
     CallType.VOICE_DESIGN: frozenset({"voice_design"}),
+    CallType.NPC: frozenset({"npc.chat"}),
 }

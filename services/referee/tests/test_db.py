@@ -206,6 +206,42 @@ def test_fetch_trial_data_returns_released_transcript_cards_and_finding() -> Non
     assert data.final_finding == {"label": "deceptive"}
 
 
+def test_a_voice_sessions_exchanges_are_its_transcript() -> None:
+    """UI v2 amendment to D7: a trial with no typed turns reads its stored voice exchanges as investigator turns,
+    numbered in order; a window without both a question and an answer is no turn."""
+    lines = [{"role": "investigator", "text": "Where were you?"}, {"role": "subject", "text": "At home."}]
+    conn = _trial_data_conn(
+        {
+            "arena.released_evidence": [("rec-01", "Work order", {"body": "x"}, 2)],
+            "training.voice_exchanges": [
+                (1, [{"role": "subject", "text": "Hello?"}]),
+                (2, lines),
+                (3, [{"role": "investigator", "text": "And then?"}, {"role": "subject", "text": "I slept."}]),
+            ],
+        }
+    )
+    data = run(db.fetch_trial_data(connector(conn), TRIAL))
+    assert data.transcript == [
+        {"turn_no": 1, "question": "Where were you?", "answer": "At home.", "question_source": "investigator"},
+        {"turn_no": 2, "question": "And then?", "answer": "I slept.", "question_source": "investigator"},
+    ]
+    # released after window 2: one turn (window 2's) came before it, so it is visible from turn 2
+    assert [r["released_after"] for r in data.released] == [1]
+
+
+def test_a_text_trial_never_reads_voice_exchanges() -> None:
+    conn = _trial_data_conn({"arena.turns": [(1, "Why?", "Because.", "investigator")]})
+    run(db.fetch_trial_data(connector(conn), TRIAL))
+    assert not any("training.voice_exchanges" in query for query, _ in conn.executed)
+
+
+def test_a_trial_with_no_turn_keeps_its_release_boundaries() -> None:
+    conn = _trial_data_conn({"arena.released_evidence": [("rec-01", "Work order", {"body": "x"}, 2)]})
+    data = run(db.fetch_trial_data(connector(conn), TRIAL))
+    assert data.transcript == []
+    assert [r["released_after"] for r in data.released] == [2]
+
+
 def test_fetch_trial_data_turns_query_excludes_unanswered_turns() -> None:
     """A quarantined turn (SG2-39) leaves an `arena.turns` row with a null answer (`turn_answer_shape`); the
     referee's transcript is committed exchanges only -- `TranscriptTurn.answer` is a non-empty string, and a

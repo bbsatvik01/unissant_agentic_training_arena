@@ -24,6 +24,7 @@ from arena_api.voice_relay import VoiceRelay
 from arena_core.contracts.routes import VoiceTicketRequest
 from arena_core.db.arena import ArenaDb, ArenaError
 from arena_core.http_guard import GuardConfig
+from arena_core.turns.voice_coach import VoiceCoach
 from arena_core.voice import protocol as p
 from arena_core.voice.tickets import binding_from, ticket_from_subprotocols
 
@@ -81,7 +82,9 @@ async def voice_ws(ws: WebSocket) -> None:
     try:
         async with dial() as leg:
             log.info("voice relay: ticket %.2fs, subject dial %.2fs", redeemed - started, time.monotonic() - redeemed)
-            relay = VoiceRelay(ws, leg)
+            # Practice sessions are coached exchange by exchange (UI v2 amendment to D7); assessment withholds it.
+            coach = VoiceCoach(db, state.port, binding.trial_id).card_after if binding.mode == "practice" else None
+            relay = VoiceRelay(ws, leg, coach=coach)
             state.voice_relays.add(binding.trial_id, relay)
             try:
                 code = await relay.run(binding.start())

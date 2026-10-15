@@ -19,6 +19,7 @@ evidence event, the terminal record of `trial_ended`); WP-13 owns that query, th
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
@@ -28,7 +29,7 @@ from pydantic import TypeAdapter
 
 from arena_core.contracts.coaching import StoredCard
 from arena_core.contracts.common import turn_no
-from arena_core.contracts.events import HarnessFrame, TournamentFrame, TrialFrame
+from arena_core.contracts.events import CoachCard, HarnessFrame, TournamentFrame, TrialFrame
 from arena_core.contracts.snapshot import TrialSnapshot
 
 MAX_DELTA_BYTES = 16 * 1024
@@ -567,3 +568,15 @@ def tournament_frames(rows: Iterable[object], tournament_id: str, limit: int = 2
                 out.append(_TOURNAMENT_FRAMES.dump_python(frame, mode="json"))
         last = row.seq
     return out, last
+
+
+def voice_coach_card_text(card: StoredCard, exchange_no: int) -> str:
+    """A practice voice session's card (UI v2 amendment to D7) as the voice socket's text frame: the `coach.card`
+    frame's own `data` (`{turn_no, card}`, the training wire card, checked against the same contract the trial
+    stream uses) under `type: "coach.card"`, with the spoken exchange it coaches. The card is never stored as a
+    trial event, so it has no `seq` and never travels on SSE (S5 7.7); the earpiece speaks it."""
+    wire = card.training_wire()
+    data = CoachCard.model_validate_json(json.dumps({"turn_no": wire.turn_no, "card": wire.model_dump(mode="json")}))
+    return json.dumps(
+        {"type": "coach.card", "exchange_no": exchange_no, "data": data.model_dump(mode="json")}, ensure_ascii=False
+    )

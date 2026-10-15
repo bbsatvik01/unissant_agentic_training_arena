@@ -24,8 +24,9 @@ from pathlib import Path
 # user everywhere: generated once from a fixed string, never from a run's own randomness.
 ARENA_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_DNS, "arena.unissant.internal")
 
-# S5 10.3: "roles from investigator, judge, trainer, admin".
-ROLES = frozenset({"investigator", "judge", "trainer", "admin"})
+# S5 10.3: "roles from investigator, judge, trainer, admin"; UI v2 (D-036) adds instructor (arena-referee's
+# instructor mode: the class, case assignments and notes on a trainee's recording).
+ROLES = frozenset({"investigator", "judge", "trainer", "admin", "instructor"})
 
 
 class IdentityError(RuntimeError):

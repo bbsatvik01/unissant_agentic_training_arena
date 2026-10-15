@@ -23,7 +23,8 @@ router = APIRouter()
 
 
 def _score(debrief: dict[str, Any] | None) -> int | None:
-    """A published debrief's rubric total, or None when it has none (unpublished, voice, unscorable)."""
+    """A published debrief's rubric total, or None when it has none (unpublished, unscorable, or a voice debrief
+    published unscored before the UI v2 amendment)."""
     if not debrief or not debrief.get("scored"):
         return None
     rubric = debrief.get("rubric") or {}

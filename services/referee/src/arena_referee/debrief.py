@@ -1,8 +1,8 @@
 """R3 and `debrief.v1` publication (S2 7.5; S4 D8; S3 5.7; S5 5.4). R3 is the two referee calls run in
 investigator mode on a training session (`r3_subject` then `r3_investigator`, S2 7.5): the same `run_r1`/
 `run_r2` as an interactive trial's R1/R2, just with the session's own investigator questions in place of an
-assistant's proposals. A voice session never runs R3 (D7): its debrief is the unscored branch, outcome and
-resolution only.
+assistant's proposals. A voice session runs the same R3 over its stored exchanges, read as question-and-answer turns
+(`arena_referee.db.fetch_trial_data`; UI v2 amendment to D7), and publishes the same scored debrief.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from arena_core.contracts.debrief import Debrief
 from arena_core.contracts.findings import StoredFinding
 from arena_core.contracts.referee import RefereeAssistantReport, RefereeSubjectReport
 from arena_core.contracts.rendered import clean
-from arena_core.referee.pipeline import ScoredDebriefInputs, assemble_scored_debrief, unscored_debrief
+from arena_core.referee.pipeline import ScoredDebriefInputs, assemble_scored_debrief
 from arena_core.safety.demeanor import DEMEANOR_LEXICON
 from arena_core.scoring.rubric import (
     Closure,
@@ -102,7 +102,7 @@ class SessionInfo:
     """What `publish_session_debrief` needs about the session beyond its trial's own data (S5 5.4)."""
 
     trial_id: str
-    voice: bool
+    voice: bool  # scored like text since the UI v2 amendment to D7; kept for the caller's own reporting
     trial_status: str
     evaluator_packet: Mapping[str, Any]
     committed_finding: StoredFinding | None
@@ -141,33 +141,29 @@ async def publish_session_debrief(deps: DebriefDeps, ctx: PromptContext, session
         msg = f"session {session_id}'s trial has status {session.trial_status!r}, not yet ended"
         raise SessionNotEndedError(msg)
     label = _committed_label(session.committed_finding)
-    debrief: Debrief
-    if session.voice:
-        debrief = unscored_debrief(session_id, session.evaluator_packet, label)
-    else:
-        data = await deps.scoring.fetch_trial_data(session.trial_id)
-        subject_report, assistant_report = await run_r3(deps.scoring, data, ctx)
-        rubric_result = investigator_rubric_result(data, subject_report, assistant_report, session.committed_finding)
-        if rubric_result.scorable:
-            await deps.store_rubric_score(session_id, rubric_result, deps.provenance.rubric_sha256)
-        cards = adapted_cards(data)
-        debrief = assemble_scored_debrief(
-            ScoredDebriefInputs(
-                session_id=session_id,
-                evaluator_packet=session.evaluator_packet,
-                committed_label=label,
-                subject_report=subject_report,
-                quote_invalid=frozenset(),
-                rubric_result=rubric_result,
-                cards=cards,
-                flag_verdicts=verdicts_by_key(cards, assistant_report),
-                trial_rows=trial_rows(data),
-                rubric_sha256=deps.provenance.rubric_sha256,
-                r3_prompt_sha256=deps.provenance.r3_prompt_sha256,
-                referee_model_ids=list(deps.provenance.referee_model_ids),
-                scorer_git_sha=deps.provenance.scorer_git_sha,
-            )
+    data = await deps.scoring.fetch_trial_data(session.trial_id)
+    subject_report, assistant_report = await run_r3(deps.scoring, data, ctx)
+    rubric_result = investigator_rubric_result(data, subject_report, assistant_report, session.committed_finding)
+    if rubric_result.scorable:
+        await deps.store_rubric_score(session_id, rubric_result, deps.provenance.rubric_sha256)
+    cards = adapted_cards(data)
+    debrief: Debrief = assemble_scored_debrief(
+        ScoredDebriefInputs(
+            session_id=session_id,
+            evaluator_packet=session.evaluator_packet,
+            committed_label=label,
+            subject_report=subject_report,
+            quote_invalid=frozenset(),
+            rubric_result=rubric_result,
+            cards=cards,
+            flag_verdicts=verdicts_by_key(cards, assistant_report),
+            trial_rows=trial_rows(data),
+            rubric_sha256=deps.provenance.rubric_sha256,
+            r3_prompt_sha256=deps.provenance.r3_prompt_sha256,
+            referee_model_ids=list(deps.provenance.referee_model_ids),
+            scorer_git_sha=deps.provenance.scorer_git_sha,
         )
+    )
     payload = debrief.model_dump(mode="json")
     await deps.publish_debrief(session_id, payload)
     return payload

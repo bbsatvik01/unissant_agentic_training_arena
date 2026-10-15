@@ -212,7 +212,7 @@ def test_projection_reads() -> None:
         [
             ("arena.v_trials", [trial_row]),
             ("arena.v_trials", []),
-            ("arena.v_released_evidence", [("rec-01", 2, json.dumps({"body": "b"}))]),
+            ("arena.v_released_evidence", [("rec-01", 2, json.dumps({"body": "b"}), "Work order")]),
             ("arena.v_dev_cases", [(json.dumps({"case_id": "C"}),)]),
             ("arena.v_dev_cases", []),
             ("training.v_my_study", []),
@@ -239,7 +239,7 @@ def test_projection_reads() -> None:
     assert meta["session_id"] == session
     assert run(arena.trial(TRIAL)) is None
     assert run(arena.released(TRIAL)) == [
-        {"record_id": "rec-01", "released_after_exchanges": 2, "content": {"body": "b"}}
+        {"record_id": "rec-01", "released_after_exchanges": 2, "content": {"body": "b"}, "title": "Work order"}
     ]
     assert run(arena.public_packet(variant)) == {"case_id": "C"}
     assert run(arena.public_packet(variant)) is None

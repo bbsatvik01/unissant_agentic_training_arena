@@ -25,7 +25,6 @@ from arena_core.contracts.debrief import (
     Scorecards,
     ScoredDebrief,
     SubjectRealism,
-    UnscoredDebrief,
     Unsupported,
 )
 from arena_core.contracts.debrief import (
@@ -47,7 +46,6 @@ __all__ = [
     "independent_label_rows",
     "learning_payload",
     "subject_realism_payload",
-    "unscored_debrief",
 ]
 
 # ---------------------------------------------------------------- R1 storage (S2 7.2)
@@ -102,18 +100,6 @@ def outcome_payload(evaluator_packet: Mapping[str, Any], committed_label: Label 
     role = evaluator_packet["role"]
     return Outcome(
         role=role, correct_finding=role, committed_label=committed_label, resolution=evaluator_packet["synopsis"]
-    )
-
-
-def unscored_debrief(
-    session_id: str, evaluator_packet: Mapping[str, Any], committed_label: Label | None
-) -> UnscoredDebrief:
-    """A voice session's debrief (D7, SG2-30): outcome and resolution only, no R3 ran and nothing is measured."""
-    return UnscoredDebrief(
-        schema_version="debrief.v1",
-        session_id=session_id,
-        scored=False,
-        outcome=outcome_payload(evaluator_packet, committed_label),
     )
 
 

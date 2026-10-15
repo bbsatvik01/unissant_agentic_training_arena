@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import dataclasses
 import json
 import secrets
 import socket
@@ -36,6 +37,7 @@ from arena_core.identity import DevIdentity, user_id_for
 from arena_core.providers.fake import FakeAdapter
 from arena_core.providers.port import AgentPort, PortOptions
 from arena_core.spend.memory import RunBudget
+from arena_core.turns.fake_coach import FAKE_COACH_REPLIES
 from arena_core.turns.orchestrator import SubjectOutcome
 from arena_core.voice import protocol as p
 from packages.core.tests.turns.fakedb import PACKET, FakeArenaDb
@@ -57,6 +59,7 @@ class VoiceDb(FakeArenaDb):
         self.starts: list[SessionStart] = []
         self.voice = True
         self.stored: list[dict[str, Any]] = []
+        self.voice_mode = "practice"  # the redeemed ticket's mode
 
     async def trial(self, trial: UUID) -> dict[str, Any] | None:
         row = await super().trial(trial)
@@ -89,7 +92,7 @@ class VoiceDb(FakeArenaDb):
             "ticket_id": str(uuid4()),
             "user_id": str(self.actor),
             "trial_id": str(self.trial_id),
-            "mode": "practice",
+            "mode": self.voice_mode,
             "split": "dev",
         }
 
@@ -402,3 +405,78 @@ def test_audio_faster_than_fifteen_frames_a_second_closes_4400_at_the_edge() -> 
     serve(test, leg)
     assert leg.closed_by_api == p.PROTOCOL
     assert len(leg.got) == 1 + p.AUDIO_RATE_MAX_FRAMES  # start and the frames the window allows
+
+
+@dataclass
+class OpenLeg(Leg):
+    """A subject leg that stays open after its replies until the test lets it close (a live session)."""
+
+    release: asyncio.Event = field(default_factory=asyncio.Event)
+
+    async def frames(self) -> AsyncIterator[bytes | str]:
+        async for item in super().frames():
+            yield item
+        await self.release.wait()
+
+
+EXCHANGE_LINES = [
+    {"role": "investigator", "text": "Where were you on Tuesday?", "partial": False},
+    {"role": "subject", "text": "At the plant all day.", "partial": False},
+]
+
+
+def _coached(h: Harness) -> None:
+    """The real coach on the fake adapter (UI v2 amendment to D7: practice voice exchanges are coached)."""
+    port = AgentPort(FakeAdapter(canned=FAKE_COACH_REPLIES), RunBudget(Decimal(100)), PortOptions())
+    h.app.state.api = dataclasses.replace(h.state, port=port)
+    h.db.stored = [{"exchange_no": 1, "lines": EXCHANGE_LINES}]
+
+
+def test_a_practice_exchange_is_followed_by_its_coach_card_frame() -> None:
+    leg = OpenLeg(reply=[p.frame("exchange", exchange_no=1, lines=EXCHANGE_LINES)], close_after=1)
+
+    async def test(h: Harness) -> None:
+        _coached(h)
+        ticket = await h.mint()
+        async with h.connect(ticket) as ws:
+            assert json.loads(await ws.recv())["type"] == "exchange"
+            card = json.loads(await asyncio.wait_for(ws.recv(), 10))
+            assert (card["type"], card["exchange_no"], card["data"]["turn_no"]) == ("coach.card", 1, 1)
+            assert card["data"]["card"]["turn_no"] == 1
+            leg.release.set()
+            await closed_with(ws)
+
+    serve(test, leg)
+
+
+def test_an_assessment_voice_session_gets_no_card() -> None:
+    leg = OpenLeg(reply=[p.frame("exchange", exchange_no=1, lines=EXCHANGE_LINES)], close_after=1)
+
+    async def test(h: Harness) -> None:
+        _coached(h)
+        h.db.voice_mode = "assessment"
+        ticket = await h.mint()
+        async with h.connect(ticket) as ws:
+            assert json.loads(await ws.recv())["type"] == "exchange"
+            with pytest.raises(TimeoutError):
+                await asyncio.wait_for(ws.recv(), 0.5)
+            leg.release.set()
+            await closed_with(ws)
+
+    serve(test, leg)
+
+
+def test_the_last_exchanges_card_arrives_before_the_session_closes() -> None:
+    """The cap or a stop ends the session right after its last exchange: the relay waits for that card first."""
+    leg = Leg(reply=[p.frame("exchange", exchange_no=1, lines=EXCHANGE_LINES)], code=p.EXCHANGE_CAP_REACHED)
+
+    async def test(h: Harness) -> None:
+        _coached(h)
+        ticket = await h.mint()
+        async with h.connect(ticket) as ws:
+            await ws.send(b"\x01\x00" * 1600)
+            assert json.loads(await ws.recv())["type"] == "exchange"
+            assert json.loads(await asyncio.wait_for(ws.recv(), 10))["type"] == "coach.card"
+            assert await closed_with(ws) == p.EXCHANGE_CAP_REACHED
+
+    serve(test, leg)

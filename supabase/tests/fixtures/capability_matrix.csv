@@ -27,6 +27,7 @@ arena_public,function,"ops.set_export_state(jsonb,text)",EXECUTE,allow
 arena_public,function,"ops.settle_reservation(uuid,text)",EXECUTE,allow
 arena_public,function,training.acknowledge(text),EXECUTE,allow
 arena_public,function,"training.issue_access_ticket(text,uuid)",EXECUTE,allow
+arena_public,function,"training.record_world_events(uuid,jsonb)",EXECUTE,allow
 arena_public,function,"training.redeem_access_ticket(text,text)",EXECUTE,allow
 arena_public,function,"training.session_counts(text,text,boolean,text)",EXECUTE,allow
 arena_public,function,"training.start_session(uuid,text,uuid,uuid,boolean,text)",EXECUTE,allow
@@ -60,11 +61,13 @@ arena_public,view,ops.v_exportable_spans,SELECT,allow
 arena_public,view,ops.v_latency,SELECT,allow
 arena_public,view,ops.v_public_config,SELECT,allow
 arena_public,view,training.v_my_acknowledgements,SELECT,allow
+arena_public,view,training.v_my_annotations,SELECT,allow
 arena_public,view,training.v_my_debrief,SELECT,allow
 arena_public,view,training.v_my_scores,SELECT,allow
 arena_public,view,training.v_my_sessions,SELECT,allow
 arena_public,view,training.v_my_study,SELECT,allow
 arena_public,view,training.v_my_voice_exchanges,SELECT,allow
+arena_public,view,training.v_my_world_events,SELECT,allow
 arena_referee,function,"arena.add_planned_trials(uuid,jsonb)",EXECUTE,allow
 arena_referee,function,arena.begin_scoring(uuid),EXECUTE,allow
 arena_referee,function,arena.close_tournament_run(uuid),EXECUTE,allow
@@ -117,6 +120,8 @@ arena_referee,table,arena.leaderboards,INSERT,allow
 arena_referee,table,arena.scores,INSERT,allow
 arena_referee,table,sealed.independent_labels,INSERT,allow
 arena_referee,table,sealed.judgments,INSERT,allow
+arena_referee,table,training.annotations,INSERT,allow
+arena_referee,table,training.assignments,INSERT,allow
 arena_referee,table,training.case_set_members,INSERT,allow
 arena_referee,table,training.participants,INSERT,allow
 arena_referee,table,training.rubric_scores,INSERT,allow
@@ -160,8 +165,10 @@ arena_referee,view,ops.v_call_costs,SELECT,deny
 arena_referee,view,ops.v_latency,SELECT,deny
 arena_referee,table,training.review_items,SELECT,deny
 arena_referee,view,training.v_my_acknowledgements,SELECT,deny
+arena_referee,view,training.v_my_annotations,SELECT,deny
 arena_referee,view,training.v_my_debrief,SELECT,deny
 arena_referee,view,training.v_my_scores,SELECT,deny
 arena_referee,view,training.v_my_sessions,SELECT,deny
 arena_referee,view,training.v_my_study,SELECT,deny
 arena_referee,view,training.v_my_voice_exchanges,SELECT,deny
+arena_referee,view,training.v_my_world_events,SELECT,deny

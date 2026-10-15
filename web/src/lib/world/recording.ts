@@ -12,7 +12,10 @@
 import type { Content, Debrief, TrialFrame, TrialSnapshot } from "../contracts/generated/types";
 import { initialTrialState, trialReducer, type TrialState } from "../trial/trialReducer";
 
-export const RECORDING_FORMAT = "arena.recording.v1";
+/** The format this player writes about: v2 is v1 plus the world's own telemetry (UI v2); a v1 file still plays. */
+export const RECORDING_FORMAT = "arena.recording.v2";
+export const RECORDING_FORMATS = ["arena.recording.v1", RECORDING_FORMAT] as const;
+export type RecordingFormat = (typeof RECORDING_FORMATS)[number];
 
 /** Playback runs this long past the last event, so a moment it starts (a seal, a pinned record) completes. */
 export const END_TAIL_MS = 3_000;
@@ -20,6 +23,20 @@ export const END_TAIL_MS = 3_000;
 export interface RecordedEvent {
   readonly at_ms: number;
   readonly frame: TrialFrame;
+}
+
+/** One moment of the 3D world (recording v2): `t_ms` is on the same clock as an event's `at_ms`. */
+export interface WorldEvent {
+  readonly t_ms: number;
+  readonly kind: "pose" | "camera" | "input" | "ui";
+  readonly data: Readonly<Record<string, unknown>>;
+}
+
+/** An instructor's note at a moment of the recording (recording v2, D-036). */
+export interface Annotation {
+  readonly t_ms: number;
+  readonly text: string;
+  readonly created_at: string;
 }
 
 /** An initial document of the public packet (S1; shown on the evidence wall from the start). */
@@ -43,7 +60,7 @@ export interface RecordingCase {
 }
 
 export interface Recording {
-  readonly format: typeof RECORDING_FORMAT;
+  readonly format: RecordingFormat;
   readonly trial_id: string;
   readonly case: RecordingCase;
   readonly snapshot: TrialSnapshot;
@@ -51,6 +68,10 @@ export interface Recording {
   readonly debrief: Debrief | null;
   /** The trial's end-of-trial snapshot (null while it ran): in assessment mode, the withheld coaching (FE-DEB-4). */
   readonly final_snapshot: TrialSnapshot | null;
+  /** The world's telemetry in time order (recording v2; empty for a v1 file). */
+  readonly world_events: readonly WorldEvent[];
+  /** Instructor notes in time order (recording v2; empty for a v1 file). */
+  readonly annotations: readonly Annotation[];
   /** The time of the last event plus a short tail, so the last signature moment plays out (`END_TAIL_MS`). */
   readonly durationMs: number;
 }

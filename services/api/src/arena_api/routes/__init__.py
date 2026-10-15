@@ -12,6 +12,7 @@ from arena_api.routes import (
     findings,
     leaderboards,
     me,
+    npc,
     progress,
     sessions,
     sse,
@@ -21,6 +22,7 @@ from arena_api.routes import (
     tts,
     turns,
     voice,
+    world,
 )
 
 router = APIRouter()
@@ -36,11 +38,13 @@ _MODULES = (
     telemetry,
     leaderboards,
     progress,
+    npc,
     tournaments,
     trust,
     tts,
     voice,
     coach_lab,
+    world,
 )
 for module in _MODULES:
     router.include_router(module.router)

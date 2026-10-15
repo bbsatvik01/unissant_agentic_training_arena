@@ -75,10 +75,11 @@ async def get_snapshot(trial_id: UUID, db: Annotated[ArenaDb, Depends(actor_db)]
 
 @router.get("/api/trials/{trial_id}/recording")
 async def get_recording(trial_id: UUID, db: Annotated[ArenaDb, Depends(actor_db)]) -> dict[str, Any]:
-    """D-021: the trial's full event history as `arena.recording.v1`, through the same projection and
-    visibility rules as the live stream -- the owner's own training trial, a dev-split tournament trial, or
-    a hidden-split tournament trial after its tournament reveals (`arena.events.load.load_recording`, shared
-    with `make export-run`); before reveal a hidden trial answers 404 here, same as an unknown id. That 404
+    """D-021: the trial's full event history as `arena.recording.v2` (v1 plus the world telemetry), through the
+    same projection and visibility rules as the live stream -- the owner's own training trial, a dev-split
+    tournament trial, or a hidden-split tournament trial after its tournament reveals
+    (`arena.events.load.load_recording`, shared with `make export-run`); before reveal a hidden trial answers 404
+    here, same as an unknown id. That 404
     is deliberate, not accidental: distinguishing it from a crash would itself leak which hidden ids are
     real, the existence oracle S4 9.1 exists to deny."""
     recording = await load_recording(db, trial_id)
