@@ -221,6 +221,36 @@
   },
   {
     "service": "arena-api",
+    "method": "GET",
+    "path": "/api/coach-lab/versions",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Coach Gym versions: status, parent, holdout metrics",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/coach-lab/versions/{id}/lessons",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Playbook lessons of one coach version",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
+    "method": "GET",
+    "path": "/api/coach-lab/experiments",
+    "auth": "session",
+    "csrf": false,
+    "purpose": "Coach Gym runs: before/after metrics and series",
+    "request": null,
+    "response": null
+  },
+  {
+    "service": "arena-api",
     "method": "POST",
     "path": "/api/voice/tickets",
     "auth": "session",

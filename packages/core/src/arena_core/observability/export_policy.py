@@ -108,6 +108,9 @@ PURPOSES = frozenset(
         "experiment.fidelity",
         "voice.session",
         "voice.probe",
+        "coach_gym.card",
+        "coach_gym.optimize",
+        "coach_gym.reflect",
     }
 )
 THINKING_LEVELS = frozenset({"minimal", "low", "medium", "high"})

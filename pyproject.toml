@@ -25,6 +25,9 @@ dependencies = [
 dev = [
   "bandit==1.9.4",
   "diff-cover==10.5.1",
+  # Coach Gym optimizer (D-036; scripts/coach_gym): GEPA reflective prompt evolution, MIT, no runtime dependencies
+  # of its own. An operator tool only, so it lives here and never in a service image (Dockerfile: --no-dev).
+  "gepa==0.1.4",
   # arena-referee's own route tests dispatch real ASGI requests against FastAPI's TestClient alternative
   # (starlette.testclient triggers a deprecation warning under -W error; httpx's own ASGITransport does not).
   "httpx==0.28.1",

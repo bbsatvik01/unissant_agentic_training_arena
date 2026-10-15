@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from arena_api.routes import (
     cases,
+    coach_lab,
     debrief,
     evidence,
     findings,
@@ -39,6 +40,7 @@ _MODULES = (
     trust,
     tts,
     voice,
+    coach_lab,
 )
 for module in _MODULES:
     router.include_router(module.router)

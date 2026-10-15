@@ -109,12 +109,15 @@ REFEREE_COMBINATIONS: dict[str, tuple[VertexModel, ThinkingLevel]] = {
 }
 
 # S5 3.3 / S2 2: the fixed purpose labels per call type. S4 accepts exactly the four referee labels on `referee`.
+# D-036 (Coach Gym, scripts/coach_gym): a challenger's card on a dev example (`card`), and the optimizer's and the
+# playbook reflector's calls (`final`'s limits: a long input, a few thousand output tokens).
 REFEREE_PURPOSES: frozenset[str] = frozenset({"referee_subject", "referee_assistant", "r3_subject", "r3_investigator"})
+COACH_GYM_PURPOSES: frozenset[str] = frozenset({"coach_gym.card", "coach_gym.optimize", "coach_gym.reflect"})
 PURPOSES: dict[CallType, frozenset[str]] = {
     CallType.SUBJECT: frozenset({"subject.answer", "experiment.fidelity"}),
-    CallType.CARD: frozenset({"coach.card", "experiment.latency"}),
+    CallType.CARD: frozenset({"coach.card", "experiment.latency", "coach_gym.card"}),
     CallType.DEEP: frozenset({"coach.deep", "experiment.latency"}),
-    CallType.FINAL: frozenset({"coach.final", "experiment.latency"}),
+    CallType.FINAL: frozenset({"coach.final", "experiment.latency", "coach_gym.optimize", "coach_gym.reflect"}),
     CallType.REFEREE: REFEREE_PURPOSES,
     CallType.PORTRAIT: frozenset({"portrait.image"}),
     CallType.TTS: frozenset({"tts"}),
