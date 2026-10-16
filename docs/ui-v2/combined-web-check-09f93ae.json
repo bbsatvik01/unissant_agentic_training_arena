@@ -1,0 +1,63 @@
+{
+  "checkpoint": "09f93aeba1a153051b66b447f15b2ec0c3846cd5",
+  "verified_at_utc": "2026-10-16T01:07:54.402618+00:00",
+  "job": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38831558717/job/116751266366",
+  "conclusion": "success",
+  "completed_at_utc": "2026-10-16T00:57:19Z",
+  "command": "cd web && pnpm install --frozen-lockfile && pnpm check",
+  "gates": [
+    "all-project zero-warning lint (unchanged rules)",
+    "strict typecheck",
+    "tests",
+    "coverage with unchanged src/lib floor",
+    "production build"
+  ],
+  "normal": {
+    "suites": 255,
+    "passed": 2863
+  },
+  "coverage": {
+    "suites": 255,
+    "passed": 2863,
+    "statements": 97.9,
+    "branches": 95.93,
+    "functions": 99.13,
+    "lines": 99.23
+  },
+  "build_seconds": 3.05,
+  "raw_log_sha256": "5e924892623b7cc3d02fbeb82da4a2555f63d774ebaceb99e247d4299fdfc472",
+  "local_aggregate": {
+    "conclusion": "failure",
+    "passed_tests": 2862,
+    "total_tests": 2863,
+    "failed_test": "WorldRoute.audioLifecycle.test.tsx:30 readiness for Progress button",
+    "coverage_and_build_reached": false,
+    "unchanged_focused_reproduction": {
+      "passed": 17,
+      "failed_case_ms": 756
+    },
+    "cause": "Unproven; the separate remote pass does not change the preserved local failure."
+  },
+  "not_proven": [
+    "MacBook Air M5 sustained performance",
+    "combined native browser audio/lips/video",
+    "whole-session exact audiovisual replay",
+    "portable distribution clearance",
+    "PR-wide CI"
+  ],
+  "note": "Validates retained-floor stationary-work source and explicit Studio probe selection. Build duration is CI build time, not browser runtime performance. Separate failed software-renderer timing remains failed.",
+  "runner": {
+    "os": "Ubuntu 24.04.5 LTS",
+    "image": "ubuntu-24.04",
+    "imageVersion": "20261012.334.1",
+    "claim": "Observed green job image only; future ubuntu-latest migration compatibility remains untested."
+  },
+  "db_check": {
+    "status": "passed",
+    "conclusion": "success",
+    "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38831558717/job/116751266003",
+    "completedAtUtc": "2026-10-16T01:31:50Z",
+    "observedAtUtc": "2026-10-16T01:32:13Z",
+    "logSha256": "54226b2c81e87c2345858b3405f67e897b9226993e2b07027db1a16467ad0164"
+  }
+}
