@@ -4,6 +4,13 @@ import { BoxGeometry, Mesh, MeshStandardMaterial, Scene, Texture } from "three";
 import { inspectPrecinctScene } from "./inspectPrecinctRenderer";
 
 describe("scene resource inspection", () => {
+  it("reports the actual scene environment rather than the requested tier", () => {
+    const scene = new Scene();
+    expect(inspectPrecinctScene(scene)).toMatchObject({ environmentMapActive: false, environmentIntensity: 1 });
+    scene.environment = new Texture(); scene.environmentIntensity = 0.45;
+    expect(inspectPrecinctScene(scene)).toMatchObject({ environmentMapActive: true, environmentIntensity: 0.45 });
+    scene.environment.dispose();
+  });
   it("deduplicates maps, retains honest unknowns, and counts actual culling flags", () => {
     const texture = new Texture({ width: 1024, height: 512 });
     const unknown = new Texture(); const material = new MeshStandardMaterial({ map: texture, normalMap: texture, alphaMap: unknown, transparent: true });

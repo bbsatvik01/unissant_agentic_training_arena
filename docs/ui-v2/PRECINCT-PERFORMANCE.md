@@ -10,6 +10,12 @@ This change adds local, opt-in production diagnostics and a reproducible real-in
 
 Initial source review and proposed budgets are complete. Type/lint/unit checks, production execution and target-hardware measurements must be recorded in the validation report; absence of a result means not measured.
 
+## Latest measured checkpoint, 16 October 2026
+
+The [controlled environment experiment](performance-evidence/low-environment-ab/README.md), [actual Studio fixed-camera sample](performance-evidence/studio-stationary/README.md) and [actual Studio keyboard sample](performance-evidence/studio-keyboard/README.md) preserve their complete production reports and failed cold/timing gates. The Studio samples averaged 0.792 and 0.910 FPS on SwiftShader. CPU callback/submission p95 was 18.6 and 17.9 ms, while whole-frame p95 was 2,471.9 and 2,371.8 ms; this separates observed counters but does not identify GPU completion time or prove a hardware bottleneck. No FPS, long-task or target-GPU improvement is established by the one-draw experimental reduction.
+
+The invisible-floor proposal is deferred after failed real-pointer acceptance. The [reviewed successor](performance-evidence/retained-floor-integration/README.md) restores the original floor contract and has passed its focused gate, then integrated with the stationary hotspot/pose/crowd reductions. Its first full local gate failed one unchanged legacy readiness test after lint/types passed; coverage/build were not reached. Further validation remains pending. Previous measured 82/80 draw counts do not describe the retained-floor successor. Exact results, integration and full-gate status belong in the current [notes](NOTES.md), not inferred from historical reports.
+
 ## Run the same production artifact
 
 From `web/`, with the repository's pinned Node/pnpm and installed dependencies:
@@ -32,7 +38,7 @@ For the later authorized M5 hardware run, use that machine's installed Chromium/
 
 ```sh
 node tools/precinct-performance.ts --headed --url=http://127.0.0.1:4173/ \
-  --scene=courtyard --tier=medium --camera=third --viewport=1440x900 --dpr=2 \
+  --scene=courtyard --theme=studio --tier=medium --camera=third --protocol=movement --viewport=1440x900 --dpr=2 \
   --seconds=300 --warmup=30 --machine-label='Verified MacBook Air M5; conditions in run notes' \
   --out=/tmp/arena-perf-courtyard-balanced
 ```
@@ -64,9 +70,9 @@ VITE_ARENA_PERF_BASELINE=1 pnpm exec vitest run src/components/precinct/Precinct
 pnpm exec vitest run src/components/precinct/PrecinctControls.distanceEvidence.test.tsx
 ```
 
-Each passing case prints an `ARENA_MOVEMENT_EVIDENCE` JSON row with actual displacement from the camera owned by Controls. Preserve the run log and report those observed values. Before execution, the following numbers are expectations derived from the existing 50 ms clamp, not collected results:
+Each passing case prints an `ARENA_MOVEMENT_EVIDENCE` JSON row with actual displacement from the camera owned by Controls. Preserve the run log and report those observed values. The passing deterministic actual-Controls harness measured the following distances. These supplied-delta results are not observed browser FPS:
 
-| Supplied frame rate | Baseline expected metres in 1 s | Candidate expected metres in 1 s |
+| Supplied frame rate | Baseline measured metres in 1 s | Candidate measured metres in 1 s |
 | --- | ---: | ---: |
 | 5 Hz | 0.6 | 2.4 |
 | 10 Hz | 1.2 | 2.4 |
@@ -101,7 +107,7 @@ DPR is the minimum of device DPR, the tier cap and sqrt(pixel budget / viewport 
 
 Adaptive quality waits four seconds after tier/continuous-mode/visibility transitions, then requires two >=2-second windows (minimum 30 samples each) with p95 >18.5 ms before stepping down once. There is no automatic step up, oscillation or persistent catch-up backlog. Known software renderers still immediately select low. `?precinctPerf=1&precinctPerfPinned=1` only disables automatic tier changes for controlled diagnostics; ordinary sessions adapt. Existing tier-dependent ambient staffing remains unchanged and is recorded in the report.
 
-Warm steady-state frame-pacing acceptance: >=58 average rendered FPS, p50 <=17.5 ms, p95 <=20 ms, p99 <=33.34 ms, and <=1% intervals over 33.34 ms. These tolerate minor scheduling jitter around a 60 Hz target; they do not redefine a visibly choppy run as 60 FPS. Compare successive sustained intervals as well as aggregate percentiles, and inspect genuine movement video recorded in a separate pass. The software runner never awards target hardware acceptance.
+Warm steady-state frame-pacing acceptance: >=58 average rendered FPS, p50 <=17.5 ms, p95 <=20 ms, p99 <=1000/30 ms (33.333… ms), and <=1% intervals over 1000/30 ms. These tolerate minor scheduling jitter around a 60 Hz target; they do not redefine a visibly choppy run as 60 FPS. Compare successive sustained intervals as well as aggregate percentiles, and inspect genuine movement video recorded in a separate pass. The software runner never awards target hardware acceptance.
 
 ## Source review and prioritized optimizations
 
@@ -111,8 +117,8 @@ Warm steady-state frame-pacing acceptance: >=58 average rendered FPS, p50 <=17.5
 4. **Merge/instance with spatial boundaries.** Architecture already batches by material. Its large merged meshes span rooms, so frustum culling is not room occlusion culling. Avoid indiscriminately merging the whole precinct again. Compare per-room/court material batches against visible draw-call and triangle reductions. Repeated static benches, lights or columns can use instancing when geometry/material truly match; preserve stable interaction/collision identifiers. No geometry rewrite is included in this diagnostic patch.
 5. **Avatar culling and work.** Staff clones share source geometry/textures, but rig/material instances remain independent and staff meshes currently force `frustumCulled=false`. Do not flip that flag blindly: skinned animated bounds must contain the actual pose. Next experiment: conservative per-rig bounds plus frustum testing while continuing authoritative animation/capture sampling; separately reduce offscreen render work without dropping recorded actors or changing recorded time. Reviewer/interview/procedural interpreters and assessment boundaries remain untouched.
 6. **Textures.** JPEG/PNG network size does not imply small GPU allocation. Inventory dimensions and repeated maps before changes. A 2048x2048 RGBA8 map with mipmaps is about 21.3 MiB. Profile actor body/head/normal/alpha assets. Consider validated 1K variants for background actors and KTX2/Basis for suitable maps, with color/normal/alpha visual review. KTX2 requires locally shipped transcoder artifacts and `detectSupport(renderer)`; never just rename a PNG or assume every texture format compresses identically. Preserve licenses and original assets. No new decoder or texture pipeline has been introduced here.
-7. **Avoid unnecessary frame work.** Existing Controls publishes minimap/pose at about 10 Hz and only when changed. The older WorldCanvas `?fps` probe sorts/reduces every frame; it is not the precinct probe and is not used here. Controls still filters all hotspots/line-of-sight each frame, allocates walking-travel objects/vectors, and crowd code rebuilds definitions/people arrays. Profile before changing: cache immutable tier definitions, reuse temporary vectors, and move hotspot checks to pose/aim changes or the existing UI cadence. Keep acceptance-critical collision/path work authoritative. Avoid introducing per-frame React state or new `requestAnimationFrame` loops.
-8. **Low-FPS correctness.** The current 50 ms per-frame live-navigation clamp is correct at 20 Hz and above but slows walking/turning/crowd below 20 Hz. At 10 Hz it consumes half the real elapsed time. A separate approved patch will consume up to 250 ms as at most five 50 ms live-only substeps, drop excess without backlog, preserve interaction edges/capture publication once per render and keep recorded camera/clip interpretation unchanged. Its regressions must cover walking, turning, routes, crowds, collision, focus/pause/seating/replay and callback counts before integration.
+7. **Avoid unnecessary frame work.** Existing Controls publishes minimap/pose at about 10 Hz and only when changed. The older WorldCanvas `?fps` probe sorts/reduces every frame; it is not the precinct probe and is not used here. The integrated successor caches hotspot line-of-sight/nearest selection only at identical XYZ and the same immutable manifest, compares emitted pose values, freezes tier-definition containers, and skips only the already-canonical stationary Low/Balanced crowd solver state. Movement, manifest changes, tier reconciliation and noncanonical values retain their normal paths; High/patrol uses the original solver. Deterministic baseline/candidate invocation tests show 200→0 line-of-sight calls and 10→0 redundant pose publications over 100 stationary frames, 300→0 repeated definition builds, and 100→0 unnecessary stationary solver calls per Low/Balanced tier. These are measured invocation reductions, not milliseconds, FPS or lower main-thread-long-task proof. Remaining per-frame allocations need profiling before further changes. Keep acceptance-critical collision/path work authoritative. Avoid introducing per-frame React state or new `requestAnimationFrame` loops.
+8. **Low-FPS correctness.** The bounded live-navigation correction is integrated and covered by the green web gate at `a7626569`. It consumes up to 250 ms as at most five 50 ms live-only substeps, drops excess without backlog, preserves interaction edges/capture publication once per render and keeps recorded camera/clip interpretation unchanged. Actual-Controls deterministic tests measured 2.4 m/s walking and 1.7 rad/s turning at 5, 10, 20, 30 and 60 Hz; the legacy baseline slowed at 5/10 Hz. Separate regressions cover routes, crowds, collision, focus/pause/seating/replay and callback counts. This corrects elapsed-time consumption within the bound; it cannot manufacture rendered frames or preserve real-time speed during repeated stalls above 250 ms.
 
 ## Primary references
 

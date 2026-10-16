@@ -17,6 +17,7 @@ For every item record PASS / FAIL / NOT MEASURED, an evidence path, reviewer and
 - [ ] `options.seconds >= 300`, `options.headed == true`, `options.software == false`; no startup diagnostic mode substituted for acceptance.
 - [ ] Original `readiness.initialReady == true`; scene-selection time is not misrepresented as the initial Office cold gate.
 - [ ] `report.production == true`, `report.durationMs >= 300000`, `report.framesRendered > 1` and `evaluation.complete == true`.
+- [ ] `options.theme` matches intended theme, and all three `environmentIdentity` observations verify it; movement protocol selected.
 - [ ] Correct `report.sceneAsset`; expected tier/pixel caps throughout (`report.tierFrames`, `report.dpr`, `report.drawingBufferPixels`). Adaptive history reported separately.
 - [ ] Real keyboard movement has nonzero measured displacement and both arrow turns have camera rotation; no teleport/fabricated frames.
 - [ ] `errors` and `blockedRequests` are empty; no late asset arrivals, context loss, hidden frames, demand frames, visibility interruptions or dropped frame samples.
@@ -37,7 +38,7 @@ For every item record PASS / FAIL / NOT MEASURED, an evidence path, reviewer and
 - [ ] Keyboard/focus/collision/camera/feet/clip/legibility/panel-transition checks pass. Demand/paused modes correctly separated from continuous-render FPS.
 - [ ] Bundled replay provenance/version identified; live interview, exact audiovisual replay, microphone, generated speech or v2 fidelity are not inferred from a silent v1 recording.
 - [ ] Ordinary diagnostics-off behavior reviewed at the intended demo settings; no unsupported numerical claim about instrumentation overhead.
-- [ ] Quantitative claims for Studio or sustained non-lobby segments have matching ≥300-second measurement evidence. Under this unchanged runner, these remain NOT MEASURED even if the separate visual pass looks good.
+- [ ] Quantitative Studio lobby claims use explicit verified Studio observations and matching ≥300-second evidence. Sustained non-lobby segments remain NOT MEASURED without dedicated measurements, even if the visual pass looks good.
 
 ## Final decision
 
@@ -49,4 +50,4 @@ For every item record PASS / FAIL / NOT MEASURED, an evidence path, reviewer and
 
 ## Future measurement work (not implemented; no feature expansion)
 
-If authorized after review, extend the existing runner rather than adding app features: an explicit theme option/assertion; genuine sustained courtyard/crowded/interview/replay segments; actual viewport/native-condition recording; bounded per-window aggregates with no added render loop; explicit timing-budget exit status; and exact synthetic offline inputs for any measured interview/replay. Keep no-API/no-microphone boundaries unless that scope is separately approved. Revalidate instrumentation overhead, non-timing modes, preservation of failures, and the unchanged acceptance thresholds.
+If authorized after review, extend the existing runner rather than adding app features: genuine sustained courtyard/crowded/interview/replay segments; actual viewport/native-condition recording; bounded per-window aggregates with no added render loop; explicit timing-budget exit status; and exact synthetic offline inputs for any measured interview/replay. Keep no-API/no-microphone boundaries unless that scope is separately approved. Revalidate instrumentation overhead, non-timing modes, preservation of failures, and the unchanged acceptance thresholds.

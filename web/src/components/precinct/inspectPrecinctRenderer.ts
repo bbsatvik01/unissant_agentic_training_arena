@@ -28,7 +28,8 @@ export function inspectPrecinctScene(scene: Scene) {
     const mipmaps = texture.generateMipmaps || texture.mipmaps.length > 1;
     rgba8Bytes += width * height * 4 * (mipmaps ? 4 / 3 : 1); dimensions.push({ width, height, mipmaps });
   }
-  return { meshes, uncullableMeshes, shadowCastingMeshes, uniqueMaterials: materials.size,
+  return { environmentMapActive: scene.environment !== null, environmentIntensity: scene.environmentIntensity,
+    meshes, uncullableMeshes, shadowCastingMeshes, uniqueMaterials: materials.size,
     transparentMaterials: [...materials].filter((material) => material.transparent).length,
     materialTextures: textures.size, unknownTextureDimensions: unknownDimensions, textureDimensions: dimensions,
     materialTextureRgba8MiBEstimate: rgba8Bytes / 1024 / 1024,

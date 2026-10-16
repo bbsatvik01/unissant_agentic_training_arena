@@ -1,7 +1,7 @@
 {
   "schema": "arena.m5-validation.operator-manifest.v1",
   "status": "template_not_executed",
-  "prepared_at_utc": "2026-10-15",
+  "prepared_at_utc": "2026-10-16",
   "operator": null,
   "reviewer": null,
   "decision_at_utc": null,
@@ -10,7 +10,8 @@
     "commit": "a7626569ce7764b3d81cd884ff3c2768c6c5c069",
     "audit_file": "SOURCE-AUDIT.json",
     "review_only": true,
-    "kit_executed_build_tests_browser_installs_or_device_actions": false
+    "kit_executed_build_tests_browser_installs_or_device_actions": false,
+    "successor_audit_file": "SOURCE-UPDATE-20261016.json"
   },
   "candidate": {
     "source_commit": null,
@@ -25,7 +26,6 @@
     "pnpm_version": null,
     "lockfile_sha256": null,
     "runner_sha256": null,
-    "helper_sha256": null,
     "probe_source_sha256": null,
     "dist_inventory_path": null,
     "dist_inventory_sha256": null,
@@ -35,7 +35,11 @@
     "handoff_archive_sha256_if_any": null,
     "received_full_inventory_matches": null,
     "required_notices_inventory_path": null,
-    "privacy_review_result": null
+    "privacy_review_result": null,
+    "runtime_helper_sha256": {
+      "web/tools/precinct-capture-position.ts": null,
+      "web/tools/precinct-performance-theme.ts": null
+    }
   },
   "device": {
     "actual_model_name": null,
@@ -64,7 +68,7 @@
     "other_monitors": null
   },
   "baseline_matrix": {
-    "purpose": "Balanced third-person lobby pacing on both architectures; not Studio or full-route quantitative acceptance",
+    "purpose": "Balanced third-person lobby pacing on both architectures with explicit Studio theme; full-route acceptance remains separate",
     "required_run_ids": [
       "office-medium-third-ac-cold-01",
       "office-medium-third-ac-warm-01",
@@ -91,7 +95,7 @@
       "production_candidate_inventory_sha256": null,
       "architecture": null,
       "theme_observed": null,
-      "theme_coverage_note": "Existing CLI leaves theme Office (original); --scene changes architecture only",
+      "theme_coverage_note": "Pass --theme explicitly; retain environmentIdentity themeBeforeEntry/themeBeforeMeasurement/themeAfterMeasurement and requestedTheme",
       "camera": null,
       "requested_tier": null,
       "requested_seconds": null,
@@ -170,7 +174,8 @@
         "reason": null,
         "superseded_by_attempt_if_any": null,
         "retained_even_if_failed": true
-      }
+      },
+      "theme_observations": null
     }
   ],
   "separate_walkthroughs": [
@@ -189,7 +194,7 @@
       "visual_result": "NOT_MEASURED",
       "raw_video_stills_log_paths_and_hashes": [],
       "quantitative_segment_evidence": null,
-      "limits": "Visual capture is separate; unchanged runner provides no quantitative sustained-segment or Studio result"
+      "limits": "Visual capture is separate; current runner supports explicit Studio lobby timing but no quantitative sustained non-lobby segment result"
     }
   ],
   "final_review": {

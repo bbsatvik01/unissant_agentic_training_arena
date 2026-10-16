@@ -52,3 +52,7 @@ Both actual repeat stills were inspected. Layout, character position and HUD rem
 The isolated focused gate passed strict app/tools typing, zero-warning lint, 140 tests in 18 suites and a production build. Earlier missing-fixture/CSV attempts remain recorded in the validation artifact manifest. This focused gate is not a fresh full-app `pnpm check`. No assertion, timing threshold, coverage floor or scanner was relaxed.
 
 Next: validate safe CPU/draw reductions, explicitly select/verify Studio in the benchmark, then create an immutable candidate and use the [M5 validation kit](../../m5-validation/README.md). No demo-ready claim precedes a sustained native MacBook Air M5 walkthrough and the required visual/interaction acceptance.
+
+## Local-log policy correction
+
+Four local `runner.log` files were mistakenly included in `a88f5c2`. They are removed from the current snapshot; their originals remain outside Git and their identities are recorded in [the correction record](LOCAL-LOG-REMOVAL.json). They are not renamed or re-encoded into replacement log artifacts. The structured measurement/native-process reports retain the actual results. The unchanged push-clean gate also checks history, so this additive correction does not clear those four historical entries or the earlier oversized GLBs. Publication recovery still needs the owner’s pending decision.

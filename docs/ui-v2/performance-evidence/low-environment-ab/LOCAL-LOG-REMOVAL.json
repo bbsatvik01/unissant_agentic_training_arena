@@ -1,0 +1,29 @@
+{
+  "reason": "Repository policy forbids local .log output in current files and branch history. Raw logs were mistakenly committed at a88f5c2. Removed from HEAD without replacement or scanner exception; originals retained outside Git. Historical violations remain pending authorized publication recovery. Structured measured result JSON remains the evidence artifact.",
+  "removedLogs": [
+    {
+      "formerRepositoryPath": "retain-1/runner.log",
+      "sha256": "fe7c80c3c390132acf3ce51b52192e743e2b57c189621fbed494140df2443ca6",
+      "bytes": 1273,
+      "preservedOutsideGit": true
+    },
+    {
+      "formerRepositoryPath": "omit-1/runner.log",
+      "sha256": "5e0299647c27a3b0fd788e68d0a4b3fa9b89864ef71369526b63b17bb037ea6d",
+      "bytes": 1260,
+      "preservedOutsideGit": true
+    },
+    {
+      "formerRepositoryPath": "omit-2/runner.log",
+      "sha256": "cfdf2c91ac5698565dd64201dae0fc84ef1c02cfd23fa6bd2e83541ae9ab7f9f",
+      "bytes": 1275,
+      "preservedOutsideGit": true
+    },
+    {
+      "formerRepositoryPath": "retain-2/runner.log",
+      "sha256": "2f502694208ee67bcfb02020145735b36a7b3be6891ae69aecc815385022e8ce",
+      "bytes": 1256,
+      "preservedOutsideGit": true
+    }
+  ]
+}

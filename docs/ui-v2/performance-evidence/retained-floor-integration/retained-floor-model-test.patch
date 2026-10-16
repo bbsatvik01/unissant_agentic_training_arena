@@ -1,0 +1,27 @@
+--- a/web/tools/precinct-floor-routing-model.test.ts
++++ b/web/tools/precinct-floor-routing-model.test.ts
+@@ -49,12 +49,22 @@
+     for (const point of [[0, 1.65, 10], [100, 0, -5], [NaN, 0, -7]] as const) expect(() => projectTarget(point, camera, "first", rect)).toThrow();
+     expect(() => projectTarget([0, 0, -7], { ...camera, cameraQuaternion: [] }, "first", rect)).toThrow();
+   });
+-  it("pins the read-only probe, live camera FOV, actual route handler and non-rendering material assumptions", () => {
++  it("pins the read-only probe, live camera FOV, actual route handler and original transparent floor contract", () => {
+     const source = readFileSync(new URL("../src/components/precinct/PrecinctCanvas.tsx", import.meta.url), "utf8");
+     expect(source).toContain('const fov = anchor?.fov ?? (mode === "first" ? 66 : 58)');
+     expect(source).toContain('props.onControlInput?.({ action: "click", target: "precinct:floor", button: event.button })');
+     expect(source).toContain("path.current = planNavigationRoute(position.current, destination, props.manifest, props.manifest.playerNavigationMesh) ?? []");
+-    expect(source).toContain("<planeGeometry args={[...pointerFloor.size]} /><meshBasicMaterial visible={false} />");
++    expect(source).toContain("<planeGeometry args={[...pointerFloor.size]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} />");
++    const floorStart = source.indexOf("    <mesh rotation={[-Math.PI / 2, 0, 0]} position={pointerFloor.center} onPointerDown={(event) => {");
++    const floorEnd = source.indexOf("    </mesh>", floorStart);
++    expect(floorStart).toBeGreaterThanOrEqual(0);
++    expect(floorEnd).toBeGreaterThan(floorStart);
++    const floor = source.slice(floorStart, floorEnd);
++    expect(floor).toContain("<planeGeometry args={[...pointerFloor.size]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} />");
++    expect(floor).not.toMatch(/\bvisible\s*=\s*\{\s*false\s*\}/u);
++    expect(floor).toContain("if (props.replayActors !== undefined || seated || !props.active || props.paused || event.button !== 0 || document.pointerLockElement === canvas) return;");
++    expect(floor).toContain('props.onControlInput?.({ action: "click", target: "precinct:floor", button: event.button });');
++    expect(floor).toContain("path.current = planNavigationRoute(position.current, destination, props.manifest, props.manifest.playerNavigationMesh) ?? [];");
+     const probe = readFileSync(new URL("../src/components/precinct/PrecinctPerformanceProbe.tsx", import.meta.url), "utf8");
+     expect(probe).toContain("cameraPosition: camera.position.toArray(), cameraQuaternion: camera.quaternion.toArray()");
+   });

@@ -1,0 +1,73 @@
+{
+  "status": "focused-validation-and-production-build-passed",
+  "baseCommit": "a7626569ce7764b3d81cd884ff3c2768c6c5c069",
+  "package": "/workspace/shared/precinct-studio-combined-next-v3",
+  "packageManifestSha256": "903d40c111df00588e8ab9400ab371ca6873c9d8d032e139c4759ce539e37e17",
+  "sourceInventorySha256": "d208aaf7e13989ab296ecd08e800b83116f5f8e741dd29d9d1cf6daf9b83f3c7",
+  "externalInputInventorySha256": "c82a6973750367bef2297540fcf85ec40e75ceeaeb7b503eb34bee4d7565cc48",
+  "buildInventorySha256": "903c472f5449eb402f139440270712be617e31e7fae535b47598e426b9ef350b",
+  "nodeRuntime": {
+    "executable": "/workspace/shared/unissant_agentic_training_arena/web/node_modules/node/bin/node",
+    "version": "v24.21.0",
+    "sha256": "7fde7b8afa198da66257f42ee2001d874c7355631e6d1579a5fb5ef1f246df4c",
+    "maxOldSpaceSizeMiB": 4096,
+    "NODE_OPTIONS": "--max-old-space-size=4096"
+  },
+  "diskHeadroom": {
+    "availableBytes": 10607239168,
+    "dependencyApparentBytes": 251270620,
+    "sourceApparentBytes": 55286759,
+    "requiredBytes": 1456938548,
+    "reserveBytes": 1073741824,
+    "copyOverheadPercent": 25,
+    "status": "passed"
+  },
+  "strictAppTypes": {
+    "exit": 0,
+    "status": "passed"
+  },
+  "strictToolsTypes": {
+    "exit": 0,
+    "status": "passed"
+  },
+  "changedFileLint": {
+    "exit": 0,
+    "status": "passed; zero warnings",
+    "files": 17
+  },
+  "focusedRuntime": {
+    "exit": 0,
+    "status": "passed",
+    "files": 45,
+    "tests": 423,
+    "failed": 0,
+    "durationSeconds": 95.71,
+    "log": "logs/focused-runtime.log",
+    "warning": "Existing nonfatal THREE_CJS_DEPRECATED retained; no suppression."
+  },
+  "productionBuild": {
+    "exit": 0,
+    "status": "passed",
+    "viteDurationSeconds": 3.38,
+    "log": "logs/build.log",
+    "warnings": [
+      "Existing >500 kB chunks, including 959.54 kB RoomEnvironment and 2469.30 kB main index; warning threshold unchanged.",
+      "Build plugin timing advisory retained."
+    ]
+  },
+  "preservedFailedAttempt": {
+    "path": "/workspace/shared/precinct-studio-combined-validation-qa/20261015T232159Z",
+    "stage": "strict-tools types",
+    "logSha256": "37644ca128d3f170dd0a14bb23577c6474dfe717492fa53c06ca4670f3749618"
+  },
+  "browser": "NOT RUN; parent-owned native review/launch remains separate",
+  "fullMergedRepositoryGate": "NOT RUN; focused validation does not claim complete lint/runtime/coverage acceptance",
+  "defaultLighting": "Unchanged; next intended demo sample explicitly retains environment",
+  "nextBrowserPriority": [
+    "one Studio/Courtyard standard-lighting production measurement",
+    "actual R3F click routing",
+    "actual keyboard movement"
+  ],
+  "performanceClaim": "None from static/unit/build results. Negative timing/cold gates unchanged. Native M5 unmeasured.",
+  "cpuLane": "Released to parent after build terminal success at 2026-10-15T23:35:59Z"
+}

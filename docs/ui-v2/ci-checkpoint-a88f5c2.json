@@ -1,0 +1,56 @@
+{
+  "commit": "a88f5c245d92f2e22a597bb4be38a7d8bb887730",
+  "observedAtUtc": "2026-10-15T23:55:42Z",
+  "web": {
+    "status": "passed",
+    "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38823081450/job/116724058993"
+  },
+  "database": {
+    "status": "passed",
+    "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38823081450/job/116724059224",
+    "verifiedAtUtc": "2026-10-16T00:09:40Z"
+  },
+  "python": {
+    "status": "failed_before_pytest",
+    "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38823081450/job/116724059167",
+    "logSha256": "647c5e9bf8bc7e081fd2629c2a6b2b95fd2706e0aff1d41ca33150eff1bc19cd",
+    "stage": "push-clean",
+    "causes": [
+      "Four runner.log files in docs/ui-v2/performance-evidence/low-environment-ab violate local-output policy in both current snapshot and history.",
+      "Two previously reviewed precinct.glb historical versions are 5,484,180 and 5,668,084 bytes, over the 5,242,880-byte cap."
+    ],
+    "correction": "Remove the four logs from the current snapshot, preserve originals outside Git, keep structured measured evidence. No renaming/encoding substitute. Historical failures remain; no rewrite or policy exception."
+  },
+  "security": {
+    "status": "failed; latest counts and advisory verified; exact Gitleaks finding identities not exposed by downloaded job log",
+    "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38823081792",
+    "verifiedAtUtc": "2026-10-16T00:23:00Z",
+    "jobs": [
+      {
+        "name": "gitleaks",
+        "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38823081792/job/116724060177",
+        "logSha256": "ca99bd80c7d05dc0ed0ecfc7f2e95c6d516d857219157d48db6c5e713860f545",
+        "observed": "Job reports 2 findings. Downloaded log and annotations do not expose exact identities; do not infer them solely from the matching previous count."
+      },
+      {
+        "name": "trufflehog",
+        "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38823081792/job/116724060029",
+        "logSha256": "2a4a25bd2e1d8700f71e5678494a70530df7bbe314294302e9686b33d61ecd94",
+        "observed": "0 verified, 1 unverified. Latest warning points to web/tools/precinct-performance.test.ts line31; current constructed negative fixture and historical original were previously reviewed separately."
+      },
+      {
+        "name": "python",
+        "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38823081792/job/116724060197",
+        "logSha256": "04a61d2847f41f2386570848fafe41324cf456164443f0fab6b3d4270757af31",
+        "observed": "pip-audit fails for tooling mcp1.29.0, CVE-2026-59951, fixes1.30.0/2.2.0. No known vulnerabilities found in preceding runtime audit. License stage not reached after audit failure."
+      },
+      {
+        "name": "osv",
+        "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38823081792/job/116724060463",
+        "logSha256": "fd99974a2d35b04f95c7a58369472ac9cbe3810e116d8c623c506fb264aa51e7",
+        "observed": "GHSA-84m7-p3x7-pcfv, mcp1.29.0 in tools/envs/semgrep/uv.lock, fixed1.30.0. Same concrete advisory and lock path as prior diagnosis."
+      }
+    ]
+  },
+  "scope": "CI diagnosis only; no outside-UI policy, backend, workflow or dependency edit."
+}

@@ -1,0 +1,38 @@
+{
+  "schema": "arena.m5-validation.source-update.v1",
+  "observedAtUtc": "2026-10-16T00:29:00Z",
+  "baseCommit": "a88f5c245d92f2e22a597bb4be38a7d8bb887730",
+  "integratedSourceInventorySha256": "52b676d291b16979f558e5bc557c948fef9cafbb794263ff322d00beb433208d",
+  "focusedGate": "Strict app/tools, zero-warning22-file lint,451 tests/47files passed in isolated candidate.",
+  "fullUnchangedWebGate": "Local attempt1 failed: lint/types passed,2862/2863 tests; one unchanged legacy audio-lifecycle readiness timeout. Coverage/build not reached. See ../performance-evidence/retained-floor-integration/full-web-attempt-1.json",
+  "targetHardware": "not accessed or measured",
+  "portableDistribution": "held for license decision and final build/notice review",
+  "files": [
+    {
+      "path": "web/tools/precinct-performance.ts",
+      "bytes": 27163,
+      "sha256": "350186e5a6e7601478eab8801cf59b52f155aebb1416ed98111cb83d00aca30b"
+    },
+    {
+      "path": "web/tools/precinct-performance-theme.ts",
+      "bytes": 1247,
+      "sha256": "791ed27248b05609d6b00f46f658179814fa5044af65b27d84c0e289e58797c1"
+    },
+    {
+      "path": "web/tools/precinct-capture-position.ts",
+      "bytes": 685,
+      "sha256": "fc722f65c27e07e9288cb19d9d800abe1823a34a81407e6f0668755d4fab448c"
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctCanvas.tsx",
+      "bytes": 34877,
+      "sha256": "9e420cfc9bdec0a0bce7cbc6f12e81c44374a661655ef1d50016c0c763b00b7b"
+    },
+    {
+      "path": "web/src/lib/precinct/staffCrowd.ts",
+      "bytes": 3656,
+      "sha256": "fe1bce0d74edda96cd1aa8dd752e90f4ff68e0afd7f2b2ebc29b2d3670ed4a01"
+    }
+  ],
+  "separateProductionBuild": "Passed,114files/52,471,949unpackedbytes; original large-chunk warning retained. ../performance-evidence/retained-floor-integration/production-build.json"
+}

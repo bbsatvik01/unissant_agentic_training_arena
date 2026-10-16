@@ -28,7 +28,7 @@ In another terminal in the same `web/`, run the command below. This is the sourc
 
 ```sh
 node tools/precinct-performance.ts --headed --url=http://127.0.0.1:4173/ \
-  --scene=office --tier=medium --camera=third --viewport=1440x900 --dpr=2 \
+  --scene=office --theme=studio --tier=medium --camera=third --protocol=movement --viewport=1440x900 --dpr=2 \
   --seconds=300 --warmup=30 --machine-label='Model and conditions recorded in manifest' \
   --out=./m5-results/office-medium-third-ac-cold-01
 printf 'runner_exit=%s\n' "$?"
@@ -44,7 +44,7 @@ Each normal run requires the original entry-readiness gate. Its five-second cloc
 
 ## 4. Read the result, not just the exit code
 
-Check `performance-report.json`, its `report`, and `evaluation` against the checklist. Confirm 300,000 ms or more, real turns/displacement, expected scene, production, verified native GPU, one intended pinned tier, zero blocked requests/errors, and uncontaminated continuous foreground samples. The average, p50, p95, p99, and slow-interval fraction must all pass. Preserve the complete JSON, not just a screenshot or summary. Its `loadedArtifactFingerprint` covers only successfully loaded file extensions selected by the runner; it excludes index HTML, WAV/SVG resources and unvisited chunks, so it cannot replace the full dist inventory.
+Check `performance-report.json`, its `report`, and `evaluation` against the checklist. Confirm 300,000 ms or more, real turns/displacement, expected scene, matching `environmentIdentity` theme at all three observations, production, verified native GPU, one intended pinned tier, zero blocked requests/errors, and uncontaminated continuous foreground samples. The average, p50, p95, p99, and slow-interval fraction must all pass. Preserve the complete JSON, not just a screenshot or summary. Its `loadedArtifactFingerprint` covers only successfully loaded file extensions selected by the runner; it excludes index HTML, WAV/SVG resources and unvisited chunks, so it cannot replace the full dist inventory.
 
 The tool automatically saves `after-measurement.png` only after stopping measurement. Failure captures are diagnostics, not timing evidence. Keep original failure reports and all generated HTML/PNG files, even when a later attempt succeeds. Record manual cancellation/interruption rather than silently replacing the run.
 
@@ -61,7 +61,7 @@ Use the **same production bytes** in a separate local browser pass. First repeat
 - Spend at least five minutes exercising bundled replay: play, pause, seek backward/forward, repeat a seek, and return from free inspection where supported. Record whether the source is v1/legacy or v2 sampled. V1 cannot prove v2 sampled camera ownership, and neither format proves exact audiovisual replay. Do not replace a missing compatible replay with fabricated data.
 - Check transitions, opening/closing panels, focus recovery, keyboard release, collision, avatar feet/body visibility, camera clipping, readable signage/captions, responsiveness, and uninterrupted frame appearance. Paused/demand-rendered scenes are assessed for correct interaction and responsiveness, not forced into a continuous-60-FPS budget.
 
-Record pass/fail/not-measured for each segment and the observed duration, route, scene, theme, browser and power state. A visual walkthrough is necessary but does not fill the missing quantitative timing coverage for those segments or Studio. If full-demo measured fluidity is the acceptance claim, keep it open until the existing runner/probe has explicit theme and sustained segment coverage, with the same ≥300-second/native-GPU standards. No such extension is implemented in this kit.
+Record pass/fail/not-measured for each segment and the observed duration, route, scene, theme, browser and power state. A visual walkthrough is necessary but does not fill the missing quantitative timing coverage for those non-lobby segments. The integrated explicit-theme runner can measure Studio lobby timing; sustained courtyard/crowd/interview/replay timing still needs separately reviewed segment coverage with the same ≥300-second/native-GPU standards. No such segment extension is implemented in this kit.
 
 ## 6. Stop and retain
 

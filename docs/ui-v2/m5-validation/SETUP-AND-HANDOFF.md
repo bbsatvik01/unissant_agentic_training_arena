@@ -27,7 +27,7 @@ Before disconnecting from the network, the authorized operator must already have
 1. Native macOS/Apple Silicon **Node 24.21.0** and **pnpm 11.0.8**, as pinned by `web/package.json`, with the direct `node` command used by the runner resolving to the intended runtime. Package scripts may use pnpm's managed runtime; do not assume the shell's `node` matches it.
 2. The exact native web dependency installation matching `web/pnpm-lock.yaml` and `web/pnpm-workspace.yaml`, including `@playwright/test` **1.63.0** and Vite **8.3.1**. Do not copy Linux `node_modules` or Linux browser executables to the Mac. Lockfile integrity and native optional packages matter.
 3. Either the matching Playwright macOS Chromium already provisioned, or an existing native Chrome/Chromium executable whose actual location/version/architecture has been verified and is selected through `ARENA_CHROMIUM_PATH`. Installing the JS package alone does not establish that a runnable browser is available. This kit does not guess a Chrome application path or supply an installation command for unverified local tooling.
-4. The matching source runner `web/tools/precinct-performance.ts` and its runtime helper `web/tools/precinct-capture-position.ts`, plus the installed Playwright dependency. Preserve the source tree layout and type-only sources for audit; do not hand-edit imports or create a bundled executable.
+4. The matching source runner `web/tools/precinct-performance.ts` and its runtime helpers `web/tools/precinct-capture-position.ts` and `web/tools/precinct-performance-theme.ts`, plus the installed Playwright dependency. Preserve the source tree layout and type-only sources for audit; do not hand-edit imports or create a bundled executable.
 5. The immutable final dist, a local writable result location with adequate measured free space, and the build/checksum/notices packet. Decide and record an evidence location outside any automatically shared folder.
 6. A verified loopback port and an authorized physical MacBook Air M5 available for native headed tests. No account login, API key, backend, model, microphone, cloud deployment, Blender, TTS generator, or speech-recognition model is needed for the no-API timing run.
 
@@ -52,7 +52,9 @@ The runner permits its own HTTP origin, refuses `/api` and other origins, blocks
 
 ## Handoff blockers to clear
 
+The [inherited GSAP license decision](../PORTABLE-LICENSE-STATUS.md) remains open before portable distribution. No package is authorized merely by this runbook.
+
 - Exact final dist and complete build manifest/notice inventory have not been produced or verified by this kit.
 - Native Mac runtime/dependencies/browser path, GPU, display and power/thermal conditions are unverified until the operator records them.
 - Static assets alone cannot demonstrate an interactive live/backend or local-scripted interview, generated room speech, or microphone recognition. Bundled replay is a narrower, offline demonstration.
-- Quantitative Studio-theme, sustained route/crowd/interview/replay, per-window degradation and instrumented-versus-uninstrumented overhead evidence are absent from the unchanged runner.
+- The Studio-capable runner has only failed cloud samples so far; native M5 Studio evidence remains absent. Sustained non-lobby route/crowd/interview/replay, per-window degradation and instrumented-versus-uninstrumented overhead evidence also remain absent.

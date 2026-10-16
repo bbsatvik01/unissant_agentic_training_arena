@@ -3,10 +3,9 @@ import { planNavigationRoute } from "../../lib/precinct/worldNavigation";
 import { precinctAsset, precinctPointerFloor } from "../../lib/precinct/worldVariant";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useSyncExternalStore, type RefObject } from "react";
-import { ACESFilmicToneMapping, Group, Light, Mesh, PerspectiveCamera, PMREMGenerator, Vector3 } from "three";
+import { ACESFilmicToneMapping, Group, Light, Mesh, PerspectiveCamera, Vector3 } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 import { controllerDeadzone, EYE_HEIGHT, hasLineOfSight, inputMovement, isWalkable, MAX_FRAME_SECONDS, moveWithCollisions, nearestHotspot, PLAYER_RADIUS, turn, WALK_SPEED } from "../../lib/precinct/movement";
 import { adjustInspectionCamera, createInspectionCamera, inspectionView, stepInspectionCamera, type InspectionCamera } from "../../lib/precinct/inspectionCamera";
@@ -28,6 +27,8 @@ import { applyRecordedCameraV1 } from "./recordedCameraV1";
 import type { Tier } from "../../lib/world/quality";
 import { PrecinctRenderPolicy, precinctDiagnosticsEnabled, usePrecinctDpr } from "./PrecinctRenderPolicy";
 import { PrecinctPerformanceProbe } from "./PrecinctPerformanceProbe";
+import { PrecinctEnvironment } from "./PrecinctEnvironment";
+import { lowEnvironmentExperimentRequested, precinctEnvironmentEnabled } from "../../lib/precinct/lowEnvironmentExperiment";
 import { WalkingAvatar } from "./WalkingAvatar";
 import { PrecinctStaff } from "./PrecinctStaff";
 import { StaffSpeechFrameInvalidation } from "./StaffSpeechFrameInvalidation";
@@ -55,6 +56,8 @@ export interface PrecinctCanvasProps {
   readonly reducedMotion: boolean;
   readonly cameraMode: CameraMode;
   readonly tier: Tier;
+  /** Capture/replay and live-session presentation retain canonical lighting during diagnostics. */
+  readonly standardEnvironment?: boolean;
   readonly onTierChange: (tier: Tier) => void;
   readonly travel: RefObject<TravelCommand | null>;
   readonly onPose: (pose: PlayerPose) => void;
@@ -122,25 +125,6 @@ function Architecture({ asset, onReady }: { readonly asset: string; readonly onR
   return <primitive object={scene} dispose={null} />;
 }
 
-function Environment() {
-  const get = useThree((state) => state.get);
-  useEffect(() => {
-    const { gl, scene } = get();
-    const previous = scene.environment;
-    const intensity = scene.environmentIntensity;
-    const pmrem = new PMREMGenerator(gl);
-    const room = new RoomEnvironment();
-    const target = pmrem.fromScene(room, 0.04);
-    scene.environment = target.texture;
-    scene.environmentIntensity = 0.45;
-    return () => {
-      scene.environment = previous; scene.environmentIntensity = intensity;
-      target.dispose(); room.dispose(); pmrem.dispose();
-    };
-  }, [get]);
-  return null;
-}
-
 export function Controls(props: PrecinctCanvasProps & { readonly crowd?: RefObject<CrowdState> }) {
   const pointerFloor = precinctPointerFloor(props.manifest);
   const canvas = useThree((state) => state.gl.domElement);
@@ -161,6 +145,9 @@ export function Controls(props: PrecinctCanvasProps & { readonly crowd?: RefObje
   const lastEmit = useRef(0);
   const emittedPose = useRef<PlayerPose | null>(null);
   const nearest = useRef<string | null>(null);
+  // The route supplies an immutable manifest. Visibility depends on position and geometry,
+  // not yaw, actor animation, camera interpolation or a newly allocated equal tuple.
+  const nearestCache = useRef<{ manifest: PrecinctManifest; x: number; y: number; z: number; id: string | null } | null>(null);
   const walking = useRef<Group>(null);
   const speed = useRef(0);
   const bodyTravel = useRef<WalkingTravel>({ distance: 0, speed: 0 });
@@ -415,8 +402,15 @@ export function Controls(props: PrecinctCanvasProps & { readonly crowd?: RefObje
     const fov = anchor?.fov ?? (mode === "first" ? 66 : 58);
     if (!free && camera instanceof PerspectiveCamera && camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
     if (walking.current !== null) { walking.current.position.set(x, y, z); walking.current.rotation.y = look.current.yaw; }
-    const visibleHotspots = p.manifest.hotspots.filter((hotspot) => hasLineOfSight(position.current, [hotspot.position[0], y, hotspot.position[2]], p.manifest.colliders, 0.02));
-    nearest.current = isSeated ? null : nearestHotspot(position.current, visibleHotspots)?.id ?? null;
+    if (isSeated) nearest.current = null;
+    else {
+      const previous = nearestCache.current;
+      if (previous === null || previous.manifest !== p.manifest || previous.x !== x || previous.y !== y || previous.z !== z) {
+        const visibleHotspots = p.manifest.hotspots.filter((hotspot) => hasLineOfSight(position.current, [hotspot.position[0], y, hotspot.position[2]], p.manifest.colliders, 0.02));
+        nearestCache.current = { manifest: p.manifest, x, y, z, id: nearestHotspot(position.current, visibleHotspots)?.id ?? null };
+      }
+      nearest.current = nearestCache.current?.id ?? null;
+    }
     // R3F resets its absolute clock when switching demand/always. A delta cadence
     // keeps minimap and input state responsive immediately after closing a panel.
     const emission = advanceCadence(lastEmit.current, dt);
@@ -429,7 +423,7 @@ export function Controls(props: PrecinctCanvasProps & { readonly crowd?: RefObje
       const shownPosition = isSeated ? INVESTIGATOR_SEAT.position : position.current;
       const shownYaw = isSeated ? 0 : look.current.yaw;
       const previous = emittedPose.current;
-      if (previous === null || previous.position !== shownPosition || previous.yaw !== shownYaw || Math.abs(previous.speed - speed.current) > 0.01 || previous.hotspot !== nearest.current) {
+      if (previous === null || previous.position[0] !== shownPosition[0] || previous.position[1] !== shownPosition[1] || previous.position[2] !== shownPosition[2] || previous.yaw !== shownYaw || Math.abs(previous.speed - speed.current) > 0.01 || previous.hotspot !== nearest.current) {
         const next = { position: shownPosition, yaw: shownYaw, speed: speed.current, hotspot: nearest.current };
         emittedPose.current = next;
         p.onPose(next);
@@ -457,6 +451,8 @@ export function Controls(props: PrecinctCanvasProps & { readonly crowd?: RefObje
 
 export default function PrecinctCanvas(props: PrecinctCanvasProps) {
   const dpr = usePrecinctDpr(props.tier);
+  const environmentEnabled = precinctEnvironmentEnabled(props.tier, lowEnvironmentExperimentRequested(),
+    props.standardEnvironment === true || props.replayActors !== undefined || props.legacyReplay === true || props.actorCapture !== undefined);
   const crowd = useRef(createStaffCrowd(props.tier));
   const playingStaffAudio = useSyncExternalStore(localStaffPlaybackActivity.subscribe, localStaffPlaybackActivity.getSnapshot, localStaffPlaybackActivity.getServerSnapshot);
   const interview = props.interview;
@@ -484,7 +480,7 @@ export default function PrecinctCanvas(props: PrecinctCanvasProps) {
     <color attach="background" args={["#d5dfe0"]} /><fog attach="fog" args={["#d5dfe0", 55, 100]} />
     <PrecinctRenderPolicy tier={props.tier} continuous={continuous} onChange={props.onTierChange} />
     {precinctDiagnosticsEnabled() ? <PrecinctPerformanceProbe tier={props.tier} continuous={continuous} sceneAsset={precinctAsset(props.manifest)} /> : null}
-    <Environment /><hemisphereLight args={["#f8f6ee", "#70797b", 1.6]} />
+    <PrecinctEnvironment enabled={environmentEnabled} /><hemisphereLight args={["#f8f6ee", "#70797b", 1.6]} />
     <directionalLight position={[-12, 16, 6]} intensity={3} color="#fff1d5" />
     <pointLight position={[0, 3, -6]} intensity={45} distance={18} color="#ffe5c2" />
     {props.tier !== "low" ? <><pointLight position={[0, 3, -17]} intensity={25} distance={15} color="#f3eddf" /><pointLight position={[0, 3, -29]} intensity={25} distance={15} color="#f3eddf" /></> : null}
