@@ -515,6 +515,7 @@ export function WorldRoute() {
   // Voices speak only in the room, unmuted, live or during playback at normal speed: Gemini voices through the server
   // when it is there (each line cached there, so a recorded run replays for free), the browser's own otherwise.
   const engine = useMemo(() => roomEngine(live ? api : null), [live, api]);
+  useEffect(() => engine.activate(), [engine]);
   const { coachSpeaking } = useVoice({
     earpiece,
     engine,

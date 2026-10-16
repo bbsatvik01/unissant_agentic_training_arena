@@ -1,0 +1,41 @@
+{
+  "checkpoint": "8eedd7564570c41def9892e4c1ddd4099b090872",
+  "verified_at_utc": "2026-10-15T21:26:00Z",
+  "job": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38808483474/job/116675765108",
+  "conclusion": "success",
+  "command": "cd web && pnpm install --frozen-lockfile && pnpm check",
+  "gates": [
+    "all-project zero-warning lint (unchanged rules)",
+    "strict typecheck",
+    "tests",
+    "coverage with unchanged src/lib floor",
+    "production build"
+  ],
+  "normal": {
+    "suites": 242,
+    "passed": 2726
+  },
+  "coverage": {
+    "suites": 242,
+    "passed": 2726,
+    "statements": 97.88,
+    "branches": 95.88,
+    "functions": 99.12,
+    "lines": 99.23
+  },
+  "build_seconds": 2.24,
+  "raw_log_sha256": "ae813db919ce00893abdeec7a1cfbce338a6e723c9257dcddf1ac4f4e6ed7efb",
+  "not_proven": [
+    "combined native browser audio/lips/video",
+    "dictation and Coach Lab staged packages",
+    "whole-session exact audiovisual replay",
+    "MacBook Air M5 sustained performance",
+    "PR-wide CI"
+  ],
+  "note": "The uncommitted recorder revision and separate source packages are excluded. The integrated performance probe, pixel budgets and low-frame-rate movement correction are included; green tests do not establish a passing render-performance budget.",
+  "db_check": {
+    "conclusion": "success",
+    "completed_at": "2026-10-15T21:54:45Z",
+    "job": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38808483474/job/116675765446"
+  }
+}

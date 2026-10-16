@@ -1,0 +1,608 @@
+{
+  "schema": "arena.environment-lighting-ab.v1",
+  "runOrder": [
+    "retain-1",
+    "omit-1",
+    "omit-2",
+    "retain-2"
+  ],
+  "theme": "Office default; not Studio",
+  "scope": "Courtyard fixed interior, Low, reduced motion, 60 s common warmup and >=60 s timed interval; no navigation/capture/video during timing",
+  "baseCommit": "8eedd7564570c41def9892e4c1ddd4099b090872",
+  "candidateManifestSha256": "aba878b8b40d693c38a8c4f6eeac8e9d08e25209e7ff02cbad191f1bdffd173b",
+  "samples": [
+    {
+      "sample": "retain-1",
+      "reportDirectory": "retain-1-20261015T224541Z-16d7fd",
+      "rawMeasurementSha256": "851eeced3e2859492d85e30e287c34d4b2c482bed66b66137b0feb580b602b2e",
+      "rawLaunchSha256": "2a906b4da67550e07f5f287cf9ebdd44e52bb2f5b70d2d5183324d2946c93991",
+      "status": "steady-state-completed-cold-start-failed",
+      "overallExit": 1,
+      "coldEntryPassed": false,
+      "timingPassed": false,
+      "durationMs": 60694.89999999851,
+      "frames": 53,
+      "fps": 0.8732199904769807,
+      "frameMs": {
+        "samples": 52,
+        "retained": 52,
+        "dropped": 0,
+        "p50": 964.6000000014901,
+        "p95": 1809.1999999955297,
+        "p99": 3955.2999999970198,
+        "max": 3955.2999999970198
+      },
+      "cpuCallbackAndSubmissionMs": {
+        "samples": 53,
+        "retained": 53,
+        "dropped": 0,
+        "p50": 7.600000001490116,
+        "p95": 15.600000001490116,
+        "p99": 19.299999997019768,
+        "max": 19.299999997019768
+      },
+      "longTaskMs": {
+        "samples": 7,
+        "retained": 7,
+        "dropped": 0,
+        "p50": 107,
+        "p95": 1152,
+        "p99": 1152,
+        "max": 1152
+      },
+      "drawCalls": {
+        "samples": 53,
+        "retained": 53,
+        "dropped": 0,
+        "p50": 83,
+        "p95": 83,
+        "p99": 83,
+        "max": 83
+      },
+      "triangles": {
+        "samples": 53,
+        "retained": 53,
+        "dropped": 0,
+        "p50": 143282,
+        "p95": 143282,
+        "p99": 143282,
+        "max": 143282
+      },
+      "drawingBufferPixels": {
+        "samples": 53,
+        "retained": 53,
+        "dropped": 0,
+        "p50": 729000,
+        "p95": 729000,
+        "p99": 729000,
+        "max": 729000
+      },
+      "dpr": {
+        "samples": 53,
+        "retained": 53,
+        "dropped": 0,
+        "p50": 0.75,
+        "p95": 0.75,
+        "p99": 0.75,
+        "max": 0.75
+      },
+      "loadedArtifactFingerprint": "1fd16ff7dbd6ba8ab47a1b25f61cdf6018dca28efd38c76c4d7e5766a31a92f8",
+      "fixedCamera": {
+        "tier": "low",
+        "continuous": true,
+        "visible": true,
+        "cameraPosition": [
+          0,
+          2.15,
+          0.3999999999999996
+        ],
+        "cameraQuaternion": [
+          -0.06008895503210163,
+          0,
+          0,
+          0.9981930261643537
+        ],
+        "calls": 83,
+        "triangles": 143282,
+        "drawingBuffer": {
+          "width": 1080,
+          "height": 675
+        },
+        "dpr": 0.75,
+        "sceneAsset": "/world/precinct-courtyard.glb",
+        "production": true
+      },
+      "environmentMapActive": true,
+      "programs": 15,
+      "geometries": 94,
+      "textures": 76,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "browser": "154.0.8037.57",
+      "ownedProcessCpu": [
+        {
+          "pid": 8386,
+          "name": "chromium",
+          "observedWallSeconds": 156.30475559699698,
+          "cpuSeconds": 1041.22,
+          "averagePercentOfOneCore": 666.147358103802,
+          "peakRssMiB": 401.4921875
+        },
+        {
+          "pid": 8443,
+          "name": "chromium",
+          "observedWallSeconds": 155.28945166299673,
+          "cpuSeconds": 16.39,
+          "averagePercentOfOneCore": 10.554483787842175,
+          "peakRssMiB": 300.5078125
+        },
+        {
+          "pid": 8345,
+          "name": "chromium",
+          "observedWallSeconds": 157.3162814019961,
+          "cpuSeconds": 9.91,
+          "averagePercentOfOneCore": 6.299411549575477,
+          "peakRssMiB": 131.0703125
+        },
+        {
+          "pid": 8333,
+          "name": "MainThread",
+          "observedWallSeconds": 159.33070427699568,
+          "cpuSeconds": 6.97,
+          "averagePercentOfOneCore": 4.374549169055757,
+          "peakRssMiB": 237.7265625
+        }
+      ],
+      "cleanShutdown": true
+    },
+    {
+      "sample": "omit-1",
+      "reportDirectory": "omit-1-20261015T224942Z-5a1ad2",
+      "rawMeasurementSha256": "ae630b903e52e95cbfcd9215967c0743085746a9b71782f5922cc62e7e6845e0",
+      "rawLaunchSha256": "0fd6136b923a37e86261b8a1f64aaa9878be4fff99087ba2ad610f8265380cc4",
+      "status": "steady-state-completed-cold-start-failed",
+      "overallExit": 1,
+      "coldEntryPassed": false,
+      "timingPassed": false,
+      "durationMs": 60371.39999999851,
+      "frames": 209,
+      "fps": 3.4619041466655593,
+      "frameMs": {
+        "samples": 208,
+        "retained": 208,
+        "dropped": 0,
+        "p50": 269,
+        "p95": 480.6000000014901,
+        "p99": 694.6000000014901,
+        "max": 768.6999999955297
+      },
+      "cpuCallbackAndSubmissionMs": {
+        "samples": 209,
+        "retained": 209,
+        "dropped": 0,
+        "p50": 5.699999995529652,
+        "p95": 13.5,
+        "p99": 25.399999998509884,
+        "max": 33.099999994039536
+      },
+      "longTaskMs": {
+        "samples": 0,
+        "retained": 0,
+        "dropped": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "drawCalls": {
+        "samples": 209,
+        "retained": 209,
+        "dropped": 0,
+        "p50": 83,
+        "p95": 83,
+        "p99": 83,
+        "max": 83
+      },
+      "triangles": {
+        "samples": 209,
+        "retained": 209,
+        "dropped": 0,
+        "p50": 143282,
+        "p95": 143282,
+        "p99": 143282,
+        "max": 143282
+      },
+      "drawingBufferPixels": {
+        "samples": 209,
+        "retained": 209,
+        "dropped": 0,
+        "p50": 729000,
+        "p95": 729000,
+        "p99": 729000,
+        "max": 729000
+      },
+      "dpr": {
+        "samples": 209,
+        "retained": 209,
+        "dropped": 0,
+        "p50": 0.75,
+        "p95": 0.75,
+        "p99": 0.75,
+        "max": 0.75
+      },
+      "loadedArtifactFingerprint": "1fd16ff7dbd6ba8ab47a1b25f61cdf6018dca28efd38c76c4d7e5766a31a92f8",
+      "fixedCamera": {
+        "tier": "low",
+        "continuous": true,
+        "visible": true,
+        "cameraPosition": [
+          0,
+          2.15,
+          0.3999999999999996
+        ],
+        "cameraQuaternion": [
+          -0.06008895503210163,
+          0,
+          0,
+          0.9981930261643537
+        ],
+        "calls": 83,
+        "triangles": 143282,
+        "drawingBuffer": {
+          "width": 1080,
+          "height": 675
+        },
+        "dpr": 0.75,
+        "sceneAsset": "/world/precinct-courtyard.glb",
+        "production": true
+      },
+      "environmentMapActive": false,
+      "programs": 9,
+      "geometries": 81,
+      "textures": 74,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "browser": "154.0.8037.57",
+      "ownedProcessCpu": [
+        {
+          "pid": 8570,
+          "name": "chromium",
+          "observedWallSeconds": 144.48749807300192,
+          "cpuSeconds": 948.64,
+          "averagePercentOfOneCore": 656.5550740734,
+          "peakRssMiB": 383.9609375
+        },
+        {
+          "pid": 8630,
+          "name": "chromium",
+          "observedWallSeconds": 144.48749807300192,
+          "cpuSeconds": 18.89,
+          "averagePercentOfOneCore": 13.073795485375404,
+          "peakRssMiB": 315.03515625
+        },
+        {
+          "pid": 8530,
+          "name": "chromium",
+          "observedWallSeconds": 145.49661569300224,
+          "cpuSeconds": 11.12,
+          "averagePercentOfOneCore": 7.642789453923239,
+          "peakRssMiB": 132.625
+        },
+        {
+          "pid": 8518,
+          "name": "MainThread",
+          "observedWallSeconds": 147.51786517400615,
+          "cpuSeconds": 3.71,
+          "averagePercentOfOneCore": 2.5149496270325176,
+          "peakRssMiB": 193.84375
+        }
+      ],
+      "cleanShutdown": true
+    },
+    {
+      "sample": "omit-2",
+      "reportDirectory": "omit-2-20261015T225636Z-b039d1",
+      "rawMeasurementSha256": "9c394843c3cda9e9e978bb251379d23a989eaa6cb6e4d5c766e222d291ba39e7",
+      "rawLaunchSha256": "07729929ff33e6d5dd214c001a7b9b587fe4e1e268f275448fae7b595ef555dc",
+      "status": "steady-state-completed-cold-start-failed",
+      "overallExit": 1,
+      "coldEntryPassed": false,
+      "timingPassed": false,
+      "durationMs": 60673,
+      "frames": 216,
+      "fps": 3.560067904998929,
+      "frameMs": {
+        "samples": 215,
+        "retained": 215,
+        "dropped": 0,
+        "p50": 260.6000000014901,
+        "p95": 501.20000000298023,
+        "p99": 793.1000000014901,
+        "max": 900.1999999955297
+      },
+      "cpuCallbackAndSubmissionMs": {
+        "samples": 216,
+        "retained": 216,
+        "dropped": 0,
+        "p50": 5.399999998509884,
+        "p95": 11,
+        "p99": 15.899999998509884,
+        "max": 22.80000000447035
+      },
+      "longTaskMs": {
+        "samples": 4,
+        "retained": 4,
+        "dropped": 0,
+        "p50": 76,
+        "p95": 221,
+        "p99": 221,
+        "max": 221
+      },
+      "drawCalls": {
+        "samples": 216,
+        "retained": 216,
+        "dropped": 0,
+        "p50": 83,
+        "p95": 83,
+        "p99": 83,
+        "max": 83
+      },
+      "triangles": {
+        "samples": 216,
+        "retained": 216,
+        "dropped": 0,
+        "p50": 143282,
+        "p95": 143282,
+        "p99": 143282,
+        "max": 143282
+      },
+      "drawingBufferPixels": {
+        "samples": 216,
+        "retained": 216,
+        "dropped": 0,
+        "p50": 729000,
+        "p95": 729000,
+        "p99": 729000,
+        "max": 729000
+      },
+      "dpr": {
+        "samples": 216,
+        "retained": 216,
+        "dropped": 0,
+        "p50": 0.75,
+        "p95": 0.75,
+        "p99": 0.75,
+        "max": 0.75
+      },
+      "loadedArtifactFingerprint": "1fd16ff7dbd6ba8ab47a1b25f61cdf6018dca28efd38c76c4d7e5766a31a92f8",
+      "fixedCamera": {
+        "tier": "low",
+        "continuous": true,
+        "visible": true,
+        "cameraPosition": [
+          0,
+          2.15,
+          0.3999999999999996
+        ],
+        "cameraQuaternion": [
+          -0.06008895503210163,
+          0,
+          0,
+          0.9981930261643537
+        ],
+        "calls": 83,
+        "triangles": 143282,
+        "drawingBuffer": {
+          "width": 1080,
+          "height": 675
+        },
+        "dpr": 0.75,
+        "sceneAsset": "/world/precinct-courtyard.glb",
+        "production": true
+      },
+      "environmentMapActive": false,
+      "programs": 9,
+      "geometries": 81,
+      "textures": 74,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "browser": "154.0.8037.57",
+      "ownedProcessCpu": [
+        {
+          "pid": 8758,
+          "name": "chromium",
+          "observedWallSeconds": 145.65005444100098,
+          "cpuSeconds": 1016.94,
+          "averagePercentOfOneCore": 698.2077719798833,
+          "peakRssMiB": 384.19921875
+        },
+        {
+          "pid": 8815,
+          "name": "chromium",
+          "observedWallSeconds": 144.64018259099976,
+          "cpuSeconds": 15.32,
+          "averagePercentOfOneCore": 10.591800788388445,
+          "peakRssMiB": 296.58203125
+        },
+        {
+          "pid": 8716,
+          "name": "chromium",
+          "observedWallSeconds": 145.65005444100098,
+          "cpuSeconds": 7.67,
+          "averagePercentOfOneCore": 5.2660467786552845,
+          "peakRssMiB": 133.265625
+        },
+        {
+          "pid": 8704,
+          "name": "MainThread",
+          "observedWallSeconds": 146.66675548700005,
+          "cpuSeconds": 3.21,
+          "averagePercentOfOneCore": 2.1886350382139064,
+          "peakRssMiB": 206.109375
+        }
+      ],
+      "cleanShutdown": true
+    },
+    {
+      "sample": "retain-2",
+      "reportDirectory": "retain-2-20261015T225935Z-3dc6e8",
+      "rawMeasurementSha256": "c464161cf5c6122982294b06ec9e8a9ba5ad0ba03a795224978c5d4d2d876bed",
+      "rawLaunchSha256": "423ed94b510149503fca8928b5561572873f1bed4dcd54c389cb3f25768517ce",
+      "status": "steady-state-completed-cold-start-failed",
+      "overallExit": 1,
+      "coldEntryPassed": false,
+      "timingPassed": false,
+      "durationMs": 60607.5,
+      "frames": 56,
+      "fps": 0.9239780555211814,
+      "frameMs": {
+        "samples": 55,
+        "retained": 55,
+        "dropped": 0,
+        "p50": 1052,
+        "p95": 1932.6000000014901,
+        "p99": 3047.60000000149,
+        "max": 3047.60000000149
+      },
+      "cpuCallbackAndSubmissionMs": {
+        "samples": 56,
+        "retained": 56,
+        "dropped": 0,
+        "p50": 7.200000002980232,
+        "p95": 18.5,
+        "p99": 23.399999998509884,
+        "max": 23.399999998509884
+      },
+      "longTaskMs": {
+        "samples": 1,
+        "retained": 1,
+        "dropped": 0,
+        "p50": 281,
+        "p95": 281,
+        "p99": 281,
+        "max": 281
+      },
+      "drawCalls": {
+        "samples": 56,
+        "retained": 56,
+        "dropped": 0,
+        "p50": 83,
+        "p95": 83,
+        "p99": 83,
+        "max": 83
+      },
+      "triangles": {
+        "samples": 56,
+        "retained": 56,
+        "dropped": 0,
+        "p50": 143282,
+        "p95": 143282,
+        "p99": 143282,
+        "max": 143282
+      },
+      "drawingBufferPixels": {
+        "samples": 56,
+        "retained": 56,
+        "dropped": 0,
+        "p50": 729000,
+        "p95": 729000,
+        "p99": 729000,
+        "max": 729000
+      },
+      "dpr": {
+        "samples": 56,
+        "retained": 56,
+        "dropped": 0,
+        "p50": 0.75,
+        "p95": 0.75,
+        "p99": 0.75,
+        "max": 0.75
+      },
+      "loadedArtifactFingerprint": "1fd16ff7dbd6ba8ab47a1b25f61cdf6018dca28efd38c76c4d7e5766a31a92f8",
+      "fixedCamera": {
+        "tier": "low",
+        "continuous": true,
+        "visible": true,
+        "cameraPosition": [
+          0,
+          2.15,
+          0.3999999999999996
+        ],
+        "cameraQuaternion": [
+          -0.06008895503210163,
+          0,
+          0,
+          0.9981930261643537
+        ],
+        "calls": 83,
+        "triangles": 143282,
+        "drawingBuffer": {
+          "width": 1080,
+          "height": 675
+        },
+        "dpr": 0.75,
+        "sceneAsset": "/world/precinct-courtyard.glb",
+        "production": true
+      },
+      "environmentMapActive": true,
+      "programs": 15,
+      "geometries": 94,
+      "textures": 76,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "browser": "154.0.8037.57",
+      "ownedProcessCpu": [
+        {
+          "pid": 8941,
+          "name": "chromium",
+          "observedWallSeconds": 159.9280088730011,
+          "cpuSeconds": 1005.97,
+          "averagePercentOfOneCore": 629.0142715394157,
+          "peakRssMiB": 400.76171875
+        },
+        {
+          "pid": 9001,
+          "name": "chromium",
+          "observedWallSeconds": 158.89884914800496,
+          "cpuSeconds": 12.66,
+          "averagePercentOfOneCore": 7.967332720080277,
+          "peakRssMiB": 299.5625
+        },
+        {
+          "pid": 8901,
+          "name": "chromium",
+          "observedWallSeconds": 160.9341344459972,
+          "cpuSeconds": 8.3,
+          "averagePercentOfOneCore": 5.157389405654731,
+          "peakRssMiB": 131.26171875
+        },
+        {
+          "pid": 8889,
+          "name": "MainThread",
+          "observedWallSeconds": 161.94210531299905,
+          "cpuSeconds": 4.0,
+          "averagePercentOfOneCore": 2.4700185243787374,
+          "peakRssMiB": 193.3203125
+        }
+      ],
+      "cleanShutdown": true
+    }
+  ],
+  "aggregate": {
+    "retain": {
+      "fpsRange": [
+        0.8732199904769807,
+        0.9239780555211814
+      ],
+      "medianRunFps": 0.898599022999081,
+      "medianRunP95Ms": 1870.8999999985099
+    },
+    "omit": {
+      "fpsRange": [
+        3.4619041466655593,
+        3.560067904998929
+      ],
+      "medianRunFps": 3.510986025832244,
+      "medianRunP95Ms": 490.9000000022352
+    }
+  },
+  "medianFpsRatioOmitToRetain": 3.9071776576323236,
+  "acceptance": "All original cold-entry and frame-pacing failures remain failures. No M5, navigation, audio, input latency or general visual acceptance is inferred.",
+  "hostMetricCaveat": "Per-process /proc USER_HZ=100 ticks sampled once/second over its observed lifetime including setup/warmup; subprocess roles were not collected. CPU callback timer does not measure whole frame or GPU execution; actual GPU milliseconds unavailable. No unowned process attribution."
+}

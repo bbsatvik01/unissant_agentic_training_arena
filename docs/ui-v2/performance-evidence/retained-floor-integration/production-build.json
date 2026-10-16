@@ -1,0 +1,591 @@
+{
+  "schema": "arena.production-dist.inventory.v1",
+  "buildSourceBaseCommit": "a88f5c245d92f2e22a597bb4be38a7d8bb887730",
+  "integratedSourceInventorySha256": "52b676d291b16979f558e5bc557c948fef9cafbb794263ff322d00beb433208d",
+  "root": "web/dist",
+  "files": [
+    {
+      "path": "assets/ConsoleRoute-C9BLldvl.js",
+      "bytes": 40575,
+      "sha256": "66b14bf1795f764f53f39d5d21f419d99fcc028b5e728ecdc566fafd5f68d2a0"
+    },
+    {
+      "path": "assets/F01-coached-DyYAWqRz.js",
+      "bytes": 85248,
+      "sha256": "0bbad5051b46bbc819d419753ba6fe81e24a2fc8a971258bbd06c8c8923abc8f"
+    },
+    {
+      "path": "assets/F01-truthful-CRvCqAZq.js",
+      "bytes": 26607,
+      "sha256": "8241e5220bd295ab240c3d2808ae1c9a3bfe45d3199d5c6eeb43a48ccbf8b85d"
+    },
+    {
+      "path": "assets/PrecinctCanvas-CW_0S7I8.js",
+      "bytes": 303534,
+      "sha256": "710fbc0127ee3dd8f4ebb7afa28129a27036f13d2082279d20319ac4d9f4e6f4"
+    },
+    {
+      "path": "assets/RoomEnvironment-BNTf8beZ.js",
+      "bytes": 959546,
+      "sha256": "c354003bb960ddea1de125db8af62aff789aa3aebe1fed421176f158351048da"
+    },
+    {
+      "path": "assets/TrustRoute-CQVO8GgS.js",
+      "bytes": 42919,
+      "sha256": "28445601d13d96d70cbc0dcaa638b7e2eb754ac086a32431a8101a6785f055d4"
+    },
+    {
+      "path": "assets/WorldCanvas-DGPH4Lg0.js",
+      "bytes": 105450,
+      "sha256": "eab79d79c3c6307477b671dec750aec48c481d141a38398ac09acb5d94c23948"
+    },
+    {
+      "path": "assets/WorldRoute-BhfsLdkd.js",
+      "bytes": 119458,
+      "sha256": "2526235fc4f8cc16290c7f5cb5218f9e40b35e5e0c9112e9636513ee1ee4e479"
+    },
+    {
+      "path": "assets/index-CJsr0gEh.js",
+      "bytes": 2469300,
+      "sha256": "ddd8b0149957b6659fff2143b20b1bece03e3bc4073a0a357359f03d4643e548"
+    },
+    {
+      "path": "assets/index-D--NDbcx.css",
+      "bytes": 138787,
+      "sha256": "56511255e108d89f9806119fe3e91f7f1567467733981c687bd66d509b78646f"
+    },
+    {
+      "path": "assets/jsx-runtime-D3jfb0Ew.js",
+      "bytes": 8901,
+      "sha256": "a2c68294426b0ded53fa2d6c97bb39c4a51f99e5e4b23e7953a2c69298e361f8"
+    },
+    {
+      "path": "assets/leaderboard.example-BlnAO6tI.js",
+      "bytes": 12215,
+      "sha256": "9fde41cea80f9e38a220988221210b85d5b10224454d7b857a218351d9dfe634"
+    },
+    {
+      "path": "assets/tournament.example-C2JjyC3R.js",
+      "bytes": 25703,
+      "sha256": "21238c0b6d5e9d45e599210e641be98d5dd658f198543a1784ef9badb35b56ae"
+    },
+    {
+      "path": "audio/staff-v1/receptionist-access.wav",
+      "bytes": 437594,
+      "sha256": "d275c9e294cc5f0be8b2c1bb4f59b8988096afd4b0bcbe4f477b74c893d6c7c9"
+    },
+    {
+      "path": "audio/staff-v1/receptionist-archive.wav",
+      "bytes": 353210,
+      "sha256": "9ab39e18620b905776e58d76758baaf60eedeeff686454d499983c58866c3813"
+    },
+    {
+      "path": "audio/staff-v1/receptionist-briefing.wav",
+      "bytes": 240802,
+      "sha256": "dea3e30d5fa9a165dd9a8138584bf2ff8dd220169441b3e3e6e34abc24c54425"
+    },
+    {
+      "path": "audio/staff-v1/receptionist-cases.wav",
+      "bytes": 392914,
+      "sha256": "6f9bc28a90146be9ab8d4078b8d11bb6b4bf626828c76d84c26afdb7ea35ce30"
+    },
+    {
+      "path": "audio/staff-v1/receptionist-desk.wav",
+      "bytes": 316480,
+      "sha256": "f931a876aa6fc103264005e6b67c492f58c7debb31d0b7e92e711d1807492c2b"
+    },
+    {
+      "path": "audio/staff-v1/receptionist-interview.wav",
+      "bytes": 365420,
+      "sha256": "3ee0caa5dfd83030a66acd727852c55a2261ca4299f9c24da2dea5c72882465c"
+    },
+    {
+      "path": "audio/staff-v1/receptionist-introduction.wav",
+      "bytes": 278058,
+      "sha256": "fbe0970affac62c715337633a2e8d73b2761e7ba2247d70807ef926c686320aa"
+    },
+    {
+      "path": "audio/staff-v1/receptionist-leaderboard.wav",
+      "bytes": 493570,
+      "sha256": "6a75bef27dab05a6c653c95381bb55b7532a6d7cdb8f5f8e80a3aaa49210d365"
+    },
+    {
+      "path": "audio/staff-v1/receptionist-redirect.wav",
+      "bytes": 621066,
+      "sha256": "efe1e1b53f441de8371d140381e571404db0200f7da01f5c1c685e66eee16020"
+    },
+    {
+      "path": "audio/staff-v1/receptionist-replay.wav",
+      "bytes": 309164,
+      "sha256": "ad63736f70a78106c9ceba84eab83252ca565158f15a7d856be848729d66763a"
+    },
+    {
+      "path": "audio/staff-v1/receptionist-return.wav",
+      "bytes": 348694,
+      "sha256": "453ff38bef8859eab774182bdc818aaf830f1a677a45815c00fb707f13bbed34"
+    },
+    {
+      "path": "audio/staff-v1/receptionist-welcome.wav",
+      "bytes": 319796,
+      "sha256": "145dfac48f664abdf4a3d672565ae8585cbd8164190b8502afb55cfe6244228a"
+    },
+    {
+      "path": "audio/staff-v1/sergeant-clarify.wav",
+      "bytes": 510472,
+      "sha256": "74669b58abaf04259539982654ce3fa61649832fbd0c0cb6a368ed8338a7aa09"
+    },
+    {
+      "path": "audio/staff-v1/sergeant-demeanor.wav",
+      "bytes": 592564,
+      "sha256": "9f04dc3fa2348c4f32c14580faded4525910bf07c9378d264e25661f4201bcb6"
+    },
+    {
+      "path": "audio/staff-v1/sergeant-disagreement.wav",
+      "bytes": 554214,
+      "sha256": "6bc5fbe6cdaccf9882477d1fd6d6ededde27190db4605940968865f7d724e754"
+    },
+    {
+      "path": "audio/staff-v1/sergeant-evidence.wav",
+      "bytes": 581426,
+      "sha256": "c6fcef4d37122219802836ca27d7c1df773f87b9ac5dca0f26a10d47618e3712"
+    },
+    {
+      "path": "audio/staff-v1/sergeant-introduction.wav",
+      "bytes": 384892,
+      "sha256": "1bd6378984191fbf7c3e5f0fd829fc42b2bf48b7c068d8c2263b6cb6022db34f"
+    },
+    {
+      "path": "audio/staff-v1/sergeant-limits.wav",
+      "bytes": 712616,
+      "sha256": "dabfba3cd9b2cdd3bed0bafb5597de6162dca063162075631fd696e7461b4409"
+    },
+    {
+      "path": "audio/staff-v1/sergeant-opening.wav",
+      "bytes": 449078,
+      "sha256": "3455ac577efa5854276dd6ecf0683a8aa768bddec35533f7396a412ad04ddf75"
+    },
+    {
+      "path": "audio/staff-v1/sergeant-redirect.wav",
+      "bytes": 649074,
+      "sha256": "f291746082d26922693ccfc56b4f8483d1747c0c48cc3a593c4361f457529ad1"
+    },
+    {
+      "path": "audio/staff-v1/sergeant-return.wav",
+      "bytes": 457542,
+      "sha256": "2c1ce3ebc8fec8eb0adae0c1f69ed342a4ff0eb4b67ee91d757ad7d717f35472"
+    },
+    {
+      "path": "audio/staff-v1/sergeant-review.wav",
+      "bytes": 476360,
+      "sha256": "ccb1274a0cd48433dbbf089dca47c0ebbcf9296c1110409f47a64351b6ce91e8"
+    },
+    {
+      "path": "audio/staff-v1/sergeant-welcome.wav",
+      "bytes": 427004,
+      "sha256": "fb69da3e642763eb63fa2c8f1e26f24e19c8fef0e27fa5cf22ba31ecc652bbe0"
+    },
+    {
+      "path": "avatars/Business_Female_01/avatar.glb",
+      "bytes": 1747872,
+      "sha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2"
+    },
+    {
+      "path": "avatars/Business_Female_01/body.jpg",
+      "bytes": 150493,
+      "sha256": "0c340ed502930f4f474bc75678236b48fb620cd360ffc33b230122029f08be93"
+    },
+    {
+      "path": "avatars/Business_Female_01/body_n.jpg",
+      "bytes": 207836,
+      "sha256": "ed66976001f9316aba07ae747147d270896ec9c6adeecc4f570079faa7fdabca"
+    },
+    {
+      "path": "avatars/Business_Female_01/head.jpg",
+      "bytes": 228716,
+      "sha256": "a0c4d8d88a7ccb7464e94c473fb2a89531c22dbe0aa63df8d1fd67a6fbfc61e1"
+    },
+    {
+      "path": "avatars/Business_Female_01/head_n.jpg",
+      "bytes": 268806,
+      "sha256": "f14db1f2c7cd06741620e2816cbcce096f59b409139b8854d004badc625de7fb"
+    },
+    {
+      "path": "avatars/Business_Female_01/opacity.png",
+      "bytes": 293137,
+      "sha256": "8068f18c812dd38bee42c54a81d7d406cb9a6f911ec2d56bf548ebb8e9136992"
+    },
+    {
+      "path": "avatars/Business_Female_02/avatar.glb",
+      "bytes": 1169328,
+      "sha256": "36304f4a2e279640859a21662349e9a411e53f604d12fe19c329795c454cf7ec"
+    },
+    {
+      "path": "avatars/Business_Female_02/body.jpg",
+      "bytes": 238110,
+      "sha256": "ee1df50beb594422e4d1bb0569c9f362bc28ac92757bce4f43a56030621d6a55"
+    },
+    {
+      "path": "avatars/Business_Female_02/body_n.jpg",
+      "bytes": 285446,
+      "sha256": "12eb1476af0ade09ad7213844199aa057ff70d98dbaa8c50578f10cf308a57a5"
+    },
+    {
+      "path": "avatars/Business_Female_02/glasses.png",
+      "bytes": 40857,
+      "sha256": "da5cc974214366dfda30b6d0920617e1529e41bb2b7e7ebbd50358e5fb2ec219"
+    },
+    {
+      "path": "avatars/Business_Female_02/head.jpg",
+      "bytes": 303804,
+      "sha256": "f3a1a6ab2adc1c8f9a9c6fa5326a5454816484011ee735f5cea37081227bf131"
+    },
+    {
+      "path": "avatars/Business_Female_02/head_n.jpg",
+      "bytes": 224143,
+      "sha256": "2ff8d842788ca801a3bebea1e0c15a9cc98a426b191d4d45cc8b2bf67702d6c1"
+    },
+    {
+      "path": "avatars/Business_Female_02/opacity.png",
+      "bytes": 399527,
+      "sha256": "217d152d5192276e8192efa4f67c8a3d86ac8d93b0d09b30864088c75279ecbf"
+    },
+    {
+      "path": "avatars/Business_Male_02/avatar.glb",
+      "bytes": 1626492,
+      "sha256": "17b4ca9fec7eb2f369ec4b8be34e606e9cf30dabd7e49f1d32042c60c086d24f"
+    },
+    {
+      "path": "avatars/Business_Male_02/body.jpg",
+      "bytes": 136735,
+      "sha256": "d0b9d3b209cba698ce79096cd39b4edc4d40de07bbac7a5c7e4f599d75f85d2c"
+    },
+    {
+      "path": "avatars/Business_Male_02/body_n.jpg",
+      "bytes": 240721,
+      "sha256": "7191ab42c58715225934ae80d68546b66b6f6d9b3e5dc52ecd9e7b2bb2eb9792"
+    },
+    {
+      "path": "avatars/Business_Male_02/head.jpg",
+      "bytes": 172570,
+      "sha256": "cdb2ed753952ae02ec517f06bda7761d8df625a2d1d2d535aad07fa34d83ac17"
+    },
+    {
+      "path": "avatars/Business_Male_02/head_n.jpg",
+      "bytes": 205892,
+      "sha256": "62955b3e6c654bcbf148e73b136144ac6ae3271137c8906ff6b7072091e0f72c"
+    },
+    {
+      "path": "avatars/Business_Male_02/opacity.png",
+      "bytes": 245105,
+      "sha256": "5b18691cd0d2c1a5b3addd38e06e3249cc2a885edbefa36341b8e9cc00b5dfdf"
+    },
+    {
+      "path": "avatars/Business_Male_04/avatar.glb",
+      "bytes": 1186692,
+      "sha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51"
+    },
+    {
+      "path": "avatars/Business_Male_04/body.jpg",
+      "bytes": 171399,
+      "sha256": "b1d81314507a28946b8520e258befa10b6436953b2de3a0ec58b37dbfea7e911"
+    },
+    {
+      "path": "avatars/Business_Male_04/body_n.jpg",
+      "bytes": 341212,
+      "sha256": "c8e255a09b02fc7b8569f368da22891bc413d9c8cd8c0eeee9072fbba1f891cd"
+    },
+    {
+      "path": "avatars/Business_Male_04/head.jpg",
+      "bytes": 178406,
+      "sha256": "c7221882489e50a24626a2abbfccb3f3ec9dbc7567abec19b3ddf494dc6a0ff4"
+    },
+    {
+      "path": "avatars/Business_Male_04/head_n.jpg",
+      "bytes": 184387,
+      "sha256": "c4e7839a130a72fa5512baa62e76946866a1493bf4415634b45f7fdaf303acdd"
+    },
+    {
+      "path": "avatars/Business_Male_06/avatar.glb",
+      "bytes": 1420560,
+      "sha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b"
+    },
+    {
+      "path": "avatars/Business_Male_06/body.jpg",
+      "bytes": 142627,
+      "sha256": "2cce232d0082faa08927133a2212306336a3b88f21ed8398ece24a444644e8b4"
+    },
+    {
+      "path": "avatars/Business_Male_06/body_n.jpg",
+      "bytes": 195002,
+      "sha256": "c2216f2aca76f24ccc56dca7feaccd3201d65e5bf83a7f777dce43d24be78d87"
+    },
+    {
+      "path": "avatars/Business_Male_06/head.jpg",
+      "bytes": 186663,
+      "sha256": "97997a8c631b932f285c90092410a05cee9b2ccc24298804cc011ede5bd176cd"
+    },
+    {
+      "path": "avatars/Business_Male_06/head_n.jpg",
+      "bytes": 247814,
+      "sha256": "105f75e6ef4462ee29da7e8202f1bbf98a83540741a472645dd45443c3143018"
+    },
+    {
+      "path": "avatars/Female_Adult_07/avatar.glb",
+      "bytes": 1259696,
+      "sha256": "3c664edaba7a5472b05712102896c2d9b093cb1aa3bf8c1cd4e3f3df2dc50ca6"
+    },
+    {
+      "path": "avatars/Female_Adult_07/body.jpg",
+      "bytes": 213630,
+      "sha256": "0f6383819337b7fc94dd5b4212f5a2dc0202b599ee54d1d058b6276e2a8048a6"
+    },
+    {
+      "path": "avatars/Female_Adult_07/body_n.jpg",
+      "bytes": 335820,
+      "sha256": "5df468172ce15110409ea6276f5e8fe82b14b4f3f87f192163af425ef5332eb9"
+    },
+    {
+      "path": "avatars/Female_Adult_07/head.jpg",
+      "bytes": 215477,
+      "sha256": "425215e41a9edef5ae28ba9030fd52567540415bb9e216b20bd5227b24e152e5"
+    },
+    {
+      "path": "avatars/Female_Adult_07/head_n.jpg",
+      "bytes": 211470,
+      "sha256": "4401835549c8bf4850ab4c855b3483064777524b8a534da8ab0c850c82a08425"
+    },
+    {
+      "path": "avatars/Female_Adult_07/opacity.png",
+      "bytes": 310714,
+      "sha256": "8a76e10f25bc2edd39fedf955483c80c395cc7d2df8f3996d3dc0e0f4d975a70"
+    },
+    {
+      "path": "avatars/Female_Adult_14/avatar.glb",
+      "bytes": 1197912,
+      "sha256": "a48adcb4661b2441231a81569b80a50a997c4f109d40d1a62abb8902f093ff7d"
+    },
+    {
+      "path": "avatars/Female_Adult_14/body.jpg",
+      "bytes": 319372,
+      "sha256": "b1b7036133f9be6e6ee1981541d10d2b86d1fd9d69e419fe1b6eeb92ed35386d"
+    },
+    {
+      "path": "avatars/Female_Adult_14/body_n.jpg",
+      "bytes": 504949,
+      "sha256": "ec35594a8d684ffdf2686fbbccefc17d9ae6c90e165f4c10ec7e51f02951b6b6"
+    },
+    {
+      "path": "avatars/Female_Adult_14/head.jpg",
+      "bytes": 215426,
+      "sha256": "0ac61f2d9d105eadf61205b64facc191988629e147feb3c6a4d41e57022116dc"
+    },
+    {
+      "path": "avatars/Female_Adult_14/head_n.jpg",
+      "bytes": 204634,
+      "sha256": "7be3c2299d74389fb379abfa52435d2de9f6eb6e8f33d35ec16c429f538cc01f"
+    },
+    {
+      "path": "avatars/Female_Adult_14/opacity.png",
+      "bytes": 359158,
+      "sha256": "011a8df71c3435ba53f6b6fe9536f13c6818427497afd44b4792a9b5a8e43572"
+    },
+    {
+      "path": "avatars/LICENSE.md",
+      "bytes": 3595,
+      "sha256": "3de4474e467f003bf001c0bf30ee974244083aa4124a2f6b827152148e6cddee"
+    },
+    {
+      "path": "avatars/Male_Adult_05/avatar.glb",
+      "bytes": 1571012,
+      "sha256": "6e35eabaa912194f851e1ce2bdf49ffb934006e4eb0698d3ab7322f1b30b8180"
+    },
+    {
+      "path": "avatars/Male_Adult_05/body.jpg",
+      "bytes": 218933,
+      "sha256": "d8f2b6ec18dc52cec5259efb1037ed495b57767b16ac413a06449db500f07032"
+    },
+    {
+      "path": "avatars/Male_Adult_05/body_n.jpg",
+      "bytes": 351062,
+      "sha256": "2a7036df6daf40f325c8fc22333e31ff7837b7e13281aca3ea75f12ce63f817a"
+    },
+    {
+      "path": "avatars/Male_Adult_05/head.jpg",
+      "bytes": 235182,
+      "sha256": "27d0cfaad99d0fe65b172e021f798e9049f458000fea4b843af4835c06a6282e"
+    },
+    {
+      "path": "avatars/Male_Adult_05/head_n.jpg",
+      "bytes": 243946,
+      "sha256": "71df81cf3292209edd21d4216f7733c41215953edd50ee976de5132dd098260d"
+    },
+    {
+      "path": "avatars/Male_Adult_05/opacity.png",
+      "bytes": 379596,
+      "sha256": "ebc85681321bc694d556b761c552a51fb44491769127ae50775ada86c1e2f75f"
+    },
+    {
+      "path": "avatars/Male_Adult_08/avatar.glb",
+      "bytes": 1087888,
+      "sha256": "5e716522f2d70e760d2afb48ccee82ca75f77239c07d915ac9033b1d222ec17f"
+    },
+    {
+      "path": "avatars/Male_Adult_08/body.jpg",
+      "bytes": 171911,
+      "sha256": "d21fe97b6bdb88f46b90897ba75fa2e406a533c33b7ce6fd09b3809e78af5580"
+    },
+    {
+      "path": "avatars/Male_Adult_08/body_n.jpg",
+      "bytes": 235920,
+      "sha256": "4dce20b6f0e1d5e5cab39d6c839cf772165c47c68b74b1aea9d971934bd1aa97"
+    },
+    {
+      "path": "avatars/Male_Adult_08/head.jpg",
+      "bytes": 202220,
+      "sha256": "5eb5f08ebc278f7e158d8923f50406044d276fa81d56afb9d0f3aae189df4ba6"
+    },
+    {
+      "path": "avatars/Male_Adult_08/head_n.jpg",
+      "bytes": 204198,
+      "sha256": "63c28e102e56c8a0ffece88e0cce04fbdd91d42f39dcfdf17349cb0d769009bc"
+    },
+    {
+      "path": "avatars/Male_Adult_08/opacity.png",
+      "bytes": 349870,
+      "sha256": "7ce84dde2389e19ecad2130298b235fe5446b8cf76fe5fff9ea736f6d4ea0ed5"
+    },
+    {
+      "path": "avatars/Male_Adult_12/avatar.glb",
+      "bytes": 1526136,
+      "sha256": "6f6c93ced906738096b9fd0f32731b21079a7a978324cfa841328d7872a685ff"
+    },
+    {
+      "path": "avatars/Male_Adult_12/body.jpg",
+      "bytes": 338105,
+      "sha256": "3d5b259d3550336ace3cd68ca020277a8480430c07dbb0a2c89b135f6f83b506"
+    },
+    {
+      "path": "avatars/Male_Adult_12/body_n.jpg",
+      "bytes": 342854,
+      "sha256": "caf8dd043e930ff398a1ff6452ceea309becdf9e52de218a8de2eababe629a9c"
+    },
+    {
+      "path": "avatars/Male_Adult_12/head.jpg",
+      "bytes": 193336,
+      "sha256": "a1c465a073c4d268f1cf0854e59d1c3049405a78e22ef107211945cd6af88be4"
+    },
+    {
+      "path": "avatars/Male_Adult_12/head_n.jpg",
+      "bytes": 181414,
+      "sha256": "ce11b90fce101aa1be2b01a13515d6d132f6370a42191222cd9e1ae86bcb44b4"
+    },
+    {
+      "path": "avatars/clips/f_sit_table_breathe_01.json",
+      "bytes": 524821,
+      "sha256": "957937214e650a6951644d4c60bf93fb6f823c203dfedb2e1259b0268df72d32"
+    },
+    {
+      "path": "avatars/clips/f_sit_table_gestic_thoughtful.json",
+      "bytes": 1014174,
+      "sha256": "994e524138168cc8781b6eb5cb71c8b7953b1288e74f35f2a9f6259bfa0d8295"
+    },
+    {
+      "path": "avatars/clips/f_sit_table_idle_look_around.json",
+      "bytes": 140110,
+      "sha256": "068fcb573107c913d6a2359475d5fa07bed93e3b6b5eba5e2a07b3a633f9c8a5"
+    },
+    {
+      "path": "avatars/clips/m_sit_table_breathe_01.json",
+      "bytes": 342723,
+      "sha256": "3ed0b95a7e5ea0fcc0bd8b7bd393d3bd3bf437e0edbfb6779324fc7617040560"
+    },
+    {
+      "path": "avatars/clips/m_sit_table_gestic_thoughtful.json",
+      "bytes": 1088280,
+      "sha256": "3948f528fbee2a62900d7c21e49e682701c513894d86895b131a42c53feabf50"
+    },
+    {
+      "path": "avatars/clips/m_sit_table_idle_look_around.json",
+      "bytes": 291199,
+      "sha256": "084c7edeeb8c8d99d511811fd5c8ba1baf3cf7b16f047e5bc581a58b4a5c1645"
+    },
+    {
+      "path": "favicon.svg",
+      "bytes": 359,
+      "sha256": "9dbfeb95718e662386b2ab666f740a24dff61b0df61d41ffcf1d958b81fcdca5"
+    },
+    {
+      "path": "index.html",
+      "bytes": 563,
+      "sha256": "d6cfc75331fb0c5e6e62eabd6d87b932a1e6e02813446567ab694adc2bff9324"
+    },
+    {
+      "path": "pets/LICENSE.md",
+      "bytes": 805,
+      "sha256": "08b5fc6b3ca3a5e4290468ac65c50697706ca939bc5575d9f97b1c2f034081cc"
+    },
+    {
+      "path": "pets/cat.glb",
+      "bytes": 286736,
+      "sha256": "c374abb90dd0993b80bfedfa195552a168f9713c630e8bd0b50a56458298e3e4"
+    },
+    {
+      "path": "worklets/capture-processor.js",
+      "bytes": 1227,
+      "sha256": "e2cf38e4814f38a43b1958055beaef3b5ec9f1570baa8b0062fa80fe4c3745ed"
+    },
+    {
+      "path": "worklets/playback-processor.js",
+      "bytes": 2223,
+      "sha256": "ac403d9af010e2ba159d6d7a96a13a0497dc074da0cb14342230383855dc42db"
+    },
+    {
+      "path": "world/lobby-preview.png",
+      "bytes": 1469734,
+      "sha256": "d10094dcdb08bd2062358560b2695211317dfec08dd606579f60719eeecd0754"
+    },
+    {
+      "path": "world/precinct-courtyard-manifest.json",
+      "bytes": 88716,
+      "sha256": "a70a2d7685d48231f4fbd1d3d0ad647d370a8ea42670cf3a795476c7ac1caa96"
+    },
+    {
+      "path": "world/precinct-courtyard-navmesh.json",
+      "bytes": 402798,
+      "sha256": "4da61e8ecff9a5895dc674739a55f46d14416feedde5db948066d2528e05e925"
+    },
+    {
+      "path": "world/precinct-courtyard.glb",
+      "bytes": 3167788,
+      "sha256": "e985fe9677cf56ce77ee361b8567b5c2bb1eaae9304464f54c473ca2d7c9c4a0"
+    },
+    {
+      "path": "world/precinct-manifest.json",
+      "bytes": 60176,
+      "sha256": "fc85679e66e176e2fc29c1b6caa2ad364b3a4c60e099fc3c22cc46b26b24552f"
+    },
+    {
+      "path": "world/precinct-office-navmesh.json",
+      "bytes": 277712,
+      "sha256": "04d6cb5f47316474a6d8a98a1ed14363094a4d3562530dc0a887d316d56b6b64"
+    },
+    {
+      "path": "world/precinct.glb",
+      "bytes": 3075764,
+      "sha256": "a9801458da3ff10911d49d03ba80cfa60eae9a70e42121b67a3066ec9aab9e9e"
+    }
+  ],
+  "fileCount": 114,
+  "bytes": 52471949,
+  "buildExit": 0,
+  "sourceIntegrityExit": 0,
+  "command": "cd web && pnpm run build",
+  "buildLogSha256": "0c86206d572bfe30118bf8d702049c815f9b70b3d920a2dd63bd9605d8943fcc",
+  "scope": "Separate successful production build after failed local aggregate and passed focused reproduction. Not a passing full local gate or approved distributable.",
+  "portableDistribution": "Held for inherited GSAP decision, complete notices/privacy review and actual native-device validation.",
+  "viteBuildSeconds": 3.66,
+  "warnings": [
+    "Existing minified chunks exceed500kB; chunk-size warning is retained, not raised or disabled.",
+    "Bundler callback timing advisory reported."
+  ]
+}

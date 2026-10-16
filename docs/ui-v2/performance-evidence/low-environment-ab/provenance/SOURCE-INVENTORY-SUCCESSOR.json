@@ -1,0 +1,8 @@
+{
+  "oldWebOnlyInventorySha256": "84af6b6d58bd47ae6304e6e25e3605a95fa90615899c87080ae2cad6b9951498",
+  "newWebAndRuntimeInputInventorySha256": "d53fe0a6ea06ca648918c7cff05c771058abc95b76c03c22655983848bca1cb0",
+  "webRowsByteIdentical": true,
+  "appendedExactly": "85d57911a8a4566bcd128d70d9efe70fe7a1da55fe4434ba65dd93708dd9563d  supabase/tests/fixtures/capability_matrix.csv",
+  "reason": "Bind the exact tracked CSV consumed by TrustRoute in the production build. No web source change.",
+  "fixtureSourceCommit": "8eedd7564570c41def9892e4c1ddd4099b090872"
+}

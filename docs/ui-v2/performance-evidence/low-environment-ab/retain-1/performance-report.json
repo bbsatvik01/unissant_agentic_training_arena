@@ -1,0 +1,2730 @@
+{
+  "status": "steady-state-completed-cold-start-failed",
+  "readiness": {
+    "originalGateMs": 5000,
+    "initialReady": false,
+    "initialFailure": "Error: expect(locator).toBeEnabled() failed\n\nLocator: getByRole('button', { name: 'Enter the precinct', exact: true })\nExpected: enabled\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeEnabled\" getByRole('button', { name: 'Enter the precinct', exact: true }) with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Enter the precinct', exact: true })\n\n    at captureRawStack (/workspace/shared/precinct-low-environment-validation-qa/20261015T223417Z/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/precinct-low-environment-validation-qa/20261015T223417Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeEnabled (/workspace/shared/precinct-low-environment-validation-qa/20261015T223417Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at benchmarkPrecinct (/workspace/shared/precinct-low-environment-validation-qa/20261015T223417Z/web/tools/precinct-performance.ts:173:95)",
+    "initialGateElapsedMs": 5019.613238000001,
+    "diagnosticOnly": false,
+    "slowStartDiagnostic": true,
+    "captureErrors": [],
+    "followupLimitMs": 60000,
+    "followupReady": true,
+    "followupElapsedMs": 23.198537000000215,
+    "failureEvidence": [
+      "cold-start-failure.html",
+      "cold-start-failure.png"
+    ]
+  },
+  "requests": [
+    {
+      "path": "/",
+      "resourceType": "document",
+      "startedMs": 1407.827277,
+      "responseMs": 1443.6971059999998,
+      "finishedMs": 1542.1422949999999,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104345368.13,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 1.662,
+        "responseStart": 10.421,
+        "responseEnd": 28.81
+      }
+    },
+    {
+      "path": "/assets/index-CXP2eXYC.js",
+      "resourceType": "script",
+      "startedMs": 1564.786778,
+      "responseMs": 1872.4812279999999,
+      "finishedMs": 1872.788781,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104345557.366,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 2.516,
+        "responseStart": 14.881,
+        "responseEnd": 277.678
+      }
+    },
+    {
+      "path": "/assets/jsx-runtime-D3jfb0Ew.js",
+      "resourceType": "script",
+      "startedMs": 1596.542064,
+      "responseMs": 1662.6942390000002,
+      "finishedMs": 1663.817323,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104345558.0762,
+        "domainLookupStart": 1.409,
+        "domainLookupEnd": 1.431,
+        "connectStart": 1.431,
+        "secureConnectionStart": -1,
+        "connectEnd": 2.136,
+        "requestStart": 2.196,
+        "responseStart": 12.179,
+        "responseEnd": 158.213
+      }
+    },
+    {
+      "path": "/assets/index-Ci14sePE.css",
+      "resourceType": "stylesheet",
+      "startedMs": 1597.785479,
+      "responseMs": 1643.856086,
+      "finishedMs": 1644.3651200000002,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104345559.012,
+        "domainLookupStart": 3.347,
+        "domainLookupEnd": 3.368,
+        "connectStart": 3.368,
+        "secureConnectionStart": -1,
+        "connectEnd": 3.607,
+        "requestStart": 3.663,
+        "responseStart": 12.345,
+        "responseEnd": 155.601
+      }
+    },
+    {
+      "path": "/assets/PrecinctCanvas-CXgv3h0M.js",
+      "resourceType": "script",
+      "startedMs": 2366.3407740000002,
+      "responseMs": 2465.729002,
+      "finishedMs": 2473.5835669999997,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104346324.489,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 1.354,
+        "responseStart": 10.301,
+        "responseEnd": 151.289
+      }
+    },
+    {
+      "path": "/assets/RoomEnvironment-juRwloo4.js",
+      "resourceType": "script",
+      "startedMs": 2368.968154,
+      "responseMs": 2933.649955,
+      "finishedMs": 2934.280957,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104346324.764,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 1.214,
+        "responseStart": 14.475,
+        "responseEnd": 218.531
+      }
+    },
+    {
+      "path": "/favicon.svg",
+      "resourceType": "other",
+      "startedMs": 2473.7427829999997,
+      "responseMs": 2932.943959,
+      "finishedMs": 2932.990914,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104346434.654,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 0.657,
+        "responseStart": 4.301,
+        "responseEnd": 50.248
+      }
+    },
+    {
+      "path": "/world/precinct.glb",
+      "resourceType": "fetch",
+      "startedMs": 3745.034151,
+      "responseMs": 3979.6477800000002,
+      "finishedMs": 8008.052389,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104347703.207,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 0.892,
+        "responseStart": 8.096,
+        "responseEnd": 4553.492
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 3749.014531,
+      "responseMs": 3981.1922570000006,
+      "finishedMs": 7956.998293000001,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104347711.8308,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 8.908,
+        "responseStart": 17.765,
+        "responseEnd": 497.09
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 3750.393169,
+      "responseMs": 3983.0060570000005,
+      "finishedMs": 7963.159145,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104347712.002,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 8.926,
+        "responseStart": 17.513,
+        "responseEnd": 472.645
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_06/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 3755.8900430000003,
+      "responseMs": 3984.3829240000005,
+      "finishedMs": 7971.892797,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104347712.241,
+        "domainLookupStart": 5.578,
+        "domainLookupEnd": 5.894,
+        "connectStart": 5.894,
+        "secureConnectionStart": -1,
+        "connectEnd": 8.265,
+        "requestStart": 13.023,
+        "responseStart": 22.015,
+        "responseEnd": 486.51
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/body.jpg",
+      "resourceType": "image",
+      "startedMs": 8325.89604,
+      "responseMs": 8545.337172,
+      "finishedMs": 8553.077699,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104352287.0823,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 3.777,
+        "responseStart": 10.656,
+        "responseEnd": 104.964
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/body_n.jpg",
+      "resourceType": "image",
+      "startedMs": 8327.619648,
+      "responseMs": 8545.968454,
+      "finishedMs": 8553.085752,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104352287.1758,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 5.205,
+        "responseStart": 10.604,
+        "responseEnd": 108.412
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/head.jpg",
+      "resourceType": "image",
+      "startedMs": 8328.690809,
+      "responseMs": 8548.199992,
+      "finishedMs": 8553.0546,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104352288.1382,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 4.32,
+        "responseStart": 9.693,
+        "responseEnd": 109.565
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/head_n.jpg",
+      "resourceType": "image",
+      "startedMs": 8329.767405,
+      "responseMs": 8548.916728,
+      "finishedMs": 8553.069737,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104352289.1838,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 3.323,
+        "responseStart": 13.349,
+        "responseEnd": 112.624
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/opacity.png",
+      "resourceType": "image",
+      "startedMs": 8331.094967,
+      "responseMs": 8549.069122,
+      "finishedMs": 8553.092992,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104352290.01,
+        "domainLookupStart": 2.051,
+        "domainLookupEnd": 2.152,
+        "connectStart": 2.152,
+        "secureConnectionStart": -1,
+        "connectEnd": 2.267,
+        "requestStart": 2.544,
+        "responseStart": 13.385,
+        "responseEnd": 112.941
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/body.jpg",
+      "resourceType": "image",
+      "startedMs": 8547.124678,
+      "responseMs": 8821.511845,
+      "finishedMs": 8823.594047,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104352507.504,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 4.74,
+        "responseStart": 20.457,
+        "responseEnd": 231.097
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/body_n.jpg",
+      "resourceType": "image",
+      "startedMs": 8549.511702,
+      "responseMs": 8830.740657,
+      "finishedMs": 8832.69688,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104352509.1172,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 3.309,
+        "responseStart": 19.803,
+        "responseEnd": 236.849
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/head.jpg",
+      "resourceType": "image",
+      "startedMs": 8550.044873,
+      "responseMs": 8826.14913,
+      "finishedMs": 8827.141119,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104352509.342,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 3.252,
+        "responseStart": 19.428,
+        "responseEnd": 232.953
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/head_n.jpg",
+      "resourceType": "image",
+      "startedMs": 8550.396317,
+      "responseMs": 8825.505198,
+      "finishedMs": 8825.832298,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104352509.9932,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 2.681,
+        "responseStart": 18.575,
+        "responseEnd": 232.484
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_06/body.jpg",
+      "resourceType": "image",
+      "startedMs": 8550.611533,
+      "responseMs": 8833.067376,
+      "finishedMs": 8834.532403000001,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104352510.1587,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 2.606,
+        "responseStart": 18.881,
+        "responseEnd": 233.095
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_06/body_n.jpg",
+      "resourceType": "image",
+      "startedMs": 8551.201592,
+      "responseMs": 8836.96004,
+      "finishedMs": 8837.314824000001,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104352510.3582,
+        "domainLookupStart": 1.403,
+        "domainLookupEnd": 1.474,
+        "connectStart": 1.474,
+        "secureConnectionStart": -1,
+        "connectEnd": 2,
+        "requestStart": 2.487,
+        "responseStart": 22.596,
+        "responseEnd": 236.035
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_06/head.jpg",
+      "resourceType": "image",
+      "startedMs": 8552.065265000001,
+      "responseMs": 8837.372577,
+      "finishedMs": 8837.487658,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104352538.197,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 1.918,
+        "responseStart": 3.699,
+        "responseEnd": 238.685
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_06/head_n.jpg",
+      "resourceType": "image",
+      "startedMs": 8552.710069,
+      "responseMs": 8837.522891,
+      "finishedMs": 8837.682716,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104352539.657,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 1.852,
+        "responseStart": 5.329,
+        "responseEnd": 241.408
+      }
+    },
+    {
+      "path": "/world/precinct-courtyard.glb",
+      "resourceType": "fetch",
+      "startedMs": 18851.4489,
+      "responseMs": 19977.659603,
+      "finishedMs": 23284.057779,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104362809.1628,
+        "domainLookupStart": 4.481,
+        "domainLookupEnd": 4.53,
+        "connectStart": 4.53,
+        "secureConnectionStart": -1,
+        "connectEnd": 4.901,
+        "requestStart": 5.061,
+        "responseStart": 18.19,
+        "responseEnd": 4569.344
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 26933.050998,
+      "responseMs": 26988.605378999997,
+      "finishedMs": 27028.209325,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104370896.7778,
+        "domainLookupStart": 0.635,
+        "domainLookupEnd": 0.657,
+        "connectStart": 0.657,
+        "secureConnectionStart": -1,
+        "connectEnd": 0.787,
+        "requestStart": 3.35,
+        "responseStart": 10.736,
+        "responseEnd": 44.169
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/body.jpg",
+      "resourceType": "image",
+      "startedMs": 27262.590851999998,
+      "responseMs": 27285.342951,
+      "finishedMs": 27294.220040999997,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104371222.059,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 1.104,
+        "responseStart": 7.073,
+        "responseEnd": 149.767
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/body_n.jpg",
+      "resourceType": "image",
+      "startedMs": 27264.057881999997,
+      "responseMs": 27285.743678,
+      "finishedMs": 27296.203066,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104371222.6218,
+        "domainLookupStart": 0.733,
+        "domainLookupEnd": 0.756,
+        "connectStart": 0.756,
+        "secureConnectionStart": -1,
+        "connectEnd": 1.72,
+        "requestStart": 2.197,
+        "responseStart": 7.87,
+        "responseEnd": 152.29
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/head.jpg",
+      "resourceType": "image",
+      "startedMs": 27264.809142,
+      "responseMs": 27291.097314,
+      "finishedMs": 27298.063858999998,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104371224.048,
+        "domainLookupStart": 0.878,
+        "domainLookupEnd": 0.885,
+        "connectStart": 0.885,
+        "secureConnectionStart": -1,
+        "connectEnd": 4.86,
+        "requestStart": 5.24,
+        "responseStart": 10.115,
+        "responseEnd": 155.125
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/head_n.jpg",
+      "resourceType": "image",
+      "startedMs": 27266.220419999998,
+      "responseMs": 27291.482538,
+      "finishedMs": 27296.472883,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104371224.6821,
+        "domainLookupStart": 3.41,
+        "domainLookupEnd": 3.461,
+        "connectStart": 3.461,
+        "secureConnectionStart": -1,
+        "connectEnd": 4.237,
+        "requestStart": 4.689,
+        "responseStart": 10.155,
+        "responseEnd": 155.637
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/opacity.png",
+      "resourceType": "image",
+      "startedMs": 27266.851108,
+      "responseMs": 27298.367401,
+      "finishedMs": 27317.657640999998,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792104371228.7102,
+        "domainLookupStart": 2.788,
+        "domainLookupEnd": 2.805,
+        "connectStart": 2.805,
+        "secureConnectionStart": -1,
+        "connectEnd": 4.219,
+        "requestStart": 9,
+        "responseStart": 15.669,
+        "responseEnd": 159.447
+      }
+    }
+  ],
+  "buildAssets": [
+    {
+      "path": "/assets/index-Ci14sePE.css",
+      "bytes": 138769,
+      "sha256": "dec25bf7fdb65464ae9df06d13f885219a361e338885ca372e744ad85acc352b"
+    },
+    {
+      "path": "/assets/index-CXP2eXYC.js",
+      "bytes": 2467491,
+      "sha256": "fb2a4941d375d4d32eb738a25aaccdf9e1ce2b48276865c5781b7a6b58d76a00"
+    },
+    {
+      "path": "/assets/jsx-runtime-D3jfb0Ew.js",
+      "bytes": 8901,
+      "sha256": "a2c68294426b0ded53fa2d6c97bb39c4a51f99e5e4b23e7953a2c69298e361f8"
+    },
+    {
+      "path": "/assets/PrecinctCanvas-CXgv3h0M.js",
+      "bytes": 302774,
+      "sha256": "4f6324fed5ba1279c38694b3a1c514fcd155a871b2237127f7cf27819fe408a9"
+    },
+    {
+      "path": "/assets/RoomEnvironment-juRwloo4.js",
+      "bytes": 959546,
+      "sha256": "d9a5ed449bb16f20e8f992bef22891c122050744d74bd0798d4f764d9c3c96e0"
+    },
+    {
+      "path": "/avatars/Business_Female_01/avatar.glb",
+      "bytes": 1747872,
+      "sha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2"
+    },
+    {
+      "path": "/avatars/Business_Female_01/body_n.jpg",
+      "bytes": 207836,
+      "sha256": "ed66976001f9316aba07ae747147d270896ec9c6adeecc4f570079faa7fdabca"
+    },
+    {
+      "path": "/avatars/Business_Female_01/body.jpg",
+      "bytes": 150493,
+      "sha256": "0c340ed502930f4f474bc75678236b48fb620cd360ffc33b230122029f08be93"
+    },
+    {
+      "path": "/avatars/Business_Female_01/head_n.jpg",
+      "bytes": 268806,
+      "sha256": "f14db1f2c7cd06741620e2816cbcce096f59b409139b8854d004badc625de7fb"
+    },
+    {
+      "path": "/avatars/Business_Female_01/head.jpg",
+      "bytes": 228716,
+      "sha256": "a0c4d8d88a7ccb7464e94c473fb2a89531c22dbe0aa63df8d1fd67a6fbfc61e1"
+    },
+    {
+      "path": "/avatars/Business_Female_01/opacity.png",
+      "bytes": 293137,
+      "sha256": "8068f18c812dd38bee42c54a81d7d406cb9a6f911ec2d56bf548ebb8e9136992"
+    },
+    {
+      "path": "/avatars/Business_Male_02/avatar.glb",
+      "bytes": 1626492,
+      "sha256": "17b4ca9fec7eb2f369ec4b8be34e606e9cf30dabd7e49f1d32042c60c086d24f"
+    },
+    {
+      "path": "/avatars/Business_Male_02/body_n.jpg",
+      "bytes": 240721,
+      "sha256": "7191ab42c58715225934ae80d68546b66b6f6d9b3e5dc52ecd9e7b2bb2eb9792"
+    },
+    {
+      "path": "/avatars/Business_Male_02/body.jpg",
+      "bytes": 136735,
+      "sha256": "d0b9d3b209cba698ce79096cd39b4edc4d40de07bbac7a5c7e4f599d75f85d2c"
+    },
+    {
+      "path": "/avatars/Business_Male_02/head_n.jpg",
+      "bytes": 205892,
+      "sha256": "62955b3e6c654bcbf148e73b136144ac6ae3271137c8906ff6b7072091e0f72c"
+    },
+    {
+      "path": "/avatars/Business_Male_02/head.jpg",
+      "bytes": 172570,
+      "sha256": "cdb2ed753952ae02ec517f06bda7761d8df625a2d1d2d535aad07fa34d83ac17"
+    },
+    {
+      "path": "/avatars/Business_Male_02/opacity.png",
+      "bytes": 245105,
+      "sha256": "5b18691cd0d2c1a5b3addd38e06e3249cc2a885edbefa36341b8e9cc00b5dfdf"
+    },
+    {
+      "path": "/avatars/Business_Male_04/avatar.glb",
+      "bytes": 1186692,
+      "sha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51"
+    },
+    {
+      "path": "/avatars/Business_Male_04/body_n.jpg",
+      "bytes": 341212,
+      "sha256": "c8e255a09b02fc7b8569f368da22891bc413d9c8cd8c0eeee9072fbba1f891cd"
+    },
+    {
+      "path": "/avatars/Business_Male_04/body.jpg",
+      "bytes": 171399,
+      "sha256": "b1d81314507a28946b8520e258befa10b6436953b2de3a0ec58b37dbfea7e911"
+    },
+    {
+      "path": "/avatars/Business_Male_04/head_n.jpg",
+      "bytes": 184387,
+      "sha256": "c4e7839a130a72fa5512baa62e76946866a1493bf4415634b45f7fdaf303acdd"
+    },
+    {
+      "path": "/avatars/Business_Male_04/head.jpg",
+      "bytes": 178406,
+      "sha256": "c7221882489e50a24626a2abbfccb3f3ec9dbc7567abec19b3ddf494dc6a0ff4"
+    },
+    {
+      "path": "/avatars/Business_Male_06/avatar.glb",
+      "bytes": 1420560,
+      "sha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b"
+    },
+    {
+      "path": "/avatars/Business_Male_06/body_n.jpg",
+      "bytes": 195002,
+      "sha256": "c2216f2aca76f24ccc56dca7feaccd3201d65e5bf83a7f777dce43d24be78d87"
+    },
+    {
+      "path": "/avatars/Business_Male_06/body.jpg",
+      "bytes": 142627,
+      "sha256": "2cce232d0082faa08927133a2212306336a3b88f21ed8398ece24a444644e8b4"
+    },
+    {
+      "path": "/avatars/Business_Male_06/head_n.jpg",
+      "bytes": 247814,
+      "sha256": "105f75e6ef4462ee29da7e8202f1bbf98a83540741a472645dd45443c3143018"
+    },
+    {
+      "path": "/avatars/Business_Male_06/head.jpg",
+      "bytes": 186663,
+      "sha256": "97997a8c631b932f285c90092410a05cee9b2ccc24298804cc011ede5bd176cd"
+    },
+    {
+      "path": "/world/precinct-courtyard.glb",
+      "bytes": 3167788,
+      "sha256": "e985fe9677cf56ce77ee361b8567b5c2bb1eaae9304464f54c473ca2d7c9c4a0"
+    },
+    {
+      "path": "/world/precinct.glb",
+      "bytes": 3075764,
+      "sha256": "a9801458da3ff10911d49d03ba80cfa60eae9a70e42121b67a3066ec9aab9e9e"
+    }
+  ],
+  "loadedArtifactFingerprint": "1fd16ff7dbd6ba8ab47a1b25f61cdf6018dca28efd38c76c4d7e5766a31a92f8",
+  "options": {
+    "url": "http://127.0.0.1:4187/?precinctPerf=1&precinctPerfPinned=1&precinctLowEnvironment=retain",
+    "output": "/workspace/shared/precinct-low-environment-validation-qa/20261015T223417Z/native-results/retain-1-20261015T224541Z-16d7fd/measurement",
+    "seconds": 60,
+    "warmup": 60,
+    "dpr": 1,
+    "scene": "courtyard",
+    "tier": "low",
+    "camera": "third",
+    "protocol": "fixed-camera",
+    "lowEnvironment": "retain",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "software": true,
+    "headed": false,
+    "readinessDiagnostics": false,
+    "slowStartDiagnostic": true,
+    "machineLabel": "Not supplied; device model unverified"
+  },
+  "browserVersion": "154.0.8037.57",
+  "movement": [],
+  "turns": [],
+  "fixedCamera": {
+    "reducedMotion": true,
+    "initial": {
+      "active": false,
+      "tier": "low",
+      "continuous": true,
+      "visible": true,
+      "cameraPosition": [
+        0,
+        2.15,
+        0.3999999999999996
+      ],
+      "cameraQuaternion": [
+        -0.06008895503210163,
+        0,
+        0,
+        0.9981930261643537
+      ],
+      "calls": 83,
+      "triangles": 143282,
+      "drawingBuffer": {
+        "width": 1080,
+        "height": 675
+      },
+      "dpr": 0.75,
+      "sceneAsset": "/world/precinct-courtyard.glb",
+      "production": true
+    },
+    "observations": [
+      {
+        "elapsedMs": 1005.9029139999911,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 2048.3512689999916,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 3063.1843269999954,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 4092.033045999997,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 5155.482774000004,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 6184.822239000001,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 7382.137126000001,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 8501.741586999997,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 9531.904618,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 10567.211096999992,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 11586.871543000001,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 12632.54106599999,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 13810.856692000001,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 14850.067863000004,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 15956.690088999996,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 16985.013328,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 17997.33974899999,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 19034.10397499999,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 20047.468148,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 21069.691873000003,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 22086.330050000004,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 23116.99659899999,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 24149.664711999998,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 25178.877204999997,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 26197.282657000003,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 27235.888210999998,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 28251.246058000004,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 29797.902415999997,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 32288.670245999994,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 33335.568398,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 34413.593488,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 36135.095103,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 37948.946337,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 39037.72724199999,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 40066.76008200001,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 41119.434868,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 42144.780908,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 43186.600300999984,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 44215.426342000006,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 45246.615023000006,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 46268.55438500001,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 47331.974077999985,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 48357.63621700001,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 49396.457523000005,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 50436.89623500001,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 51464.30391599999,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 52496.873267,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 53522.083257999984,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 54574.677694,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 55594.372740999985,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 56613.937001,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 57623.306666000004,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 58635.64396199999,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 59647.60762099999,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      },
+      {
+        "elapsedMs": 60664.711766999986,
+        "state": {
+          "active": true,
+          "tier": "low",
+          "continuous": true,
+          "visible": true,
+          "cameraPosition": [
+            0,
+            2.15,
+            0.3999999999999996
+          ],
+          "cameraQuaternion": [
+            -0.06008895503210163,
+            0,
+            0,
+            0.9981930261643537
+          ],
+          "calls": 83,
+          "triangles": 143282,
+          "drawingBuffer": {
+            "width": 1080,
+            "height": 675
+          },
+          "dpr": 0.75,
+          "sceneAsset": "/world/precinct-courtyard.glb",
+          "production": true
+        }
+      }
+    ],
+    "maxPositionDrift": 0,
+    "maxQuaternionDrift": 0,
+    "initialEnvironment": true,
+    "finalEnvironment": true
+  },
+  "errors": [],
+  "blockedRequests": [],
+  "host": {
+    "platform": "linux",
+    "release": "6.18.44",
+    "arch": "x64",
+    "cpuModels": [
+      "INTEL(R) XEON(R) PLATINUM 8573C"
+    ]
+  },
+  "protocol": "Production app, warmed assets, Skip arrival, reduced motion, no movement input during timing; camera/tier/DPR/buffer sampled approximately once per second and checked for drift. No screenshots/video during timing. This does not validate movement or live backend/model behavior.",
+  "report": {
+    "durationMs": 60694.89999999851,
+    "framesRendered": 53,
+    "averageRenderedFps": 0.8732199904769807,
+    "frameIntervalMs": {
+      "samples": 52,
+      "retained": 52,
+      "dropped": 0,
+      "p50": 964.6000000014901,
+      "p95": 1809.1999999955297,
+      "p99": 3955.2999999970198,
+      "max": 3955.2999999970198
+    },
+    "cpuFrameAndRenderSubmissionMs": {
+      "samples": 53,
+      "retained": 53,
+      "dropped": 0,
+      "p50": 7.600000001490116,
+      "p95": 15.600000001490116,
+      "p99": 19.299999997019768,
+      "max": 19.299999997019768
+    },
+    "drawCalls": {
+      "samples": 53,
+      "retained": 53,
+      "dropped": 0,
+      "p50": 83,
+      "p95": 83,
+      "p99": 83,
+      "max": 83
+    },
+    "triangles": {
+      "samples": 53,
+      "retained": 53,
+      "dropped": 0,
+      "p50": 143282,
+      "p95": 143282,
+      "p99": 143282,
+      "max": 143282
+    },
+    "dpr": {
+      "samples": 53,
+      "retained": 53,
+      "dropped": 0,
+      "p50": 0.75,
+      "p95": 0.75,
+      "p99": 0.75,
+      "max": 0.75
+    },
+    "drawingBufferPixels": {
+      "samples": 53,
+      "retained": 53,
+      "dropped": 0,
+      "p50": 729000,
+      "p95": 729000,
+      "p99": 729000,
+      "max": 729000
+    },
+    "inputToRenderSubmissionMs": {
+      "samples": 0,
+      "retained": 0,
+      "dropped": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    "eventTimingDurationMs": {
+      "samples": 0,
+      "retained": 0,
+      "dropped": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    "longTaskMs": {
+      "samples": 7,
+      "retained": 7,
+      "dropped": 0,
+      "p50": 107,
+      "p95": 1152,
+      "p99": 1152,
+      "max": 1152
+    },
+    "intervalsOver20Ms": 52,
+    "intervalsOver33_34Ms": 52,
+    "intervalsOver50Ms": 51,
+    "hiddenFrames": 0,
+    "demandFrames": 0,
+    "visibilityInterruptions": 0,
+    "tierFrames": {
+      "low": 53,
+      "medium": 0,
+      "high": 0
+    },
+    "gpuFrameMs": null,
+    "actualInputToPhotonMs": null,
+    "schema": "arena.precinct-render-performance.v1",
+    "production": true,
+    "sceneAsset": "/world/precinct-courtyard.glb",
+    "renderer": {
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "vendor": "Google Inc. (Google)",
+      "unmaskedAvailable": true,
+      "softwareRenderer": true,
+      "contextLost": false,
+      "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+      "shadowsEnabled": false,
+      "geometries": 94,
+      "textures": 76,
+      "programs": 15,
+      "actualGpuMemoryBytes": null,
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "deviceDpr": 1,
+      "hardwareConcurrency": 9
+    },
+    "scene": {
+      "environmentMapActive": true,
+      "environmentIntensity": 0.45,
+      "meshes": 84,
+      "uncullableMeshes": 27,
+      "shadowCastingMeshes": 9,
+      "uniqueMaterials": 78,
+      "transparentMaterials": 3,
+      "materialTextures": 19,
+      "unknownTextureDimensions": 0,
+      "textureDimensions": [
+        {
+          "width": 1536,
+          "height": 864,
+          "mipmaps": true
+        },
+        {
+          "width": 1536,
+          "height": 864,
+          "mipmaps": true
+        },
+        {
+          "width": 1536,
+          "height": 864,
+          "mipmaps": true
+        },
+        {
+          "width": 2048,
+          "height": 628,
+          "mipmaps": true
+        },
+        {
+          "width": 2048,
+          "height": 810,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 512,
+          "height": 512,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 512,
+          "height": 512,
+          "mipmaps": true
+        }
+      ],
+      "materialTextureRgba8MiBEstimate": 101.89583333333331,
+      "textureEstimateCaveat": "RGBA8 + mip-chain estimate, deduplicated by Texture. Excludes environment/render targets; real formats, compression and driver allocation differ. Not measured VRAM."
+    },
+    "budgets": {
+      "low": {
+        "dpr": 0.75,
+        "pixels": 1500000,
+        "drawCalls": 140,
+        "triangles": 500000,
+        "textureMiB": 192
+      },
+      "medium": {
+        "dpr": 1.25,
+        "pixels": 2500000,
+        "drawCalls": 200,
+        "triangles": 800000,
+        "textureMiB": 256
+      },
+      "high": {
+        "dpr": 1.75,
+        "pixels": 4000000,
+        "drawCalls": 260,
+        "triangles": 1100000,
+        "textureMiB": 384
+      }
+    },
+    "observers": {
+      "longtask": true,
+      "event": true
+    },
+    "measurementNotes": [
+      "Frame intervals are measured after actual R3F render submissions. No synthetic frames or FPS.",
+      "CPU duration includes frame callbacks and WebGL submission; it is not GPU execution time.",
+      "Input proxy is canvas movement key dispatch to next render submission. It is not input-to-photon latency.",
+      "Event Timing duration is browser-reported event-to-next-presentation estimate, rounded and thresholded at 16 ms; unsupported or zero samples means unavailable, not zero latency.",
+      "Long tasks use browser PerformanceObserver (>=50 ms); unsupported means unavailable.",
+      "No diagnostic export is sent over the network. No typed text, actor truth labels, credentials or case payloads are recorded."
+    ]
+  },
+  "evaluation": {
+    "complete": true,
+    "timingPassed": false,
+    "result": "software-renderer diagnostic only; no hardware acceptance",
+    "targetHardwareAcceptance": "Not inferred. Verify the MacBook Air M5 model, native browser, power/thermal state and a >=300-second run before claiming that target.",
+    "thresholds": {
+      "averageRenderedFpsMin": 58,
+      "frameIntervalP50MaxMs": 17.5,
+      "frameIntervalP95MaxMs": 20,
+      "frameIntervalP99MaxMs": 33.333333333333336,
+      "over33_34MsFractionMax": 0.01
+    }
+  }
+}

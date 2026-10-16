@@ -1,0 +1,28 @@
+[
+  {
+    "avatar": "Business_Female_01",
+    "required_audio_mouth_morphs": {
+      "AA_VI_10_aa": true,
+      "AA_VI_11_E": true,
+      "AA_VI_12_I": true,
+      "AA_VI_13_O": true,
+      "AA_VI_14_U": true,
+      "AA_VI_07_SS": true,
+      "AK_25_JawOpen": true
+    },
+    "all_present": true
+  },
+  {
+    "avatar": "Business_Male_04",
+    "required_audio_mouth_morphs": {
+      "AA_VI_10_aa": true,
+      "AA_VI_11_E": true,
+      "AA_VI_12_I": true,
+      "AA_VI_13_O": true,
+      "AA_VI_14_U": true,
+      "AA_VI_07_SS": true,
+      "AK_25_JawOpen": true
+    },
+    "all_present": true
+  }
+]

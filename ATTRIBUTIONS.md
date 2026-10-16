@@ -142,3 +142,87 @@ Source read 2026-10-11 at HEAD `542a0bb4052ea784abf5c3c6b14fee2d64986b91` (the c
 ## Third-party GitHub Actions (referenced, not copied)
 
 Pinned to full commit SHAs, each resolved with `git ls-remote` on the official repository on 2026-10-08 and older than the 7-day cooldown: `actions/checkout` v6.0.2, `actions/setup-python` v6.3.0, `actions/upload-artifact` v7.0.1, `astral-sh/setup-uv` v9.0.0, `github/codeql-action` v4.38.1, `amannn/action-semantic-pull-request` v6.1.1, `trufflesecurity/trufflehog` v3.97.5, `gitleaks/gitleaks-action` v3.0.0 (its own EULA: free for personal accounts; an organization-owned repository needs a `GITLEAKS_LICENSE` secret), `google/osv-scanner-action` v2.6.0 (Apache-2.0).
+
+## UI v2 original precinct environment
+
+`assets-src/northstar-precinct.blend`, its procedural authoring/export scripts, the two review renders, and `web/public/world/precinct.glb` are original scene work created for this project on 2026-10-15. The architecture, furniture, case boards, lighting fixtures, map graphic, foliage, awards, and fictional Washington, DC-inspired streetscape were modeled from geometric primitives and custom meshes. No third-party models, stock textures, downloaded photos, real agency insignia, or character likenesses are included. The generated scene is intended for modification and commercial integration in this training application. Reproduction instructions and the coordinate/navigation contract are in `assets-src/ASSET_PROVENANCE.md`.
+
+Signage uses DejaVu Sans, packed in the editable `.blend` and converted to geometry in the runtime GLB. DejaVu changes are public domain; the underlying Bitstream Vera font is copyright © 2003 Bitstream, Inc., with permissive use, modification, and distribution terms. The complete required notices and license are retained in `assets-src/FONT_LICENSE.txt`. Keep those notices with distributed source/assets; no in-game attribution panel is required by the font license. The Blender software itself is an authoring tool, not bundled runtime content.
+
+The UI v2 compass favicon (`web/public/favicon.svg`) is original vector artwork authored for this application.
+
+## UI v2 precinct staff and signage
+
+- Reception, sergeant, office and patrol motion: original procedural walking, idle, counter-work and seated gestures authored for this project in `web/src/lib/precinct/staff.ts` and `web/src/components/precinct/PrecinctStaff.tsx`. Uses the existing Microsoft Rocketbox MIT meshes/textures documented in [web attribution](web/ATTRIBUTIONS.md#microsoft-rocketbox-avatars-mit) and the [avatar provenance and complete license](web/public/avatars/LICENSE.md); no Mixamo or additional animation files.
+- Larger wayfinding: original typography/layout using DejaVu Sans Bold under the same DejaVu/Bitstream Vera license recorded for the precinct. Both regular and bold font faces are packed into the editable source; license text is in `assets-src/FONT_LICENSE.txt`.
+- Dynamic public briefing read-aloud uses installed device-local voices only after explicit playback. The separate finite staff-dialogue audio introduced below uses original offline-generated formant speech. Characters and scripted dialogue remain fictional; no third-party TTS service is contacted.
+
+## UI v2 lossless precinct compression
+
+The precinct runtime uses `EXT_meshopt_compression`, encoded with meshoptimizer 1.1.1 by Arseny Kapoulkine under the MIT license ([official project](https://github.com/zeux/meshoptimizer)). The authoring-only encoder is exactly pinned as a development dependency in `web/package.json`, with its existing npm integrity in `web/pnpm-lock.yaml`; the complete notice is retained in `assets-src/MESHOPT_LICENSE.txt`. The browser uses the Meshopt decoder already bundled with Three.js 0.186.1. No new runtime dependency, package version or third-party geometry is added. Original compression/verification scripts live in `assets-src`; they preserve all geometry, material, source and navigation content without quantization or simplification. Reproduction and evidence are documented in `assets-src/ASSET_PROVENANCE.md` and `docs/ui-v2/precinct-compression-review.md`.
+
+## UI v2 agent-work monitors: TechnoMile owner-project adaptation (2026-10-15)
+
+Source: the read-only owner-authorized reference snapshot in `docs/ui-v2/reference/technomile-war-room/`, vendored by this repository at commit `8c2bfbf240cd2450a2843de3060ea679797c4038`. The snapshot README records a 2026-10-15 copy from the same owner’s TechnoMile Agentic Black Hat project. The snapshot does not identify its upstream TechnoMile commit; the hashes below identify the exact source bytes used and must not be mistaken for the earlier donor revisions cited elsewhere in this attribution file. No reference files were modified, imported or built. No external assets, fonts, icons or dependencies were added.
+
+Targets: `src/lib/agent-work/model.ts`, `src/components/agent-work/AgentWorkMonitor.tsx`, `src/styles/agent-work.css`, and their original trial-specific tests.
+
+Verdict: adapt visual compositions, palette and deterministic projection patterns; not a verbatim component transplant. Kept the Classic office’s 2:1 floor/desk geometry and agent delivery metaphor; the Case Board’s cork, polaroid, index-card and cited-thread grammar; Playhouse’s paper proscenium, blue-green curtain, archive wing and critics’ box; and Bid Tower’s stacked cutaway, work desks, archive and brass lift. Adapted `iso` to a 960×540 monitor and specialized path interpolation to one leg. The display-clock/pure-frame separation follows `office`, `playhouse`, `tower/frame`, `tower/world`, `replay` and `player`.
+
+Changed: fixed four public trial roles replace donor rival pods and pipeline steps; all state comes from the arena’s generated contracts and existing validated `TrialView`. Accepted coach cards/updates, citation-checked non-demeanor flags and released evidence map to public activity. Referee input is only scoring or matching published-debrief status, never outcome fields. Assessment and voice coaching are withheld. Donor Next.js, Phosphor, transport, private run data, gates, model-call inspection, themes, internal controls, compressed replay clocks and animation timers are not imported. The caller’s exact session clock drives geometry, with still reduced-motion states and native accessible controls/text. Existing arena validation/reducer code is reused unchanged. New tests check these arena-specific boundaries, determinism, rewind, duplicate ordering, citation refusal, accessibility and thumbnails.
+
+Exact source snapshot hashes (paths relative to the vendored reference root):
+
+| Source | SHA-256 |
+| --- | --- |
+| `components/agent-office.tsx` | `ee095ce371f940b518be50a7a25b38bd3c6374569b78d86e5689e98f03a5f967` |
+| `components/office-styles/case-board.tsx` | `f8d2b6cfdab1ec8bb125a95e23a6ec8d72f74970ea66cd7835adef55d74f8f1d` |
+| `components/office-styles/playhouse.tsx` | `0b5070e55a2b0d7b1fcd0bcabbf6e0578120d6b5d94e3650d425f989d02fe951` |
+| `components/office-styles/bid-tower.tsx` | `677e82ba05517a8b68078471572ad3fe442e8bf7ca20cd62842e31cbeb95c066` |
+| `components/office-styles/playhouse.css` | `a04447ffc174babc9d50c8a612038b20c57e8102afe55fbed17d8e75a71147a9` |
+| `components/tower/tower.css` | `699d2d49406a134114076a0737e86f0a97fa26ae2becfce749477f38111d7ff1` |
+| `lib/office.ts` | `e0319a9a8db754f4c4e2ab4221cd9caf1749646b32265de01a5664da7a5d3880` |
+| `lib/case-board.ts` | `62566cc3ebdea068314014a31249c70a4aa88f269620171325363423f989f009` |
+| `lib/playhouse.ts` | `6a67efdbfb89fedcc9310feca88b9487b48040a0c66a18ed9029ab9ee0037c18` |
+| `lib/tower/frame.ts` | `8e22ec670acf6520a5f1c3d876dfa6bcff2a2b348072adfcff4349f9a4bf72b2` |
+| `lib/tower/world.ts` | `7a61206121c23392d795bbc2974e16e64c9230a5ac329cc52de306a26543015c` |
+| `lib/tower/layout.ts` | `b6d37514188cb05f1a61f6eac06e000befd6abf6b1af11ad24daf79782930131` |
+| `lib/tower/route.ts` | `09efd5979609ad0deda93297dd89016f1b7dcc1d34eaa02204b61d1394df075b` |
+| `lib/tower/record.ts` | `2c6a843ddc1e34717e51d528f741f7e61d2fe0ae8a44e15d22b37517829569db` |
+| `lib/replay.ts` | `867438ac69c49f36b470d171b5f6f96118f6abc2e2a9c200af2c7a5dab1a06c9` |
+| `lib/player.ts` | `bf84f06d1b2af1917e687c5cb7cab1ebd0768ec8d1a5863cfd9a67ad0fc87708` |
+| `lib/run-events.ts` | `4e0d79b3bdfb466e299b157d5b0e292d5796bfd52b2584c543f7db60852a99c9` |
+| `globals.css` | `1a9ea18a199a52468f8067ed73c791a2213495dd44b86f53c82bc4ef8ab6b623` |
+
+## UI v2 interview staging and local rehearsal
+
+The seated rig adaptation, neutral procedural breathing/blinking/typing motions, interview camera anchors, physical public-source cover SVG and local SVG texture lifecycle are original project work. They use only the existing credited Rocketbox meshes/textures, Three.js and installed generic fonts; no motion-capture pack, external image, voice or new font is bundled. Motion depends only on presentation time, public work lifecycle and existing persona style. Actual audio weights alone drive mouth movement.
+
+The optional developer-only local interview service contains original fixed fictional dialogue and an authored, explicitly unscored resolution. Its public documents and release thresholds reuse this repository's hand-built F01-truthful fixture, with provenance recorded in `docs/ui-v2/LOCAL_SCRIPTED_MOCK.md`. It imports no historical transcript, score, evaluator packet or third-party model output.
+
+## UI v2 finite offline staff speech
+
+Original fictional reception and sergeant dialogue is synthesized offline with eSpeak NG 1.52.0 (Debian 1.52.0+dfsg-5), using native English formant synthesis. No recorded-person voice model, imitation or voice cloning is used. Exact text, settings, durations, original asset SHA-256 hashes and generator provenance are retained in `web/src/lib/precinct/localStaffVoiceManifest.json` and `assets-src/local-staff-voice/`.
+
+eSpeak NG by Jonathan Duddington and the eSpeak NG contributors is GPL-3.0-or-later: https://github.com/espeak-ng/espeak-ng . It is used as an unmodified separate authoring executable and is not included or linked into the browser runtime. The Debian package copyright notice and GPL text are preserved as provenance. The generated speech assets contain the project's original authored text. Coverage of output under GPL depends on its content; future redistribution of the generator or its data requires a separate license/source-compliance review.
+
+The static playback controller, bounded same-origin asset loading, lifecycle ownership, synthetic-voice labels, audio-driven staff lip mapping and microphone cleanup regressions are original project work. They introduce no paid provider, speech recognition model or new runtime package. Microphone listening and open-ended AI conversation are not supplied by these scripted clips.
+
+## UI v2 optional local interview playback
+
+The developer-only `--local-tts` adapter, process queue, WAV validation and regression tests are original project work. They use the unchanged raw-WAV TTS contract to speak actual trainee text and the existing original authored synthetic subject beats. They provide unscored TEXT rehearsal only, with no live model, truth/demeanor inference or backend assessment.
+
+The adapter invokes the separately installed, authenticated eSpeak NG 1.52.0 (Debian 1.52.0+dfsg-5) as an unmodified external process. Jonathan Duddington and the eSpeak NG contributors license eSpeak NG under GPL-3.0-or-later: https://github.com/espeak-ng/espeak-ng . Native en-us formant settings are identical for the two public fixture speakers and do not clone a recorded person. Generator binaries/data are not bundled, linked into the browser, or downloaded by this feature. The authenticated package verification, full Debian copyright notice and GPL text are preserved in `assets-src/local-rehearsal-speech/`; that verification originated with the earlier staff-voice package. Future generator/data redistribution needs a separate license/source-compliance review. See `docs/ui-v2/LOCAL_REHEARSAL_SPEECH.md` for provenance, bounds and verification status.
+
+## Optional local Whisper synthetic proof
+
+Used only for the documented local synthetic experiment. No model, executable, upstream implementation or speech file is redistributed in this repository.
+
+- whisper.cpp and in-tree ggml, commit d1be6fde11ac6e0407606b4e42fe72d34add8037 (v1.9.5): MIT; full text WHISPER-CPP-MIT.txt. The CPU source retains the MIT YaRN attribution, Copyright 2023 Jeffrey Quesnelle and Bowen Peng. [Pinned source](https://github.com/ggml-org/whisper.cpp/tree/d1be6fde11ac6e0407606b4e42fe72d34add8037).
+- OpenAI Whisper code and model weights: MIT; retained OPENAI-WHISPER-MIT.txt from upstream commit 86098128c0b4f24f0e2aa2994de830614b474227. [Pinned license](https://github.com/openai/whisper/blob/86098128c0b4f24f0e2aa2994de830614b474227/LICENSE). GGML tiny.en is the project-linked conversion pinned at HF revision 80da2d8bfee42b0e836fc3a9890373e5defc00a6; exact byte hashes are in WHISPER-LOCAL-PROOF.md.
+- Bundled miniaudio 0.11.24 (blob 24e676bb264742a2899e3b1c678a1959bbea5132): upstream choice of MIT-0 or public domain. Full two-alternative text retained in MINIAUDIO-0.11.24-LICENSE.txt; choose and preserve applicable terms for any later redistribution. CLI uses MA_NO_DEVICE_IO.
+- Bundled stb_vorbis 1.22 (blob 3e5c2504c08f76b9d04e4adfbce80818631e835e): upstream MIT/public-domain alternatives retained in STB-VORBIS-1.22-LICENSE.txt.
+- Kitware CMake 4.4.4 (source commit 2e0b3aec14fe2e3e555faac4698e281749aae4b5): BSD-3-Clause; CMAKE-4.4.4-BSD-3-CLAUSE.txt. Tool archive retains all shipped third-party notices. CMAKE-SHIPPED-Copyright.txt here covers only its cmzlib 1.3.1 component, not the entire distribution. Build tool is outside the app and not redistributed.
+- Existing Debian C++ 14.2.0-19, GNU Make 4.4.1 and ELF system runtimes have their own terms. Native output links libstdc++, libm, libgcc_s and libc. No blanket MIT or complete binary-distribution clearance is asserted.
+
+License text copies are under docs/ui-v2/whisper-proof-evidence. The original local extraction preserves complete pinned sources and tool documentation. No future redistribution, added model hosting or paid storage is authorized by this proof.

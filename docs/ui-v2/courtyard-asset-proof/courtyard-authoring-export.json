@@ -1,0 +1,9 @@
+{
+  "variantId": "northstar-courtyard-v1",
+  "sourceSha256": "a6260bed9a30b9931daed9738c183457a63df9b86842921c0177fab770f356c9",
+  "rawRuntimeSha256": "a8e972c6cbe3d8fb529cb270063eea8f7121695d363c496fde813674e3ba1a14",
+  "preCompressionManifestSha256": "32a035ce963285c5f5fb5a17a6629cddde6be8f2b500f430fbfc29ceb24a036b",
+  "compressionPending": true,
+  "actualRendererValidated": false,
+  "note": "Final source/runtime/manifest identity is emitted by validate_courtyard after lossless compression."
+}

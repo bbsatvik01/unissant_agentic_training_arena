@@ -1,0 +1,104 @@
+[
+  {
+    "path": "web/src/components/precinct/PrecinctCanvas.environment.test.tsx",
+    "baseSha256": null,
+    "combinedSha256": "49bc7e1c46ed09ad1294ea2770b33b1c9d68738eff184e426f69d8ba87251761",
+    "bytes": 2794
+  },
+  {
+    "path": "web/src/components/precinct/PrecinctCanvas.tsx",
+    "baseSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+    "combinedSha256": "5569ad32008f16275cc30b6efdb6585d19ab50d4fa24d665ce53512e6351b25f",
+    "bytes": 34937
+  },
+  {
+    "path": "web/src/components/precinct/PrecinctControls.idleWork.test.tsx",
+    "baseSha256": null,
+    "combinedSha256": "b5dd827176f3af1f9a9445f9e8d7c4621c3d56cd7094f95ade0937268d85ec8a",
+    "bytes": 17972
+  },
+  {
+    "path": "web/src/components/precinct/PrecinctEnvironment.test.tsx",
+    "baseSha256": null,
+    "combinedSha256": "61a08d19ddd003a2750b5fa825551d5190e56a4f881d0172868997996e32ad0a",
+    "bytes": 5219
+  },
+  {
+    "path": "web/src/components/precinct/PrecinctEnvironment.tsx",
+    "baseSha256": null,
+    "combinedSha256": "81ea81aba7994d81736940b4b487e04afb613e4c5968967229da0a0ed2f1ccf5",
+    "bytes": 1689
+  },
+  {
+    "path": "web/src/components/precinct/PrecinctThemeControl.benchmark.test.tsx",
+    "baseSha256": null,
+    "combinedSha256": "6180b2b56026932c05ce286e5c4bd258130081f0ff4d7586483c1b2b72a376e3",
+    "bytes": 3619
+  },
+  {
+    "path": "web/src/components/precinct/inspectPrecinctRenderer.test.ts",
+    "baseSha256": "d2c66622a02c53adb19008c85f454dde70ea836613fe2e0abacd39c4d49b643e",
+    "combinedSha256": "b12f325d1a5a5aae26686720d991957dd601b6288a4ccd9c622e3f80e01af970",
+    "bytes": 1859
+  },
+  {
+    "path": "web/src/components/precinct/inspectPrecinctRenderer.ts",
+    "baseSha256": "f9671e3dda45e5aba518742ebc3001f9f6168cd944a7d57d0a231d4efddc3120",
+    "combinedSha256": "d8f126c048aca20954b0e5d3f459b3361da68cb627da9e25990c40635f63df6a",
+    "bytes": 3555
+  },
+  {
+    "path": "web/src/lib/precinct/lowEnvironmentExperiment.test.ts",
+    "baseSha256": null,
+    "combinedSha256": "7304bcf0b83b82f31934613a09712ef8bfa843d5a1bb72012d9d882bd8b77b79",
+    "bytes": 1655
+  },
+  {
+    "path": "web/src/lib/precinct/lowEnvironmentExperiment.ts",
+    "baseSha256": null,
+    "combinedSha256": "0fff56739b7f08aac402601cd979219fbfdb0747be93790ad78ba39ac6e1e7b6",
+    "bytes": 975
+  },
+  {
+    "path": "web/src/lib/precinct/staffCrowd.idleWork.test.ts",
+    "baseSha256": null,
+    "combinedSha256": "fba9beb4154702c0a6f09f73742cf1015c8166ced9ee5cc21bef635edc75baae",
+    "bytes": 13287
+  },
+  {
+    "path": "web/src/lib/precinct/staffCrowd.ts",
+    "baseSha256": "e1d070b507b55511bb43c406e7da7e7c3b44c044296076788b85cc91723245eb",
+    "combinedSha256": "fe1bce0d74edda96cd1aa8dd752e90f4ff68e0afd7f2b2ebc29b2d3670ed4a01",
+    "bytes": 3656
+  },
+  {
+    "path": "web/src/routes/PrecinctRoute.tsx",
+    "baseSha256": "8ce479720680e56efc82e33053e858ce261eec62156d5a406f7a91ae6abd46da",
+    "combinedSha256": "ddcd579a4404264bcfed77e94e7bcb0f18c2c8e638a39362b3dd290e1eed9350",
+    "bytes": 58684
+  },
+  {
+    "path": "web/tools/precinct-click-floor.test.ts",
+    "baseSha256": null,
+    "combinedSha256": "441cc44fc06aba4b7db182d31f526e2125ba2a2490c159b1747306dacc63c927",
+    "bytes": 2892
+  },
+  {
+    "path": "web/tools/precinct-performance-theme.ts",
+    "baseSha256": null,
+    "combinedSha256": "791ed27248b05609d6b00f46f658179814fa5044af65b27d84c0e289e58797c1",
+    "bytes": 1247
+  },
+  {
+    "path": "web/tools/precinct-performance.test.ts",
+    "baseSha256": "6722ecf4d258fa711e9bfb40783a482ce6225dc28f5b1f76a9fc95db9f0a53b4",
+    "combinedSha256": "95d97b4138aa9f8dfec412a75719a031d8271624b70e38f02780cc8cc494a9ae",
+    "bytes": 9645
+  },
+  {
+    "path": "web/tools/precinct-performance.ts",
+    "baseSha256": "3877d93143746ec3544e47d556e59016973117b05f66f45edd8be51a696984f1",
+    "combinedSha256": "350186e5a6e7601478eab8801cf59b52f155aebb1416ed98111cb83d00aca30b",
+    "bytes": 27163
+  }
+]

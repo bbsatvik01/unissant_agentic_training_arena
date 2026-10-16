@@ -1,0 +1,253 @@
+{
+  "schema": "arena.local-whisper-synthetic-proof.v1",
+  "status": "completed",
+  "date_utc": "2026-10-15",
+  "scope": "Five original synthetic eSpeak NG WAVs only; no human speech or microphone; no product integration",
+  "source_commit": "d1be6fde11ac6e0407606b4e42fe72d34add8037",
+  "runtime_binary": {
+    "bytes": 3389400,
+    "sha256": "35214953081555275eed3b3cd8eab3393b1ca88f14869ddf218813f72d86558e"
+  },
+  "artifacts": {
+    "source": {
+      "url": "https://codeload.github.com/ggml-org/whisper.cpp/tar.gz/d1be6fde11ac6e0407606b4e42fe72d34add8037",
+      "bytes": 9631456,
+      "sha256": "645445da884df6dbd52b30f82d7be7c01d1767c938714e477e786b88d529e9f4"
+    },
+    "model": {
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6/ggml-tiny.en.bin",
+      "bytes": 77704715,
+      "sha256": "921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f"
+    },
+    "cmake": {
+      "url": "https://github.com/Kitware/CMake/releases/download/v4.4.4/cmake-4.4.4-linux-x86_64.tar.gz",
+      "bytes": 64865570,
+      "sha256": "e5bb807f7728cb60cd8b27ebc97a2edb469b68655f21e844a600c3575b76f5bb"
+    }
+  },
+  "runtime": {
+    "compiler": "Debian C++ 14.2.0-19",
+    "cmake": "4.4.4",
+    "make": "4.4.1",
+    "backend": "CPU only; host native x86-64 SIMD",
+    "elf_needed": [
+      "libstdc++.so.6",
+      "libm.so.6",
+      "libgcc_s.so.1",
+      "libc.so.6"
+    ],
+    "fixed_arguments": [
+      "--file",
+      "-",
+      "--output-txt",
+      "--output-file",
+      "-",
+      "--no-timestamps",
+      "--language",
+      "en",
+      "--threads",
+      "2",
+      "--processors",
+      "1",
+      "--max-context",
+      "0",
+      "--no-gpu",
+      "--beam-size",
+      "1",
+      "--best-of",
+      "1",
+      "--temperature",
+      "0",
+      "--no-fallback"
+    ],
+    "limits": {
+      "threads": 2,
+      "processes": 1,
+      "address_space_bytes": 1073741824,
+      "cpu_seconds_per_phrase": 90,
+      "wall_seconds_per_phrase": 120,
+      "stdout_bytes": 8192,
+      "stderr_bytes": 65536
+    }
+  },
+  "normalization": "Lowercase; replace characters outside ASCII a-z/0-9/apostrophe/space with spaces; split whitespace. Levenshtein word edits. WER=sum(edits)/sum(reference_words).",
+  "phrases": [
+    {
+      "exit_code": 0,
+      "failure": null,
+      "wall_ms": 2338.054371997714,
+      "peak_rss_kib": 148020,
+      "user_cpu_s": 2.929162,
+      "system_cpu_s": 0.7678309999999999,
+      "input_bytes_written": 149898,
+      "process_reaped": true,
+      "index": 1,
+      "fixture_sha256": "9970b4a48ef530943b226041700471500436ae9a8ef3aabb2fde2997177bdd89",
+      "duration_s": 4.681875,
+      "reference": "Please describe what happened before the meeting.",
+      "actual": "Please describe what happened before in the meeting.",
+      "edits": 1,
+      "reference_words": 7,
+      "exact": false,
+      "native_reported_timings_ms": {
+        "load": 590.94,
+        "mel": 58.05,
+        "sample": 7.87,
+        "encode": 1286.11,
+        "decode": 128.85,
+        "batchd": 34.51,
+        "prompt": 0.0,
+        "total": 2243.19
+      },
+      "fixture": "phrase-1.wav",
+      "actual_stdout": "Please describe what happened before in the meeting.\n"
+    },
+    {
+      "exit_code": 0,
+      "failure": null,
+      "wall_ms": 3777.152984002896,
+      "peak_rss_kib": 148212,
+      "user_cpu_s": 6.239406,
+      "system_cpu_s": 0.6331589999999999,
+      "input_bytes_written": 158802,
+      "process_reaped": true,
+      "index": 2,
+      "fixture_sha256": "ad30a66839cd6e2df6b2a969c0b3f6f73ece6af7f04f55423082af259a3d2edb",
+      "duration_s": 4.960125,
+      "reference": "Which records could help us check that timeline?",
+      "actual": "which records could help us check that timeline.",
+      "edits": 0,
+      "reference_words": 8,
+      "exact": true,
+      "native_reported_timings_ms": {
+        "load": 328.48,
+        "mel": 51.21,
+        "sample": 14.22,
+        "encode": 2940.89,
+        "decode": 188.2,
+        "batchd": 28.94,
+        "prompt": 0.0,
+        "total": 3712.75
+      },
+      "fixture": "phrase-2.wav",
+      "actual_stdout": "which records could help us check that timeline.\n"
+    },
+    {
+      "exit_code": 0,
+      "failure": null,
+      "wall_ms": 2647.0736320043216,
+      "peak_rss_kib": 148012,
+      "user_cpu_s": 4.444167,
+      "system_cpu_s": 0.32394,
+      "input_bytes_written": 149452,
+      "process_reaped": true,
+      "index": 3,
+      "fixture_sha256": "9540ccb13d50ffae389c7919142e605182222f235a3423c0bd203596118e9a80",
+      "duration_s": 4.6679375,
+      "reference": "Is there another explanation we should consider?",
+      "actual": "is the rubber explanation we should consider.",
+      "edits": 2,
+      "reference_words": 7,
+      "exact": false,
+      "native_reported_timings_ms": {
+        "load": 307.13,
+        "mel": 55.41,
+        "sample": 19.83,
+        "encode": 1891.13,
+        "decode": 190.33,
+        "batchd": 51.74,
+        "prompt": 0.0,
+        "total": 2575.03
+      },
+      "fixture": "phrase-3.wav",
+      "actual_stdout": "is the rubber explanation we should consider.\n"
+    },
+    {
+      "exit_code": 0,
+      "failure": null,
+      "wall_ms": 2866.4478930004407,
+      "peak_rss_kib": 148136,
+      "user_cpu_s": 4.430707,
+      "system_cpu_s": 0.49204,
+      "input_bytes_written": 154564,
+      "process_reaped": true,
+      "index": 4,
+      "fixture_sha256": "c941dbfb4f38658f132e2296a4853e586f839227c5b177a22e629ab163ef0442",
+      "duration_s": 4.8276875,
+      "reference": "I do not have enough evidence to reach a conclusion.",
+      "actual": "I do not have enough evidence to reach a conclusion.",
+      "edits": 0,
+      "reference_words": 10,
+      "exact": true,
+      "native_reported_timings_ms": {
+        "load": 345.49,
+        "mel": 80.44,
+        "sample": 27.53,
+        "encode": 1691.38,
+        "decode": 337.61,
+        "batchd": 85.54,
+        "prompt": 0.0,
+        "total": 2734.26
+      },
+      "fixture": "phrase-4.wav",
+      "actual_stdout": "I do not have enough evidence to reach a conclusion.\n"
+    },
+    {
+      "exit_code": 0,
+      "failure": null,
+      "wall_ms": 3586.488668996026,
+      "peak_rss_kib": 148260,
+      "user_cpu_s": 5.492437,
+      "system_cpu_s": 0.662617,
+      "input_bytes_written": 192608,
+      "process_reaped": true,
+      "index": 5,
+      "fixture_sha256": "2cf16ce7bdef8666d81677dc6758b3c44694e19c196e9c4d54e15fd56c642b9d",
+      "duration_s": 6.0165625,
+      "reference": "What did you observe directly, and what did someone else tell you?",
+      "actual": "What did you observe directly? And what did someone else tell you?",
+      "edits": 0,
+      "reference_words": 12,
+      "exact": true,
+      "native_reported_timings_ms": {
+        "load": 659.08,
+        "mel": 46.07,
+        "sample": 45.82,
+        "encode": 2083.58,
+        "decode": 489.61,
+        "batchd": 83.78,
+        "prompt": 0.0,
+        "total": 3471.37
+      },
+      "fixture": "phrase-5.wav",
+      "actual_stdout": "What did you observe directly? And what did someone else tell you?\n"
+    }
+  ],
+  "aggregate": {
+    "exact_phrases": 3,
+    "edits": 3,
+    "reference_words": 44,
+    "weighted_wer": 0.06818181818181818,
+    "end_to_end_wall_audio_ratio": 0.6048781162182797,
+    "peak_rss_kib": 148260,
+    "all_processes_reaped": true,
+    "runtime_directory_empty": true
+  },
+  "build_seconds": {
+    "configure": 2.0131534109968925,
+    "compile": 260.7983550670033
+  },
+  "raw_evidence_sha256": {
+    "native-proof-report.json": "1549ec1039af852630a9aa9f76793f0d92ed6cc835c17160c5033fa56d05d352",
+    "build-report.json": "6cfb72f8186a5bff775e2fe6ee249a6282d2263d971f2d4f85ed9c5a14ea2381",
+    "prepare-native.py": "d15474ae918a637d60062539fe3c11561e2ff551a166f32f8c94c862abfa39f8",
+    "run-native-proof.py": "995957a13751d69681e9fe9930c3a4f9eabcd63a80353d74f3b4c732eb24a7b2"
+  },
+  "caveats": [
+    "Synthetic-only; no human/accent/noise/general accuracy claim",
+    "Wall time includes process and model load per phrase; Vosk proof ratio excluded initial model load",
+    "Per-child RSS excludes harness and its integrity-read memory",
+    "No complete filesystem/network syscall trace",
+    "Optional local input review only; explicit Add and separate Send; no integration accepted"
+  ]
+}

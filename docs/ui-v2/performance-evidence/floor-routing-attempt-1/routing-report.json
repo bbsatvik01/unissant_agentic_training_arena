@@ -1,0 +1,1981 @@
+{
+  "schema": "arena.precinct-floor-routing-qa.v3",
+  "status": "failed",
+  "startedAt": "2026-10-15T23:56:45.092Z",
+  "options": {
+    "url": "http://127.0.0.1:4187/?precinctPerf=1&precinctPerfPinned=1",
+    "output": "/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/floor-native-results/studio-floor-1-20261015T235642Z-7fa64f/routing",
+    "dist": "/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/dist",
+    "artifactLabel": "d208aaf7e13989ab296ecd08e800b83116f5f8e741dd29d9d1cf6daf9b83f3c7",
+    "software": true,
+    "headed": false,
+    "slowStartDiagnostic": true
+  },
+  "requestedTheme": "studio",
+  "coldEntryScope": "initial default Office load, before Studio selection",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "browserVersion": "154.0.8037.57",
+  "checksExecuted": true,
+  "coldEntryPassed": false,
+  "routingComplete": false,
+  "functionalComplete": false,
+  "limits": {
+    "coldStartMs": 5000,
+    "actionMs": 10000,
+    "routeMs": 30000,
+    "stabilityMs": 1500,
+    "caseMs": 180000,
+    "originalCaseMs": 120000,
+    "optionalColdFollowupMs": 60000
+  },
+  "proof": "Real pointer input through R3F, actual minimap intermediate displacement and endpoint, observable board/monitor dialog precedence and post-close stability. No private state access or callbacks invoked.",
+  "limitsOfProof": "No FPS/GPU/hardware acceptance; no direct handler-invocation count; no guarantee against a hidden floor handler whose destination is rejected. Third-person monitor and dynamic/obstacle navigation remain unexercised.",
+  "cases": [
+    {
+      "scene": "office",
+      "camera": "first",
+      "status": "functional-completed-cold-start-failed",
+      "coldEntry": {
+        "label": "initial default Office load",
+        "originalGateMs": 5000,
+        "initialReady": false,
+        "initialFailure": "Error: expect(locator).toBeEnabled() failed\n\nLocator: getByRole('button', { name: 'Enter the precinct', exact: true })\nExpected: enabled\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeEnabled\" getByRole('button', { name: 'Enter the precinct', exact: true }) with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Enter the precinct', exact: true })\n\n    at captureRawStack (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeEnabled (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at runFloorRouting (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:142:95)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:282:123",
+        "initialGateElapsedMs": 5025.504089000001,
+        "diagnosticOnly": true,
+        "followupLimitMs": 60000,
+        "followupReady": true,
+        "followupElapsedMs": 30.637731999999232,
+        "failureEvidence": [
+          "office-first-cold-start-failure.json",
+          "office-first-cold-start-failure.html",
+          "office-first-cold-start-failure.png"
+        ]
+      },
+      "routingComplete": true,
+      "functionalComplete": true,
+      "theme": {
+        "requested": "studio",
+        "beforeEntry": "studio",
+        "afterFunctional": "studio"
+      },
+      "checks": [
+        {
+          "name": "unchanged 5-second entry readiness: initial default Office load",
+          "status": "failed",
+          "error": "Error: expect(locator).toBeEnabled() failed\n\nLocator: getByRole('button', { name: 'Enter the precinct', exact: true })\nExpected: enabled\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeEnabled\" getByRole('button', { name: 'Enter the precinct', exact: true }) with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Enter the precinct', exact: true })\n\n    at captureRawStack (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeEnabled (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at runFloorRouting (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:142:95)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:282:123"
+        },
+        {
+          "name": "normal settings select Studio, architecture, low quality and reduced motion",
+          "status": "passed",
+          "error": null
+        },
+        {
+          "name": "board receives actual scene clicks with no movement after each close",
+          "status": "passed",
+          "error": null
+        },
+        {
+          "name": "real floor click produces intermediate player movement and arrival",
+          "status": "passed",
+          "error": null
+        },
+        {
+          "name": "offline physical monitor opens correct pane and leaves no residual movement",
+          "status": "passed",
+          "error": null
+        },
+        {
+          "name": "fixed Studio theme remains applied after functional checks",
+          "status": "passed",
+          "error": null
+        },
+        {
+          "name": "zero backend/external/socket attempts and exact served artifact bytes",
+          "status": "passed",
+          "error": null
+        }
+      ],
+      "blocked": [],
+      "errors": [],
+      "captureErrors": [],
+      "screenshots": [
+        "office-first-cold-start-failure.png",
+        "office-first-board-1-before.png",
+        "office-first-board-1-opened.png",
+        "office-first-board-2-before.png",
+        "office-first-board-2-opened.png",
+        "office-first-floor-before.png",
+        "office-first-floor-arrived.png",
+        "office-first-monitor-office-pane-before.png",
+        "office-first-monitor-expanded.png"
+      ],
+      "samples": [
+        {
+          "x": 0,
+          "z": -4.2,
+          "elapsedMs": 12.084813000001304
+        },
+        {
+          "x": 0,
+          "z": -4.2,
+          "elapsedMs": 265.6583049999972
+        },
+        {
+          "x": 0,
+          "z": -4.2,
+          "elapsedMs": 434.1936879999994
+        },
+        {
+          "x": 0.2404912830474459,
+          "z": -4.749694408538231,
+          "elapsedMs": 611.5457569999999
+        },
+        {
+          "x": 0.2404912830474459,
+          "z": -4.749694408538231,
+          "elapsedMs": 774.5716600000014
+        },
+        {
+          "x": 0.2404912830474459,
+          "z": -4.749694408538231,
+          "elapsedMs": 950.2323140000008
+        },
+        {
+          "x": 0.2404912830474459,
+          "z": -4.749694408538231,
+          "elapsedMs": 1120.659133000001
+        },
+        {
+          "x": 0.2404912830474459,
+          "z": -4.749694408538231,
+          "elapsedMs": 1285.9571429999996
+        },
+        {
+          "x": 0.2404912830474459,
+          "z": -4.749694408538231,
+          "elapsedMs": 1447.1694969999953
+        },
+        {
+          "x": 0.48098256609489193,
+          "z": -5.299388817076461,
+          "elapsedMs": 1639.0171029999983
+        },
+        {
+          "x": 0.48098256609489193,
+          "z": -5.299388817076461,
+          "elapsedMs": 1876.7931749999989
+        },
+        {
+          "x": 0.48098256609489193,
+          "z": -5.299388817076461,
+          "elapsedMs": 2036.0151499999993
+        },
+        {
+          "x": 0.48098256609489193,
+          "z": -5.299388817076461,
+          "elapsedMs": 2217.5054660000023
+        },
+        {
+          "x": 0.48098256609489193,
+          "z": -5.299388817076461,
+          "elapsedMs": 2396.9896979999976
+        },
+        {
+          "x": 0.48098256609489193,
+          "z": -5.299388817076461,
+          "elapsedMs": 2552.5448659999965
+        },
+        {
+          "x": 0.7214738491423381,
+          "z": -5.849083225614692,
+          "elapsedMs": 2715.5939230000004
+        },
+        {
+          "x": 0.7214738491423381,
+          "z": -5.849083225614692,
+          "elapsedMs": 2874.7995900000024
+        },
+        {
+          "x": 0.7214738491423381,
+          "z": -5.849083225614692,
+          "elapsedMs": 3034.0645619999996
+        },
+        {
+          "x": 0.7214738491423381,
+          "z": -5.849083225614692,
+          "elapsedMs": 3193.746333999996
+        },
+        {
+          "x": 0.7214738491423381,
+          "z": -5.849083225614692,
+          "elapsedMs": 3348.7074040000007
+        },
+        {
+          "x": 0.7214738491423381,
+          "z": -5.849083225614692,
+          "elapsedMs": 3507.1274730000005
+        },
+        {
+          "x": 0.9619651321897846,
+          "z": -6.398777634152922,
+          "elapsedMs": 3692.1044360000014
+        },
+        {
+          "x": 0.9619651321897846,
+          "z": -6.398777634152922,
+          "elapsedMs": 3857.949041
+        },
+        {
+          "x": 0.9619651321897846,
+          "z": -6.398777634152922,
+          "elapsedMs": 4023.752821000002
+        },
+        {
+          "x": 0.9619651321897846,
+          "z": -6.398777634152922,
+          "elapsedMs": 4179.925243999998
+        },
+        {
+          "x": 0.9619651321897846,
+          "z": -6.398777634152922,
+          "elapsedMs": 4336.878319999996
+        },
+        {
+          "x": 0.9619651321897846,
+          "z": -6.398777634152922,
+          "elapsedMs": 4502.562578999998
+        },
+        {
+          "x": 1.2024564152372317,
+          "z": -6.948472042691153,
+          "elapsedMs": 4661.469536999997
+        },
+        {
+          "x": 1.2024564152372317,
+          "z": -6.948472042691153,
+          "elapsedMs": 4821.981023
+        },
+        {
+          "x": 1.2024564152372317,
+          "z": -6.948472042691153,
+          "elapsedMs": 4978.7373089999965
+        },
+        {
+          "x": 1.2024564152372317,
+          "z": -6.948472042691153,
+          "elapsedMs": 5136.251226
+        },
+        {
+          "x": 1.2024564152372317,
+          "z": -6.948472042691153,
+          "elapsedMs": 5290.5411319999985
+        },
+        {
+          "x": 1.2024564152372317,
+          "z": -6.948472042691153,
+          "elapsedMs": 5448.718731000001
+        },
+        {
+          "x": 1.3999998586385567,
+          "z": -7.399999952164997,
+          "elapsedMs": 5612.073552000002
+        }
+      ],
+      "stationarySamples": [
+        {
+          "phase": "settled-normal-arrival",
+          "samples": [
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 6.6603849999992235
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 172.3342389999998
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 340.4086239999997
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 507.73193000000174
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 677.2550110000011
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 842.5767009999981
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1006.7328419999976
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1172.5010570000013
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1335.0829739999972
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1495.1279149999973
+            }
+          ]
+        },
+        {
+          "phase": "board-1-closed",
+          "samples": [
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 7.498932000002242
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 163.80413000000408
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 328.896127
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 490.39996700000484
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 647.8509479999993
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 806.1081810000032
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 968.999613
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1134.724860000002
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1297.2125339999984
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1461.0106280000036
+            }
+          ]
+        },
+        {
+          "phase": "board-2-closed",
+          "samples": [
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 9.166015000002517
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 164.7233520000009
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 334.02934200000163
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 498.4399310000008
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 663.4100400000025
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 830.1334530000022
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 990.4261669999978
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1153.1087800000023
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1324.3850390000007
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1482.2732969999997
+            }
+          ]
+        },
+        {
+          "phase": "pre-floor-idle",
+          "samples": [
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 10.798384000001533
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 168.22419100000116
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 334.85109699999884
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 491.001185000001
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 659.384395000001
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 819.1185199999964
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 982.4027399999977
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1145.181869
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1310.0294559999966
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1483.2176629999958
+            }
+          ]
+        },
+        {
+          "phase": "arrived-floor-endpoint",
+          "samples": [
+            {
+              "x": 1.3999998586385567,
+              "z": -7.399999952164997,
+              "elapsedMs": 2.5201210000013816
+            },
+            {
+              "x": 1.3999998586385567,
+              "z": -7.399999952164997,
+              "elapsedMs": 157.80253300000186
+            },
+            {
+              "x": 1.3999998586385567,
+              "z": -7.399999952164997,
+              "elapsedMs": 329.5053439999974
+            },
+            {
+              "x": 1.3999998586385567,
+              "z": -7.399999952164997,
+              "elapsedMs": 484.5722769999993
+            },
+            {
+              "x": 1.3999998586385567,
+              "z": -7.399999952164997,
+              "elapsedMs": 650.1320659999983
+            },
+            {
+              "x": 1.3999998586385567,
+              "z": -7.399999952164997,
+              "elapsedMs": 812.3761169999998
+            },
+            {
+              "x": 1.3999998586385567,
+              "z": -7.399999952164997,
+              "elapsedMs": 992.1824340000021
+            },
+            {
+              "x": 1.3999998586385567,
+              "z": -7.399999952164997,
+              "elapsedMs": 1155.406955999999
+            },
+            {
+              "x": 1.3999998586385567,
+              "z": -7.399999952164997,
+              "elapsedMs": 1312.5210860000007
+            },
+            {
+              "x": 1.3999998586385567,
+              "z": -7.399999952164997,
+              "elapsedMs": 1475.3725939999931
+            }
+          ]
+        },
+        {
+          "phase": "monitor-approach",
+          "samples": [
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 3.8843070000002626
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 173.76742899999954
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 409.14292499999283
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 576.9599899999885
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 732.1827389999962
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 968.8157499999943
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 1133.0502619999897
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 1290.0905919999932
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 1452.0569749999995
+            }
+          ]
+        },
+        {
+          "phase": "monitor-closed",
+          "samples": [
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 7.059966999993776
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 725.9857809999958
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 884.3266399999993
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 1059.6947629999922
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 1218.1338709999982
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 1384.7569879999937
+            }
+          ]
+        }
+      ],
+      "clicks": [
+        {
+          "label": "board-1",
+          "point": [
+            4.15,
+            1.05,
+            -9.63
+          ],
+          "pixel": {
+            "x": 1249.5944419749048,
+            "y": 526.567871128902,
+            "ndc": [
+              0.7355478360762566,
+              -0.17015082473089307,
+              0.9718486357387428
+            ]
+          },
+          "camera": {
+            "active": false,
+            "tier": "low",
+            "continuous": true,
+            "visible": true,
+            "cameraPosition": [
+              0,
+              1.65,
+              -4.2
+            ],
+            "cameraQuaternion": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "calls": 65,
+            "triangles": 127847,
+            "drawingBuffer": {
+              "width": 1080,
+              "height": 675
+            },
+            "dpr": 0.75,
+            "sceneAsset": "/world/precinct.glb",
+            "production": true
+          }
+        },
+        {
+          "label": "board-2",
+          "point": [
+            4.15,
+            1.05,
+            -9.63
+          ],
+          "pixel": {
+            "x": 1249.5944419749048,
+            "y": 526.567871128902,
+            "ndc": [
+              0.7355478360762566,
+              -0.17015082473089307,
+              0.9718486357387428
+            ]
+          },
+          "camera": {
+            "active": false,
+            "tier": "low",
+            "continuous": true,
+            "visible": true,
+            "cameraPosition": [
+              0,
+              1.65,
+              -4.2
+            ],
+            "cameraQuaternion": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "calls": 65,
+            "triangles": 127847,
+            "drawingBuffer": {
+              "width": 1080,
+              "height": 675
+            },
+            "dpr": 0.75,
+            "sceneAsset": "/world/precinct.glb",
+            "production": true
+          }
+        },
+        {
+          "label": "floor",
+          "point": [
+            1.4,
+            0.015,
+            -7.4
+          ],
+          "pixel": {
+            "x": 1023.1609147509961,
+            "y": 804.0486397270561,
+            "ndc": [
+              0.42105682604304995,
+              -0.7867747549490134,
+              0.9513008672448298
+            ]
+          },
+          "camera": {
+            "active": false,
+            "tier": "low",
+            "continuous": true,
+            "visible": true,
+            "cameraPosition": [
+              0,
+              1.65,
+              -4.2
+            ],
+            "cameraQuaternion": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "calls": 65,
+            "triangles": 127847,
+            "drawingBuffer": {
+              "width": 1080,
+              "height": 675
+            },
+            "dpr": 0.75,
+            "sceneAsset": "/world/precinct.glb",
+            "production": true
+          }
+        },
+        {
+          "label": "monitor-office-pane",
+          "point": [
+            11.154,
+            1.208,
+            -16.787
+          ],
+          "pixel": {
+            "x": 668.2613189733013,
+            "y": 606.4174254488294,
+            "ndc": [
+              -0.07185927920374827,
+              -0.34759427877517646,
+              0.9195673626199261
+            ]
+          },
+          "camera": {
+            "active": false,
+            "tier": "low",
+            "continuous": true,
+            "visible": true,
+            "cameraPosition": [
+              10.4,
+              1.65,
+              -18.6
+            ],
+            "cameraQuaternion": [
+              0,
+              -0.9872592956661154,
+              0,
+              0.15911971317484785
+            ],
+            "calls": 70,
+            "triangles": 145323,
+            "drawingBuffer": {
+              "width": 1080,
+              "height": 675
+            },
+            "dpr": 0.75,
+            "sceneAsset": "/world/precinct.glb",
+            "production": true
+          }
+        }
+      ],
+      "assets": [
+        {
+          "path": "/assets/index-D--NDbcx.css",
+          "sha256": "56511255e108d89f9806119fe3e91f7f1567467733981c687bd66d509b78646f"
+        },
+        {
+          "path": "/assets/jsx-runtime-D3jfb0Ew.js",
+          "sha256": "a2c68294426b0ded53fa2d6c97bb39c4a51f99e5e4b23e7953a2c69298e361f8"
+        },
+        {
+          "path": "/assets/index-CWPdozgp.js",
+          "sha256": "f91d8489ac3e68f85aa548481b57883442185d2adcf8b543ae25a840d3addf60"
+        },
+        {
+          "path": "/assets/PrecinctCanvas-DIaAnwQu.js",
+          "sha256": "749f1c492fe1c026acc3c157a610b5b386099062516a20703d6cff1aef8889d3"
+        },
+        {
+          "path": "/assets/RoomEnvironment-DYEHvueU.js",
+          "sha256": "9fb45294a2bb55c4ff37c3643074ac7267f69c275ca3e37dc026278da92be6cf"
+        },
+        {
+          "path": "/avatars/Business_Female_01/avatar.glb",
+          "sha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2"
+        },
+        {
+          "path": "/avatars/Business_Male_04/avatar.glb",
+          "sha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51"
+        },
+        {
+          "path": "/avatars/Business_Male_06/avatar.glb",
+          "sha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b"
+        },
+        {
+          "path": "/world/precinct.glb",
+          "sha256": "a9801458da3ff10911d49d03ba80cfa60eae9a70e42121b67a3066ec9aab9e9e"
+        },
+        {
+          "path": "/assets/F01-truthful-CRvCqAZq.js",
+          "sha256": "8241e5220bd295ab240c3d2808ae1c9a3bfe45d3199d5c6eeb43a48ccbf8b85d"
+        },
+        {
+          "path": "/avatars/Male_Adult_05/avatar.glb",
+          "sha256": "6e35eabaa912194f851e1ce2bdf49ffb934006e4eb0698d3ab7322f1b30b8180"
+        }
+      ],
+      "renderer": {
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "WebKit WebGL",
+        "unmasked": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+      },
+      "movement": {
+        "displacement": 3.4928497388298796,
+        "endpointError": 1.4923553594827597e-7,
+        "distinctIntermediatePositions": 5,
+        "passed": true
+      },
+      "monitor": "passed",
+      "fatal": null
+    },
+    {
+      "scene": "office",
+      "camera": "third",
+      "status": "failed",
+      "coldEntry": {
+        "label": "initial default Office load",
+        "originalGateMs": 5000,
+        "initialReady": false,
+        "initialFailure": "Error: expect(locator).toBeEnabled() failed\n\nLocator: getByRole('button', { name: 'Enter the precinct', exact: true })\nExpected: enabled\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeEnabled\" getByRole('button', { name: 'Enter the precinct', exact: true }) with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Enter the precinct', exact: true })\n\n    at captureRawStack (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeEnabled (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at runFloorRouting (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:142:95)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:282:123",
+        "initialGateElapsedMs": 5138.641967000003,
+        "diagnosticOnly": true,
+        "followupLimitMs": 60000,
+        "followupReady": true,
+        "followupElapsedMs": 9.345819999987725,
+        "failureEvidence": [
+          "office-third-cold-start-failure.json",
+          "office-third-cold-start-failure.html",
+          "office-third-cold-start-failure.png"
+        ]
+      },
+      "routingComplete": false,
+      "functionalComplete": false,
+      "theme": {
+        "requested": "studio",
+        "beforeEntry": "studio",
+        "afterFunctional": null
+      },
+      "checks": [
+        {
+          "name": "unchanged 5-second entry readiness: initial default Office load",
+          "status": "failed",
+          "error": "Error: expect(locator).toBeEnabled() failed\n\nLocator: getByRole('button', { name: 'Enter the precinct', exact: true })\nExpected: enabled\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeEnabled\" getByRole('button', { name: 'Enter the precinct', exact: true }) with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Enter the precinct', exact: true })\n\n    at captureRawStack (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeEnabled (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at runFloorRouting (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:142:95)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:282:123"
+        },
+        {
+          "name": "normal settings select Studio, architecture, low quality and reduced motion",
+          "status": "failed",
+          "error": "Error: expect(received).toBeGreaterThanOrEqual(expected)\n\nExpected: >= 3\nReceived:    2\n    at captureRawStack (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeGreaterThanOrEqual (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at still (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:54:32)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:195:11\n    at async check (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:119:15)\n    at async runFloorRouting (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:172:9)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:282:123"
+        }
+      ],
+      "blocked": [],
+      "errors": [],
+      "captureErrors": [],
+      "screenshots": [
+        "office-third-cold-start-failure.png",
+        "office-third-failure.png"
+      ],
+      "samples": [],
+      "stationarySamples": [
+        {
+          "phase": "settled-normal-arrival",
+          "samples": [
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 14.725019000004977
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 2279.4685860000027
+            }
+          ]
+        }
+      ],
+      "clicks": [],
+      "assets": [
+        {
+          "path": "/assets/index-D--NDbcx.css",
+          "sha256": "56511255e108d89f9806119fe3e91f7f1567467733981c687bd66d509b78646f"
+        },
+        {
+          "path": "/assets/jsx-runtime-D3jfb0Ew.js",
+          "sha256": "a2c68294426b0ded53fa2d6c97bb39c4a51f99e5e4b23e7953a2c69298e361f8"
+        },
+        {
+          "path": "/assets/index-CWPdozgp.js",
+          "sha256": "f91d8489ac3e68f85aa548481b57883442185d2adcf8b543ae25a840d3addf60"
+        },
+        {
+          "path": "/assets/PrecinctCanvas-DIaAnwQu.js",
+          "sha256": "749f1c492fe1c026acc3c157a610b5b386099062516a20703d6cff1aef8889d3"
+        },
+        {
+          "path": "/assets/RoomEnvironment-DYEHvueU.js",
+          "sha256": "9fb45294a2bb55c4ff37c3643074ac7267f69c275ca3e37dc026278da92be6cf"
+        },
+        {
+          "path": "/avatars/Business_Female_01/avatar.glb",
+          "sha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2"
+        },
+        {
+          "path": "/avatars/Business_Male_04/avatar.glb",
+          "sha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51"
+        },
+        {
+          "path": "/avatars/Business_Male_06/avatar.glb",
+          "sha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b"
+        },
+        {
+          "path": "/world/precinct.glb",
+          "sha256": "a9801458da3ff10911d49d03ba80cfa60eae9a70e42121b67a3066ec9aab9e9e"
+        },
+        {
+          "path": "/avatars/Business_Male_02/avatar.glb",
+          "sha256": "17b4ca9fec7eb2f369ec4b8be34e606e9cf30dabd7e49f1d32042c60c086d24f"
+        }
+      ],
+      "renderer": {
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "WebKit WebGL",
+        "unmasked": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+      },
+      "movement": null,
+      "monitor": "not-in-third-person-scope",
+      "fatal": "Error: expect(received).toBeGreaterThanOrEqual(expected)\n\nExpected: >= 3\nReceived:    2\n    at captureRawStack (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeGreaterThanOrEqual (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at still (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:54:32)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:195:11\n    at async check (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:119:15)\n    at async runFloorRouting (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:172:9)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:282:123"
+    },
+    {
+      "scene": "courtyard",
+      "camera": "first",
+      "status": "functional-completed-cold-start-failed",
+      "coldEntry": {
+        "label": "initial default Office load",
+        "originalGateMs": 5000,
+        "initialReady": false,
+        "initialFailure": "Error: expect(locator).toBeEnabled() failed\n\nLocator: getByRole('button', { name: 'Enter the precinct', exact: true })\nExpected: enabled\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeEnabled\" getByRole('button', { name: 'Enter the precinct', exact: true }) with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Enter the precinct', exact: true })\n\n    at captureRawStack (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeEnabled (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at runFloorRouting (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:142:95)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:282:123",
+        "initialGateElapsedMs": 5009.3973359999945,
+        "diagnosticOnly": true,
+        "followupLimitMs": 60000,
+        "followupReady": true,
+        "followupElapsedMs": 9.221818999998504,
+        "failureEvidence": [
+          "courtyard-first-cold-start-failure.json",
+          "courtyard-first-cold-start-failure.html",
+          "courtyard-first-cold-start-failure.png"
+        ]
+      },
+      "routingComplete": true,
+      "functionalComplete": true,
+      "theme": {
+        "requested": "studio",
+        "beforeEntry": "studio",
+        "afterFunctional": "studio"
+      },
+      "checks": [
+        {
+          "name": "unchanged 5-second entry readiness: initial default Office load",
+          "status": "failed",
+          "error": "Error: expect(locator).toBeEnabled() failed\n\nLocator: getByRole('button', { name: 'Enter the precinct', exact: true })\nExpected: enabled\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeEnabled\" getByRole('button', { name: 'Enter the precinct', exact: true }) with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Enter the precinct', exact: true })\n\n    at captureRawStack (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeEnabled (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at runFloorRouting (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:142:95)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:282:123"
+        },
+        {
+          "name": "normal settings select Studio, architecture, low quality and reduced motion",
+          "status": "passed",
+          "error": null
+        },
+        {
+          "name": "board receives actual scene clicks with no movement after each close",
+          "status": "passed",
+          "error": null
+        },
+        {
+          "name": "real floor click produces intermediate player movement and arrival",
+          "status": "passed",
+          "error": null
+        },
+        {
+          "name": "offline physical monitor opens correct pane and leaves no residual movement",
+          "status": "passed",
+          "error": null
+        },
+        {
+          "name": "fixed Studio theme remains applied after functional checks",
+          "status": "passed",
+          "error": null
+        },
+        {
+          "name": "zero backend/external/socket attempts and exact served artifact bytes",
+          "status": "passed",
+          "error": null
+        }
+      ],
+      "blocked": [],
+      "errors": [],
+      "captureErrors": [],
+      "screenshots": [
+        "courtyard-first-cold-start-failure.png",
+        "courtyard-first-board-1-before.png",
+        "courtyard-first-board-1-opened.png",
+        "courtyard-first-board-2-before.png",
+        "courtyard-first-board-2-opened.png",
+        "courtyard-first-floor-before.png",
+        "courtyard-first-floor-arrived.png",
+        "courtyard-first-monitor-office-pane-before.png",
+        "courtyard-first-monitor-expanded.png"
+      ],
+      "samples": [
+        {
+          "x": 0,
+          "z": -4.2,
+          "elapsedMs": 7.580718999990495
+        },
+        {
+          "x": 0,
+          "z": -4.2,
+          "elapsedMs": 166.77973499998916
+        },
+        {
+          "x": 0,
+          "z": -4.2,
+          "elapsedMs": 324.47235699999146
+        },
+        {
+          "x": 0,
+          "z": -4.2,
+          "elapsedMs": 502.7575690000085
+        },
+        {
+          "x": 0,
+          "z": -4.2,
+          "elapsedMs": 703.0264449999959
+        },
+        {
+          "x": 0.24049128304744588,
+          "z": -4.749694408538231,
+          "elapsedMs": 863.2184239999915
+        },
+        {
+          "x": 0.24049128304744588,
+          "z": -4.749694408538231,
+          "elapsedMs": 1019.6055420000048
+        },
+        {
+          "x": 0.24049128304744588,
+          "z": -4.749694408538231,
+          "elapsedMs": 1180.215487999987
+        },
+        {
+          "x": 0.24049128304744588,
+          "z": -4.749694408538231,
+          "elapsedMs": 1339.529967999988
+        },
+        {
+          "x": 0.24049128304744588,
+          "z": -4.749694408538231,
+          "elapsedMs": 1497.2106909999857
+        },
+        {
+          "x": 0.4809825660948918,
+          "z": -5.299388817076461,
+          "elapsedMs": 1653.636326000007
+        },
+        {
+          "x": 0.4809825660948918,
+          "z": -5.299388817076461,
+          "elapsedMs": 1813.5230459999875
+        },
+        {
+          "x": 0.4809825660948918,
+          "z": -5.299388817076461,
+          "elapsedMs": 1970.1786629999988
+        },
+        {
+          "x": 0.4809825660948918,
+          "z": -5.299388817076461,
+          "elapsedMs": 2126.9647450000048
+        },
+        {
+          "x": 0.4809825660948918,
+          "z": -5.299388817076461,
+          "elapsedMs": 2284.386108000006
+        },
+        {
+          "x": 0.4809825660948918,
+          "z": -5.299388817076461,
+          "elapsedMs": 2440.928052000003
+        },
+        {
+          "x": 0.7214738491423379,
+          "z": -5.849083225614692,
+          "elapsedMs": 2606.8776129999897
+        },
+        {
+          "x": 0.7214738491423379,
+          "z": -5.849083225614692,
+          "elapsedMs": 2786.522009999986
+        },
+        {
+          "x": 0.7214738491423379,
+          "z": -5.849083225614692,
+          "elapsedMs": 2946.1226840000018
+        },
+        {
+          "x": 0.7214738491423379,
+          "z": -5.849083225614692,
+          "elapsedMs": 3110.227448999998
+        },
+        {
+          "x": 0.7214738491423379,
+          "z": -5.849083225614692,
+          "elapsedMs": 3303.433350999985
+        },
+        {
+          "x": 0.9619651321897844,
+          "z": -6.398777634152922,
+          "elapsedMs": 3464.4479569999967
+        },
+        {
+          "x": 0.9619651321897844,
+          "z": -6.398777634152922,
+          "elapsedMs": 3623.6518940000096
+        },
+        {
+          "x": 0.9619651321897844,
+          "z": -6.398777634152922,
+          "elapsedMs": 3780.9079349999956
+        },
+        {
+          "x": 0.9619651321897844,
+          "z": -6.398777634152922,
+          "elapsedMs": 3945.061680999992
+        },
+        {
+          "x": 0.9619651321897844,
+          "z": -6.398777634152922,
+          "elapsedMs": 4104.928589999996
+        },
+        {
+          "x": 0.9619651321897844,
+          "z": -6.398777634152922,
+          "elapsedMs": 4279.189874000003
+        },
+        {
+          "x": 0.9619651321897844,
+          "z": -6.398777634152922,
+          "elapsedMs": 4439.700721000001
+        },
+        {
+          "x": 0.9619651321897844,
+          "z": -6.398777634152922,
+          "elapsedMs": 4594.560865000007
+        },
+        {
+          "x": 1.2024564152372315,
+          "z": -6.948472042691153,
+          "elapsedMs": 5113.489925000002
+        },
+        {
+          "x": 1.2024564152372315,
+          "z": -6.948472042691153,
+          "elapsedMs": 5423.785057000001
+        },
+        {
+          "x": 1.2024564152372315,
+          "z": -6.948472042691153,
+          "elapsedMs": 5579.538379000005
+        },
+        {
+          "x": 1.2024564152372315,
+          "z": -6.948472042691153,
+          "elapsedMs": 5743.841952999996
+        },
+        {
+          "x": 1.2024564152372315,
+          "z": -6.948472042691153,
+          "elapsedMs": 5898.950167000003
+        },
+        {
+          "x": 1.2024564152372315,
+          "z": -6.948472042691153,
+          "elapsedMs": 6053.461329999991
+        },
+        {
+          "x": 1.3999998586385534,
+          "z": -7.39999995216499,
+          "elapsedMs": 6293.279198999982
+        }
+      ],
+      "stationarySamples": [
+        {
+          "phase": "settled-normal-arrival",
+          "samples": [
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 27.448709000018425
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 200.65468300000066
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 362.8927529999928
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 521.2469850000052
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 720.3759520000021
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 881.772192000004
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1040.3838099999994
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1213.0935429999954
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1384.2996310000017
+            }
+          ]
+        },
+        {
+          "phase": "board-1-closed",
+          "samples": [
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 5.693943999998737
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 162.63040699998965
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 322.7488569999987
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 490.10785199998645
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 690.6454239999875
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 859.357542999991
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1032.5857499999984
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1193.843458999996
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1353.0962310000032
+            }
+          ]
+        },
+        {
+          "phase": "board-2-closed",
+          "samples": [
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 3.965844999998808
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 166.22976599997492
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 323.8375669999805
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 491.97435099998256
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 653.0340329999744
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 810.7167859999754
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 987.5062919999764
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1158.3368709999777
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1321.7619239999913
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1487.9809240000031
+            }
+          ]
+        },
+        {
+          "phase": "pre-floor-idle",
+          "samples": [
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 2.8985129999928176
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 167.50934299998335
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 327.60011400000076
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 482.9711749999842
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 643.169899999979
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 798.6641719999898
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 959.3952819999831
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1172.115163999988
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1340.8252999999968
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 1509.6085449999955
+            }
+          ]
+        },
+        {
+          "phase": "arrived-floor-endpoint",
+          "samples": [
+            {
+              "x": 1.3999998586385534,
+              "z": -7.39999995216499,
+              "elapsedMs": 18.721877000003587
+            },
+            {
+              "x": 1.3999998586385534,
+              "z": -7.39999995216499,
+              "elapsedMs": 255.79659600000014
+            },
+            {
+              "x": 1.3999998586385534,
+              "z": -7.39999995216499,
+              "elapsedMs": 416.0716309999989
+            },
+            {
+              "x": 1.3999998586385534,
+              "z": -7.39999995216499,
+              "elapsedMs": 594.3545800000138
+            },
+            {
+              "x": 1.3999998586385534,
+              "z": -7.39999995216499,
+              "elapsedMs": 758.2146300000022
+            },
+            {
+              "x": 1.3999998586385534,
+              "z": -7.39999995216499,
+              "elapsedMs": 1003.9956700000039
+            },
+            {
+              "x": 1.3999998586385534,
+              "z": -7.39999995216499,
+              "elapsedMs": 1160.3848440000147
+            },
+            {
+              "x": 1.3999998586385534,
+              "z": -7.39999995216499,
+              "elapsedMs": 1322.2537420000008
+            }
+          ]
+        },
+        {
+          "phase": "monitor-approach",
+          "samples": [
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 6.888978999981191
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 177.98614100000123
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 380.42264299999806
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 544.1076969999995
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 704.4172989999934
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 860.0874429999967
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 1024.7136339999852
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 1184.8887319999922
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 1345.3715569999767
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 1515.6873539999942
+            }
+          ]
+        },
+        {
+          "phase": "monitor-closed",
+          "samples": [
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 8.174127999984194
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 167.27303499999107
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 325.8381039999949
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 488.0737019999942
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 682.0011229999945
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 847.2105249999731
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 1012.827271999995
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 1176.5082089999923
+            },
+            {
+              "x": 10.4,
+              "z": -18.6,
+              "elapsedMs": 1350.2684799999988
+            }
+          ]
+        }
+      ],
+      "clicks": [
+        {
+          "label": "board-1",
+          "point": [
+            4.15,
+            1.05,
+            -9.63
+          ],
+          "pixel": {
+            "x": 1249.5944419749048,
+            "y": 526.567871128902,
+            "ndc": [
+              0.7355478360762566,
+              -0.17015082473089307,
+              0.9718486357387428
+            ]
+          },
+          "camera": {
+            "active": false,
+            "tier": "low",
+            "continuous": true,
+            "visible": true,
+            "cameraPosition": [
+              0,
+              1.65,
+              -4.2
+            ],
+            "cameraQuaternion": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "calls": 70,
+            "triangles": 135816,
+            "drawingBuffer": {
+              "width": 1080,
+              "height": 675
+            },
+            "dpr": 0.75,
+            "sceneAsset": "/world/precinct-courtyard.glb",
+            "production": true
+          }
+        },
+        {
+          "label": "board-2",
+          "point": [
+            4.15,
+            1.05,
+            -9.63
+          ],
+          "pixel": {
+            "x": 1249.5944419749048,
+            "y": 526.567871128902,
+            "ndc": [
+              0.7355478360762566,
+              -0.17015082473089307,
+              0.9718486357387428
+            ]
+          },
+          "camera": {
+            "active": false,
+            "tier": "low",
+            "continuous": true,
+            "visible": true,
+            "cameraPosition": [
+              0,
+              1.65,
+              -4.2
+            ],
+            "cameraQuaternion": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "calls": 70,
+            "triangles": 135816,
+            "drawingBuffer": {
+              "width": 1080,
+              "height": 675
+            },
+            "dpr": 0.75,
+            "sceneAsset": "/world/precinct-courtyard.glb",
+            "production": true
+          }
+        },
+        {
+          "label": "floor",
+          "point": [
+            1.4,
+            0.015,
+            -7.4
+          ],
+          "pixel": {
+            "x": 1023.1609147509961,
+            "y": 804.0486397270561,
+            "ndc": [
+              0.42105682604304995,
+              -0.7867747549490134,
+              0.9513008672448298
+            ]
+          },
+          "camera": {
+            "active": false,
+            "tier": "low",
+            "continuous": true,
+            "visible": true,
+            "cameraPosition": [
+              0,
+              1.65,
+              -4.2
+            ],
+            "cameraQuaternion": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "calls": 70,
+            "triangles": 135816,
+            "drawingBuffer": {
+              "width": 1080,
+              "height": 675
+            },
+            "dpr": 0.75,
+            "sceneAsset": "/world/precinct-courtyard.glb",
+            "production": true
+          }
+        },
+        {
+          "label": "monitor-office-pane",
+          "point": [
+            11.154,
+            1.208,
+            -16.787
+          ],
+          "pixel": {
+            "x": 668.2613189733013,
+            "y": 606.4174254488294,
+            "ndc": [
+              -0.07185927920374827,
+              -0.34759427877517646,
+              0.9195673626199261
+            ]
+          },
+          "camera": {
+            "active": false,
+            "tier": "low",
+            "continuous": true,
+            "visible": true,
+            "cameraPosition": [
+              10.4,
+              1.65,
+              -18.6
+            ],
+            "cameraQuaternion": [
+              0,
+              -0.9872592956661154,
+              0,
+              0.15911971317484785
+            ],
+            "calls": 76,
+            "triangles": 150712,
+            "drawingBuffer": {
+              "width": 1080,
+              "height": 675
+            },
+            "dpr": 0.75,
+            "sceneAsset": "/world/precinct-courtyard.glb",
+            "production": true
+          }
+        }
+      ],
+      "assets": [
+        {
+          "path": "/assets/index-D--NDbcx.css",
+          "sha256": "56511255e108d89f9806119fe3e91f7f1567467733981c687bd66d509b78646f"
+        },
+        {
+          "path": "/assets/jsx-runtime-D3jfb0Ew.js",
+          "sha256": "a2c68294426b0ded53fa2d6c97bb39c4a51f99e5e4b23e7953a2c69298e361f8"
+        },
+        {
+          "path": "/assets/index-CWPdozgp.js",
+          "sha256": "f91d8489ac3e68f85aa548481b57883442185d2adcf8b543ae25a840d3addf60"
+        },
+        {
+          "path": "/assets/PrecinctCanvas-DIaAnwQu.js",
+          "sha256": "749f1c492fe1c026acc3c157a610b5b386099062516a20703d6cff1aef8889d3"
+        },
+        {
+          "path": "/assets/RoomEnvironment-DYEHvueU.js",
+          "sha256": "9fb45294a2bb55c4ff37c3643074ac7267f69c275ca3e37dc026278da92be6cf"
+        },
+        {
+          "path": "/avatars/Business_Female_01/avatar.glb",
+          "sha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2"
+        },
+        {
+          "path": "/avatars/Business_Male_04/avatar.glb",
+          "sha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51"
+        },
+        {
+          "path": "/avatars/Business_Male_06/avatar.glb",
+          "sha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b"
+        },
+        {
+          "path": "/world/precinct.glb",
+          "sha256": "a9801458da3ff10911d49d03ba80cfa60eae9a70e42121b67a3066ec9aab9e9e"
+        },
+        {
+          "path": "/world/precinct-courtyard.glb",
+          "sha256": "e985fe9677cf56ce77ee361b8567b5c2bb1eaae9304464f54c473ca2d7c9c4a0"
+        },
+        {
+          "path": "/assets/F01-truthful-CRvCqAZq.js",
+          "sha256": "8241e5220bd295ab240c3d2808ae1c9a3bfe45d3199d5c6eeb43a48ccbf8b85d"
+        },
+        {
+          "path": "/avatars/Male_Adult_05/avatar.glb",
+          "sha256": "6e35eabaa912194f851e1ce2bdf49ffb934006e4eb0698d3ab7322f1b30b8180"
+        }
+      ],
+      "renderer": {
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "WebKit WebGL",
+        "unmasked": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+      },
+      "movement": {
+        "displacement": 3.4928497388298716,
+        "endpointError": 1.4923554138073777e-7,
+        "distinctIntermediatePositions": 5,
+        "passed": true
+      },
+      "monitor": "passed",
+      "fatal": null
+    },
+    {
+      "scene": "courtyard",
+      "camera": "third",
+      "status": "failed",
+      "coldEntry": {
+        "label": "initial default Office load",
+        "originalGateMs": 5000,
+        "initialReady": false,
+        "initialFailure": "Error: expect(locator).toBeEnabled() failed\n\nLocator: getByRole('button', { name: 'Enter the precinct', exact: true })\nExpected: enabled\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeEnabled\" getByRole('button', { name: 'Enter the precinct', exact: true }) with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Enter the precinct', exact: true })\n\n    at captureRawStack (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeEnabled (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at runFloorRouting (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:142:95)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:282:123",
+        "initialGateElapsedMs": 5006.352726000012,
+        "diagnosticOnly": true,
+        "followupLimitMs": 60000,
+        "followupReady": true,
+        "followupElapsedMs": 18.45764199999394,
+        "failureEvidence": [
+          "courtyard-third-cold-start-failure.json",
+          "courtyard-third-cold-start-failure.html",
+          "courtyard-third-cold-start-failure.png"
+        ]
+      },
+      "routingComplete": false,
+      "functionalComplete": false,
+      "theme": {
+        "requested": "studio",
+        "beforeEntry": "studio",
+        "afterFunctional": null
+      },
+      "checks": [
+        {
+          "name": "unchanged 5-second entry readiness: initial default Office load",
+          "status": "failed",
+          "error": "Error: expect(locator).toBeEnabled() failed\n\nLocator: getByRole('button', { name: 'Enter the precinct', exact: true })\nExpected: enabled\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeEnabled\" getByRole('button', { name: 'Enter the precinct', exact: true }) with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Enter the precinct', exact: true })\n\n    at captureRawStack (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeEnabled (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at runFloorRouting (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:142:95)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:282:123"
+        },
+        {
+          "name": "normal settings select Studio, architecture, low quality and reduced motion",
+          "status": "failed",
+          "error": "Error: expect(received).toBeGreaterThanOrEqual(expected)\n\nExpected: >= 3\nReceived:    2\n    at captureRawStack (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeGreaterThanOrEqual (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at still (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:54:32)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:195:11\n    at async check (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:119:15)\n    at async runFloorRouting (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:172:9)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:282:123"
+        }
+      ],
+      "blocked": [],
+      "errors": [],
+      "captureErrors": [],
+      "screenshots": [
+        "courtyard-third-cold-start-failure.png",
+        "courtyard-third-failure.png"
+      ],
+      "samples": [],
+      "stationarySamples": [
+        {
+          "phase": "settled-normal-arrival",
+          "samples": [
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 5.221768999996129
+            },
+            {
+              "x": 0,
+              "z": -4.2,
+              "elapsedMs": 2187.6667899999884
+            }
+          ]
+        }
+      ],
+      "clicks": [],
+      "assets": [
+        {
+          "path": "/assets/index-D--NDbcx.css",
+          "sha256": "56511255e108d89f9806119fe3e91f7f1567467733981c687bd66d509b78646f"
+        },
+        {
+          "path": "/assets/jsx-runtime-D3jfb0Ew.js",
+          "sha256": "a2c68294426b0ded53fa2d6c97bb39c4a51f99e5e4b23e7953a2c69298e361f8"
+        },
+        {
+          "path": "/assets/index-CWPdozgp.js",
+          "sha256": "f91d8489ac3e68f85aa548481b57883442185d2adcf8b543ae25a840d3addf60"
+        },
+        {
+          "path": "/assets/PrecinctCanvas-DIaAnwQu.js",
+          "sha256": "749f1c492fe1c026acc3c157a610b5b386099062516a20703d6cff1aef8889d3"
+        },
+        {
+          "path": "/assets/RoomEnvironment-DYEHvueU.js",
+          "sha256": "9fb45294a2bb55c4ff37c3643074ac7267f69c275ca3e37dc026278da92be6cf"
+        },
+        {
+          "path": "/avatars/Business_Male_06/avatar.glb",
+          "sha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b"
+        },
+        {
+          "path": "/avatars/Business_Female_01/avatar.glb",
+          "sha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2"
+        },
+        {
+          "path": "/avatars/Business_Male_04/avatar.glb",
+          "sha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51"
+        },
+        {
+          "path": "/world/precinct.glb",
+          "sha256": "a9801458da3ff10911d49d03ba80cfa60eae9a70e42121b67a3066ec9aab9e9e"
+        },
+        {
+          "path": "/world/precinct-courtyard.glb",
+          "sha256": "e985fe9677cf56ce77ee361b8567b5c2bb1eaae9304464f54c473ca2d7c9c4a0"
+        },
+        {
+          "path": "/avatars/Business_Male_02/avatar.glb",
+          "sha256": "17b4ca9fec7eb2f369ec4b8be34e606e9cf30dabd7e49f1d32042c60c086d24f"
+        }
+      ],
+      "renderer": {
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "WebKit WebGL",
+        "unmasked": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+      },
+      "movement": null,
+      "monitor": "not-in-third-person-scope",
+      "fatal": "Error: expect(received).toBeGreaterThanOrEqual(expected)\n\nExpected: >= 3\nReceived:    2\n    at captureRawStack (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeGreaterThanOrEqual (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at still (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:54:32)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:195:11\n    at async check (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:119:15)\n    at async runFloorRouting (/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:172:9)\n    at async file:///workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/tools/precinct-floor-routing-smoke.ts:282:123"
+    }
+  ],
+  "fatal": null
+}

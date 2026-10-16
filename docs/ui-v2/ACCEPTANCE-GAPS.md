@@ -1,0 +1,33 @@
+# Remaining brief acceptance, 2026-10-15
+
+This is an implementation checklist. Slices one through four have reviewed browser evidence. The combined Studio/courtyard/stations/reviewer/capture/audio and performance-instrumentation source at `8eedd756` passes the unchanged full web gate: 242 suites / 2,726 tests twice, coverage and build. See [exact proof](combined-web-check-8eedd756.json). Actual combined browser/audio acceptance and separately staged dictation/Coach Lab candidates remain outstanding. Both measured Office production samples fail frame pacing and cold-start budgets; actual MacBook Air M5 acceptance remains unmeasured.
+
+## Active finish-work
+
+- **Immersive subtitles:** expose the actual queued speaking line and the existing live-voice caption state, including in walking/seated view and non-transcript panels. Preserve one speaker-labelled accessible region and assessment/mute/scope cancellation. The source is integrated; combined browser acceptance is pending.
+- **One-way observation appearance:** add only an interview-facing opaque reflective surface to the existing aperture. Preserve the observation-side view, all shared door glazing and collision. The original two-triangle surface is integrated; both room viewpoints still need browser review.
+- **Movable paused camera:** independent bounded pan, height, orbit and zoom, without moving the trainee or changing recorded time. The integrated source retains the sole camera owner and returns to the actual current live/recorded view; combined visual acceptance is pending.
+- **Controller navigation:** deliberate button activation, dialog focus/close, pause, map and camera mappings. The source is integrated; native pickers/permission surfaces remain native. Physical-controller acceptance is outstanding.
+- **Diegetic data:** a publication-gated debrief wall and public case/recognition surfaces should replace static placeholder content on existing props. The DOM readers remain the complete accessible detail. No manufactured scores, ranks, unlock prerequisites or dates.
+- **NPC movement:** actual generated convex-cell navigation and dynamic avoidance are integrated after 299 focused runtime checks and 95 scoped coverage checks. Both worlds include reviewer-chair geometry and all preserved station anchors; post-merge aggregate tests pass; rendered movement, second-generation determinism and performance acceptance remain pending.
+- **Review-panel presence and neutral handover:** the separate neutral reviewer and richer lifecycle-driven gestures are integrated under new versioned replay identities. The combined full web gate passes; visual acceptance is still required.
+
+## Replay fidelity still owed
+
+The current prepared candidate is sampled world replay and client-experienced silent-text capture, not whole-session exact audiovisual replay. It reconstructs accepted trial state, notebook/draft/evidence markers and finite procedural actor samples. Camera/roots are sampled around 10 Hz, monitor phases are reconstructed, original panel/page layout is not reinstated, and original audio/visemes are absent. A capture being marked complete means its supported journal is complete, not that unsupported media exists.
+
+The concrete next step is a versioned bounded presentation-frame stream sampled after the existing scene writers: actual camera/root/rig values, public monitor/UI state and deterministic ordering. Its acceptance must compare replay to the originally rendered state and stop explicitly at byte/event limits. Input-only re-simulation cannot silently replace that proof. Audio needs aligned media/viseme data and explicit consent/provenance; synthesized read-aloud must stay labelled as synthesized.
+
+Upstream main `693c8c19` now contains new telemetry, NPC, instructor, Coach Lab and voice seams. Recording conflicts are resolved with generic-data preservation and explicit checked UI profile narrowing; fresh aggregate verification passes at `6758285`; connected browser acceptance is pending. The actual Coach Lab read adapter is being prepared separately, with no live model calls. Genuine retry-from-turn still requires a verified backend fork contract; the previously integrated session-creation shape has no source trial/cursor field. A verified winning-coach ghost requires winner identity and that coach's actual source trace. Review-from-turn and comparison with a recorded suggested question are useful but do not supply those missing features.
+
+## Disclosed local/mock boundaries
+
+- Free local interview rehearsal uses fixed, clearly labelled authored dialogue and an unscored outcome. Historical coaching belongs only to the selected genuine recording.
+- Colleague conversation is bounded authored dialogue with explicit name/visit memory. It has no case facts or open-ended model.
+- Prepared Coach Lab/instructor demonstrations do not establish live class observation, assignments, annotations or measured coach history. Reconcile the now-landed upstream routes and authorization constraints before enabling these live adapters; do not guess permission or assignment fields.
+- Availability data does not supply case-unlock prerequisites. Show that absence rather than inventing a difficulty policy.
+- Twenty-three original scripted staff WAVs and bounded rootless eSpeak rehearsal TTS are integrated. Native TTS proof has 36 passing tests and 13 real WAV responses. Actual combined browser playback, analyser-driven lips and an audible video still need acceptance. No original voiced-run replay media is available; device-local synthesis without analyser data keeps the mouth closed.
+- A pinned MIT Whisper tiny.en CPU proof improved the same five synthetic phrases to 3/44 word edits (6.82% normalized WER), with ~0.605× end-to-end wall/audio ratio and ~145 MiB peak child RSS. It is not yet app-integrated or verified with human microphone input. Review-before-Add-to-draft and separate Send remain required.
+- The current hardware target is a sustained smooth 60 FPS production demo on the owner’s MacBook Air M5. Actual M5, physical-controller and browser audio/lip-sync acceptance remain unverified. Quality tiers and software-WebGL checks are not substitutes. Background-character geometry LOD remains future work.
+
+Original procedural motion is used instead of Mixamo; no non-open animation pack was added. Source Blender, compressed runtime, fonts and complete attribution remain present. Historical oversized Git blobs are a separate publication blocker, not a defect in the compliant current asset snapshot.

@@ -1,0 +1,857 @@
+{
+  "method": "Source-byte verification, not runtime validation",
+  "frozenDependencyFilesTouched": [],
+  "scenes": [
+    {
+      "scene": "office",
+      "adapterPath": "web/src/lib/world/scene-adapter-office-v2.json",
+      "adapterSha256": "3f0cebe1d2b20692c634b2625d179f6f3378217dbbad269d521df70a2210e1a0",
+      "dependencyCount": 27,
+      "dependencies": [
+        {
+          "path": "web/src/lib/precinct/proceduralActors.ts",
+          "sha256": "367fea547ba48ad4b7f6366495f41bfc9962f658a11fbd664c3694c539447adc",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralSeatedV1.ts",
+          "sha256": "53249924dd5536fd2a1ca69c75dab33e67e75aabeeb87581bbdda41b7842b61e",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralStaffV1.ts",
+          "sha256": "5fdc7eb36884fa5d38595109561486893057e27320226ddcad3b3698ddcaf0a1",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralWalkingV1.ts",
+          "sha256": "70d567129bdd2d3ae0b120c8908a3c482a21366728947ccc1a02b12a02fabe60",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/components/precinct/standingAvatarRigV1.ts",
+          "sha256": "98747f418f3975114799a94105fc53d2c671d0731f5623fa8ad64f2ef466974c",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/components/precinct/seatedAvatarRig.ts",
+          "sha256": "b8947afa49fb556c94c1fabda2c851f11ad81ed55c63c36d098498187745ef45",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Business_Female_01/avatar.glb",
+          "sha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Business_Female_02/avatar.glb",
+          "sha256": "36304f4a2e279640859a21662349e9a411e53f604d12fe19c329795c454cf7ec",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Business_Male_02/avatar.glb",
+          "sha256": "17b4ca9fec7eb2f369ec4b8be34e606e9cf30dabd7e49f1d32042c60c086d24f",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Business_Male_04/avatar.glb",
+          "sha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Business_Male_06/avatar.glb",
+          "sha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Female_Adult_07/avatar.glb",
+          "sha256": "3c664edaba7a5472b05712102896c2d9b093cb1aa3bf8c1cd4e3f3df2dc50ca6",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Female_Adult_14/avatar.glb",
+          "sha256": "a48adcb4661b2441231a81569b80a50a997c4f109d40d1a62abb8902f093ff7d",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Male_Adult_05/avatar.glb",
+          "sha256": "6e35eabaa912194f851e1ce2bdf49ffb934006e4eb0698d3ab7322f1b30b8180",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Male_Adult_08/avatar.glb",
+          "sha256": "5e716522f2d70e760d2afb48ccee82ca75f77239c07d915ac9033b1d222ec17f",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Male_Adult_12/avatar.glb",
+          "sha256": "6f6c93ced906738096b9fd0f32731b21079a7a978324cfa841328d7872a685ff",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/worldVariant.ts",
+          "sha256": "de70c670220eafecf1ef48a668d6bff86d95876d1075a70d9c3042b2ae07ae98",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/knownWorlds.ts",
+          "sha256": "97134ad9f6f642c71f834d15bc86affdb038d6880cf9698d4b41565d56c14b0d",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/effectiveWorldGeometry.ts",
+          "sha256": "b1f2ee069446e462285227b963a8c448972cd10a860845483eb52cba729a6b39",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralReviewerV2.ts",
+          "sha256": "df6b04537932aa8b210d84592713d56319ac5f83f52a31b8621c7d3018e21cd3",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralPatrolV2.ts",
+          "sha256": "f25814f1ee25e3b6419a86ed09dbe6f37c620d924a244a29a2ee37ac89e6a610",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/components/precinct/reviewerBodyV2.ts",
+          "sha256": "e0857dfef96cd96b137e49b81af35ede8345990a1d9f56b9634ad12147c1da2c",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/components/precinct/patrolBodyV2.ts",
+          "sha256": "bff81b131b0a23381aff9c285096c3cc93426db9e8549664c363aaee75b407af",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/components/precinct/actorSamples.ts",
+          "sha256": "bbce2ef754e2e20180c15224144f334f2b540a9a0beceb1c604df4ca9a789ef7",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/interviewStage.ts",
+          "sha256": "1f332ec6a7944ac08c270703b4ef6df7639274a9b3535c55ca1a1b95245618a9",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/components/precinct/seatedBodyV1.ts",
+          "sha256": "22aaeb7faa410924f5b413425ae964243c17e2a0f59c80f7fb613c6d874dfdc2",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/components/precinct/recordedCameraV1.ts",
+          "sha256": "68cb796b8fd6e860af968561486297c51201a2db60e25e34b47ac7f278af3a97",
+          "unchanged": true
+        }
+      ],
+      "geometry": [
+        {
+          "path": "web/public/world/precinct.glb",
+          "sha256": "a9801458da3ff10911d49d03ba80cfa60eae9a70e42121b67a3066ec9aab9e9e",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/world/precinct-manifest.json",
+          "sha256": "fc85679e66e176e2fc29c1b6caa2ad364b3a4c60e099fc3c22cc46b26b24552f",
+          "unchanged": true
+        }
+      ]
+    },
+    {
+      "scene": "courtyard",
+      "adapterPath": "web/src/lib/world/scene-adapter-courtyard-v2.json",
+      "adapterSha256": "dda90be527aca1b6e889e459cb1dc50971e4054607360071fd832c2b2b7e36c5",
+      "dependencyCount": 27,
+      "dependencies": [
+        {
+          "path": "web/src/lib/precinct/proceduralActors.ts",
+          "sha256": "367fea547ba48ad4b7f6366495f41bfc9962f658a11fbd664c3694c539447adc",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralSeatedV1.ts",
+          "sha256": "53249924dd5536fd2a1ca69c75dab33e67e75aabeeb87581bbdda41b7842b61e",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralStaffV1.ts",
+          "sha256": "5fdc7eb36884fa5d38595109561486893057e27320226ddcad3b3698ddcaf0a1",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralWalkingV1.ts",
+          "sha256": "70d567129bdd2d3ae0b120c8908a3c482a21366728947ccc1a02b12a02fabe60",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/components/precinct/standingAvatarRigV1.ts",
+          "sha256": "98747f418f3975114799a94105fc53d2c671d0731f5623fa8ad64f2ef466974c",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/components/precinct/seatedAvatarRig.ts",
+          "sha256": "b8947afa49fb556c94c1fabda2c851f11ad81ed55c63c36d098498187745ef45",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Business_Female_01/avatar.glb",
+          "sha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Business_Female_02/avatar.glb",
+          "sha256": "36304f4a2e279640859a21662349e9a411e53f604d12fe19c329795c454cf7ec",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Business_Male_02/avatar.glb",
+          "sha256": "17b4ca9fec7eb2f369ec4b8be34e606e9cf30dabd7e49f1d32042c60c086d24f",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Business_Male_04/avatar.glb",
+          "sha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Business_Male_06/avatar.glb",
+          "sha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Female_Adult_07/avatar.glb",
+          "sha256": "3c664edaba7a5472b05712102896c2d9b093cb1aa3bf8c1cd4e3f3df2dc50ca6",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Female_Adult_14/avatar.glb",
+          "sha256": "a48adcb4661b2441231a81569b80a50a997c4f109d40d1a62abb8902f093ff7d",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Male_Adult_05/avatar.glb",
+          "sha256": "6e35eabaa912194f851e1ce2bdf49ffb934006e4eb0698d3ab7322f1b30b8180",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Male_Adult_08/avatar.glb",
+          "sha256": "5e716522f2d70e760d2afb48ccee82ca75f77239c07d915ac9033b1d222ec17f",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/avatars/Male_Adult_12/avatar.glb",
+          "sha256": "6f6c93ced906738096b9fd0f32731b21079a7a978324cfa841328d7872a685ff",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/worldVariant.ts",
+          "sha256": "de70c670220eafecf1ef48a668d6bff86d95876d1075a70d9c3042b2ae07ae98",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/knownWorlds.ts",
+          "sha256": "97134ad9f6f642c71f834d15bc86affdb038d6880cf9698d4b41565d56c14b0d",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/effectiveWorldGeometry.ts",
+          "sha256": "b1f2ee069446e462285227b963a8c448972cd10a860845483eb52cba729a6b39",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralReviewerV2.ts",
+          "sha256": "df6b04537932aa8b210d84592713d56319ac5f83f52a31b8621c7d3018e21cd3",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralPatrolV2.ts",
+          "sha256": "f25814f1ee25e3b6419a86ed09dbe6f37c620d924a244a29a2ee37ac89e6a610",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/components/precinct/reviewerBodyV2.ts",
+          "sha256": "e0857dfef96cd96b137e49b81af35ede8345990a1d9f56b9634ad12147c1da2c",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/components/precinct/patrolBodyV2.ts",
+          "sha256": "bff81b131b0a23381aff9c285096c3cc93426db9e8549664c363aaee75b407af",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/components/precinct/actorSamples.ts",
+          "sha256": "bbce2ef754e2e20180c15224144f334f2b540a9a0beceb1c604df4ca9a789ef7",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/lib/precinct/interviewStage.ts",
+          "sha256": "1f332ec6a7944ac08c270703b4ef6df7639274a9b3535c55ca1a1b95245618a9",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/components/precinct/seatedBodyV1.ts",
+          "sha256": "22aaeb7faa410924f5b413425ae964243c17e2a0f59c80f7fb613c6d874dfdc2",
+          "unchanged": true
+        },
+        {
+          "path": "web/src/components/precinct/recordedCameraV1.ts",
+          "sha256": "68cb796b8fd6e860af968561486297c51201a2db60e25e34b47ac7f278af3a97",
+          "unchanged": true
+        }
+      ],
+      "geometry": [
+        {
+          "path": "web/public/world/precinct-courtyard.glb",
+          "sha256": "e985fe9677cf56ce77ee361b8567b5c2bb1eaae9304464f54c473ca2d7c9c4a0",
+          "unchanged": true
+        },
+        {
+          "path": "web/public/world/precinct-courtyard-manifest.json",
+          "sha256": "a70a2d7685d48231f4fbd1d3d0ad647d370a8ea42670cf3a795476c7ac1caa96",
+          "unchanged": true
+        }
+      ]
+    }
+  ],
+  "allProtectedAssetsNavigationAndDependencyManifestsUnchanged": true,
+  "protectedInventory": [
+    {
+      "path": "web/package.json",
+      "sha256": "144d4009c4ddf27f245863de64d02a6f250300345dc2b679d7d6644ada6f293e",
+      "bytes": 1671
+    },
+    {
+      "path": "web/pnpm-lock.yaml",
+      "sha256": "3b1ab24a57ae7def0ebfe9c4bd84bb1b7c4e1c0fbdfcd24b68e23f7ff5814198",
+      "bytes": 195956
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-access.wav",
+      "sha256": "d275c9e294cc5f0be8b2c1bb4f59b8988096afd4b0bcbe4f477b74c893d6c7c9",
+      "bytes": 437594
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-archive.wav",
+      "sha256": "9ab39e18620b905776e58d76758baaf60eedeeff686454d499983c58866c3813",
+      "bytes": 353210
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-briefing.wav",
+      "sha256": "dea3e30d5fa9a165dd9a8138584bf2ff8dd220169441b3e3e6e34abc24c54425",
+      "bytes": 240802
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-cases.wav",
+      "sha256": "6f9bc28a90146be9ab8d4078b8d11bb6b4bf626828c76d84c26afdb7ea35ce30",
+      "bytes": 392914
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-desk.wav",
+      "sha256": "f931a876aa6fc103264005e6b67c492f58c7debb31d0b7e92e711d1807492c2b",
+      "bytes": 316480
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-interview.wav",
+      "sha256": "3ee0caa5dfd83030a66acd727852c55a2261ca4299f9c24da2dea5c72882465c",
+      "bytes": 365420
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-introduction.wav",
+      "sha256": "fbe0970affac62c715337633a2e8d73b2761e7ba2247d70807ef926c686320aa",
+      "bytes": 278058
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-leaderboard.wav",
+      "sha256": "6a75bef27dab05a6c653c95381bb55b7532a6d7cdb8f5f8e80a3aaa49210d365",
+      "bytes": 493570
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-redirect.wav",
+      "sha256": "efe1e1b53f441de8371d140381e571404db0200f7da01f5c1c685e66eee16020",
+      "bytes": 621066
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-replay.wav",
+      "sha256": "ad63736f70a78106c9ceba84eab83252ca565158f15a7d856be848729d66763a",
+      "bytes": 309164
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-return.wav",
+      "sha256": "453ff38bef8859eab774182bdc818aaf830f1a677a45815c00fb707f13bbed34",
+      "bytes": 348694
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-welcome.wav",
+      "sha256": "145dfac48f664abdf4a3d672565ae8585cbd8164190b8502afb55cfe6244228a",
+      "bytes": 319796
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-clarify.wav",
+      "sha256": "74669b58abaf04259539982654ce3fa61649832fbd0c0cb6a368ed8338a7aa09",
+      "bytes": 510472
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-demeanor.wav",
+      "sha256": "9f04dc3fa2348c4f32c14580faded4525910bf07c9378d264e25661f4201bcb6",
+      "bytes": 592564
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-disagreement.wav",
+      "sha256": "6bc5fbe6cdaccf9882477d1fd6d6ededde27190db4605940968865f7d724e754",
+      "bytes": 554214
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-evidence.wav",
+      "sha256": "c6fcef4d37122219802836ca27d7c1df773f87b9ac5dca0f26a10d47618e3712",
+      "bytes": 581426
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-introduction.wav",
+      "sha256": "1bd6378984191fbf7c3e5f0fd829fc42b2bf48b7c068d8c2263b6cb6022db34f",
+      "bytes": 384892
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-limits.wav",
+      "sha256": "dabfba3cd9b2cdd3bed0bafb5597de6162dca063162075631fd696e7461b4409",
+      "bytes": 712616
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-opening.wav",
+      "sha256": "3455ac577efa5854276dd6ecf0683a8aa768bddec35533f7396a412ad04ddf75",
+      "bytes": 449078
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-redirect.wav",
+      "sha256": "f291746082d26922693ccfc56b4f8483d1747c0c48cc3a593c4361f457529ad1",
+      "bytes": 649074
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-return.wav",
+      "sha256": "2c1ce3ebc8fec8eb0adae0c1f69ed342a4ff0eb4b67ee91d757ad7d717f35472",
+      "bytes": 457542
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-review.wav",
+      "sha256": "ccb1274a0cd48433dbbf089dca47c0ebbcf9296c1110409f47a64351b6ce91e8",
+      "bytes": 476360
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-welcome.wav",
+      "sha256": "fb69da3e642763eb63fa2c8f1e26f24e19c8fef0e27fa5cf22ba31ecc652bbe0",
+      "bytes": 427004
+    },
+    {
+      "path": "web/public/avatars/Business_Female_01/avatar.glb",
+      "sha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2",
+      "bytes": 1747872
+    },
+    {
+      "path": "web/public/avatars/Business_Female_01/body.jpg",
+      "sha256": "0c340ed502930f4f474bc75678236b48fb620cd360ffc33b230122029f08be93",
+      "bytes": 150493
+    },
+    {
+      "path": "web/public/avatars/Business_Female_01/body_n.jpg",
+      "sha256": "ed66976001f9316aba07ae747147d270896ec9c6adeecc4f570079faa7fdabca",
+      "bytes": 207836
+    },
+    {
+      "path": "web/public/avatars/Business_Female_01/head.jpg",
+      "sha256": "a0c4d8d88a7ccb7464e94c473fb2a89531c22dbe0aa63df8d1fd67a6fbfc61e1",
+      "bytes": 228716
+    },
+    {
+      "path": "web/public/avatars/Business_Female_01/head_n.jpg",
+      "sha256": "f14db1f2c7cd06741620e2816cbcce096f59b409139b8854d004badc625de7fb",
+      "bytes": 268806
+    },
+    {
+      "path": "web/public/avatars/Business_Female_01/opacity.png",
+      "sha256": "8068f18c812dd38bee42c54a81d7d406cb9a6f911ec2d56bf548ebb8e9136992",
+      "bytes": 293137
+    },
+    {
+      "path": "web/public/avatars/Business_Female_02/avatar.glb",
+      "sha256": "36304f4a2e279640859a21662349e9a411e53f604d12fe19c329795c454cf7ec",
+      "bytes": 1169328
+    },
+    {
+      "path": "web/public/avatars/Business_Female_02/body.jpg",
+      "sha256": "ee1df50beb594422e4d1bb0569c9f362bc28ac92757bce4f43a56030621d6a55",
+      "bytes": 238110
+    },
+    {
+      "path": "web/public/avatars/Business_Female_02/body_n.jpg",
+      "sha256": "12eb1476af0ade09ad7213844199aa057ff70d98dbaa8c50578f10cf308a57a5",
+      "bytes": 285446
+    },
+    {
+      "path": "web/public/avatars/Business_Female_02/glasses.png",
+      "sha256": "da5cc974214366dfda30b6d0920617e1529e41bb2b7e7ebbd50358e5fb2ec219",
+      "bytes": 40857
+    },
+    {
+      "path": "web/public/avatars/Business_Female_02/head.jpg",
+      "sha256": "f3a1a6ab2adc1c8f9a9c6fa5326a5454816484011ee735f5cea37081227bf131",
+      "bytes": 303804
+    },
+    {
+      "path": "web/public/avatars/Business_Female_02/head_n.jpg",
+      "sha256": "2ff8d842788ca801a3bebea1e0c15a9cc98a426b191d4d45cc8b2bf67702d6c1",
+      "bytes": 224143
+    },
+    {
+      "path": "web/public/avatars/Business_Female_02/opacity.png",
+      "sha256": "217d152d5192276e8192efa4f67c8a3d86ac8d93b0d09b30864088c75279ecbf",
+      "bytes": 399527
+    },
+    {
+      "path": "web/public/avatars/Business_Male_02/avatar.glb",
+      "sha256": "17b4ca9fec7eb2f369ec4b8be34e606e9cf30dabd7e49f1d32042c60c086d24f",
+      "bytes": 1626492
+    },
+    {
+      "path": "web/public/avatars/Business_Male_02/body.jpg",
+      "sha256": "d0b9d3b209cba698ce79096cd39b4edc4d40de07bbac7a5c7e4f599d75f85d2c",
+      "bytes": 136735
+    },
+    {
+      "path": "web/public/avatars/Business_Male_02/body_n.jpg",
+      "sha256": "7191ab42c58715225934ae80d68546b66b6f6d9b3e5dc52ecd9e7b2bb2eb9792",
+      "bytes": 240721
+    },
+    {
+      "path": "web/public/avatars/Business_Male_02/head.jpg",
+      "sha256": "cdb2ed753952ae02ec517f06bda7761d8df625a2d1d2d535aad07fa34d83ac17",
+      "bytes": 172570
+    },
+    {
+      "path": "web/public/avatars/Business_Male_02/head_n.jpg",
+      "sha256": "62955b3e6c654bcbf148e73b136144ac6ae3271137c8906ff6b7072091e0f72c",
+      "bytes": 205892
+    },
+    {
+      "path": "web/public/avatars/Business_Male_02/opacity.png",
+      "sha256": "5b18691cd0d2c1a5b3addd38e06e3249cc2a885edbefa36341b8e9cc00b5dfdf",
+      "bytes": 245105
+    },
+    {
+      "path": "web/public/avatars/Business_Male_04/avatar.glb",
+      "sha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51",
+      "bytes": 1186692
+    },
+    {
+      "path": "web/public/avatars/Business_Male_04/body.jpg",
+      "sha256": "b1d81314507a28946b8520e258befa10b6436953b2de3a0ec58b37dbfea7e911",
+      "bytes": 171399
+    },
+    {
+      "path": "web/public/avatars/Business_Male_04/body_n.jpg",
+      "sha256": "c8e255a09b02fc7b8569f368da22891bc413d9c8cd8c0eeee9072fbba1f891cd",
+      "bytes": 341212
+    },
+    {
+      "path": "web/public/avatars/Business_Male_04/head.jpg",
+      "sha256": "c7221882489e50a24626a2abbfccb3f3ec9dbc7567abec19b3ddf494dc6a0ff4",
+      "bytes": 178406
+    },
+    {
+      "path": "web/public/avatars/Business_Male_04/head_n.jpg",
+      "sha256": "c4e7839a130a72fa5512baa62e76946866a1493bf4415634b45f7fdaf303acdd",
+      "bytes": 184387
+    },
+    {
+      "path": "web/public/avatars/Business_Male_06/avatar.glb",
+      "sha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b",
+      "bytes": 1420560
+    },
+    {
+      "path": "web/public/avatars/Business_Male_06/body.jpg",
+      "sha256": "2cce232d0082faa08927133a2212306336a3b88f21ed8398ece24a444644e8b4",
+      "bytes": 142627
+    },
+    {
+      "path": "web/public/avatars/Business_Male_06/body_n.jpg",
+      "sha256": "c2216f2aca76f24ccc56dca7feaccd3201d65e5bf83a7f777dce43d24be78d87",
+      "bytes": 195002
+    },
+    {
+      "path": "web/public/avatars/Business_Male_06/head.jpg",
+      "sha256": "97997a8c631b932f285c90092410a05cee9b2ccc24298804cc011ede5bd176cd",
+      "bytes": 186663
+    },
+    {
+      "path": "web/public/avatars/Business_Male_06/head_n.jpg",
+      "sha256": "105f75e6ef4462ee29da7e8202f1bbf98a83540741a472645dd45443c3143018",
+      "bytes": 247814
+    },
+    {
+      "path": "web/public/avatars/Female_Adult_07/avatar.glb",
+      "sha256": "3c664edaba7a5472b05712102896c2d9b093cb1aa3bf8c1cd4e3f3df2dc50ca6",
+      "bytes": 1259696
+    },
+    {
+      "path": "web/public/avatars/Female_Adult_07/body.jpg",
+      "sha256": "0f6383819337b7fc94dd5b4212f5a2dc0202b599ee54d1d058b6276e2a8048a6",
+      "bytes": 213630
+    },
+    {
+      "path": "web/public/avatars/Female_Adult_07/body_n.jpg",
+      "sha256": "5df468172ce15110409ea6276f5e8fe82b14b4f3f87f192163af425ef5332eb9",
+      "bytes": 335820
+    },
+    {
+      "path": "web/public/avatars/Female_Adult_07/head.jpg",
+      "sha256": "425215e41a9edef5ae28ba9030fd52567540415bb9e216b20bd5227b24e152e5",
+      "bytes": 215477
+    },
+    {
+      "path": "web/public/avatars/Female_Adult_07/head_n.jpg",
+      "sha256": "4401835549c8bf4850ab4c855b3483064777524b8a534da8ab0c850c82a08425",
+      "bytes": 211470
+    },
+    {
+      "path": "web/public/avatars/Female_Adult_07/opacity.png",
+      "sha256": "8a76e10f25bc2edd39fedf955483c80c395cc7d2df8f3996d3dc0e0f4d975a70",
+      "bytes": 310714
+    },
+    {
+      "path": "web/public/avatars/Female_Adult_14/avatar.glb",
+      "sha256": "a48adcb4661b2441231a81569b80a50a997c4f109d40d1a62abb8902f093ff7d",
+      "bytes": 1197912
+    },
+    {
+      "path": "web/public/avatars/Female_Adult_14/body.jpg",
+      "sha256": "b1b7036133f9be6e6ee1981541d10d2b86d1fd9d69e419fe1b6eeb92ed35386d",
+      "bytes": 319372
+    },
+    {
+      "path": "web/public/avatars/Female_Adult_14/body_n.jpg",
+      "sha256": "ec35594a8d684ffdf2686fbbccefc17d9ae6c90e165f4c10ec7e51f02951b6b6",
+      "bytes": 504949
+    },
+    {
+      "path": "web/public/avatars/Female_Adult_14/head.jpg",
+      "sha256": "0ac61f2d9d105eadf61205b64facc191988629e147feb3c6a4d41e57022116dc",
+      "bytes": 215426
+    },
+    {
+      "path": "web/public/avatars/Female_Adult_14/head_n.jpg",
+      "sha256": "7be3c2299d74389fb379abfa52435d2de9f6eb6e8f33d35ec16c429f538cc01f",
+      "bytes": 204634
+    },
+    {
+      "path": "web/public/avatars/Female_Adult_14/opacity.png",
+      "sha256": "011a8df71c3435ba53f6b6fe9536f13c6818427497afd44b4792a9b5a8e43572",
+      "bytes": 359158
+    },
+    {
+      "path": "web/public/avatars/LICENSE.md",
+      "sha256": "3de4474e467f003bf001c0bf30ee974244083aa4124a2f6b827152148e6cddee",
+      "bytes": 3595
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_05/avatar.glb",
+      "sha256": "6e35eabaa912194f851e1ce2bdf49ffb934006e4eb0698d3ab7322f1b30b8180",
+      "bytes": 1571012
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_05/body.jpg",
+      "sha256": "d8f2b6ec18dc52cec5259efb1037ed495b57767b16ac413a06449db500f07032",
+      "bytes": 218933
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_05/body_n.jpg",
+      "sha256": "2a7036df6daf40f325c8fc22333e31ff7837b7e13281aca3ea75f12ce63f817a",
+      "bytes": 351062
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_05/head.jpg",
+      "sha256": "27d0cfaad99d0fe65b172e021f798e9049f458000fea4b843af4835c06a6282e",
+      "bytes": 235182
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_05/head_n.jpg",
+      "sha256": "71df81cf3292209edd21d4216f7733c41215953edd50ee976de5132dd098260d",
+      "bytes": 243946
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_05/opacity.png",
+      "sha256": "ebc85681321bc694d556b761c552a51fb44491769127ae50775ada86c1e2f75f",
+      "bytes": 379596
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_08/avatar.glb",
+      "sha256": "5e716522f2d70e760d2afb48ccee82ca75f77239c07d915ac9033b1d222ec17f",
+      "bytes": 1087888
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_08/body.jpg",
+      "sha256": "d21fe97b6bdb88f46b90897ba75fa2e406a533c33b7ce6fd09b3809e78af5580",
+      "bytes": 171911
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_08/body_n.jpg",
+      "sha256": "4dce20b6f0e1d5e5cab39d6c839cf772165c47c68b74b1aea9d971934bd1aa97",
+      "bytes": 235920
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_08/head.jpg",
+      "sha256": "5eb5f08ebc278f7e158d8923f50406044d276fa81d56afb9d0f3aae189df4ba6",
+      "bytes": 202220
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_08/head_n.jpg",
+      "sha256": "63c28e102e56c8a0ffece88e0cce04fbdd91d42f39dcfdf17349cb0d769009bc",
+      "bytes": 204198
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_08/opacity.png",
+      "sha256": "7ce84dde2389e19ecad2130298b235fe5446b8cf76fe5fff9ea736f6d4ea0ed5",
+      "bytes": 349870
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_12/avatar.glb",
+      "sha256": "6f6c93ced906738096b9fd0f32731b21079a7a978324cfa841328d7872a685ff",
+      "bytes": 1526136
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_12/body.jpg",
+      "sha256": "3d5b259d3550336ace3cd68ca020277a8480430c07dbb0a2c89b135f6f83b506",
+      "bytes": 338105
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_12/body_n.jpg",
+      "sha256": "caf8dd043e930ff398a1ff6452ceea309becdf9e52de218a8de2eababe629a9c",
+      "bytes": 342854
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_12/head.jpg",
+      "sha256": "a1c465a073c4d268f1cf0854e59d1c3049405a78e22ef107211945cd6af88be4",
+      "bytes": 193336
+    },
+    {
+      "path": "web/public/avatars/Male_Adult_12/head_n.jpg",
+      "sha256": "ce11b90fce101aa1be2b01a13515d6d132f6370a42191222cd9e1ae86bcb44b4",
+      "bytes": 181414
+    },
+    {
+      "path": "web/public/avatars/clips/f_sit_table_breathe_01.json",
+      "sha256": "957937214e650a6951644d4c60bf93fb6f823c203dfedb2e1259b0268df72d32",
+      "bytes": 524821
+    },
+    {
+      "path": "web/public/avatars/clips/f_sit_table_gestic_thoughtful.json",
+      "sha256": "994e524138168cc8781b6eb5cb71c8b7953b1288e74f35f2a9f6259bfa0d8295",
+      "bytes": 1014174
+    },
+    {
+      "path": "web/public/avatars/clips/f_sit_table_idle_look_around.json",
+      "sha256": "068fcb573107c913d6a2359475d5fa07bed93e3b6b5eba5e2a07b3a633f9c8a5",
+      "bytes": 140110
+    },
+    {
+      "path": "web/public/avatars/clips/m_sit_table_breathe_01.json",
+      "sha256": "3ed0b95a7e5ea0fcc0bd8b7bd393d3bd3bf437e0edbfb6779324fc7617040560",
+      "bytes": 342723
+    },
+    {
+      "path": "web/public/avatars/clips/m_sit_table_gestic_thoughtful.json",
+      "sha256": "3948f528fbee2a62900d7c21e49e682701c513894d86895b131a42c53feabf50",
+      "bytes": 1088280
+    },
+    {
+      "path": "web/public/avatars/clips/m_sit_table_idle_look_around.json",
+      "sha256": "084c7edeeb8c8d99d511811fd5c8ba1baf3cf7b16f047e5bc581a58b4a5c1645",
+      "bytes": 291199
+    },
+    {
+      "path": "web/public/favicon.svg",
+      "sha256": "9dbfeb95718e662386b2ab666f740a24dff61b0df61d41ffcf1d958b81fcdca5",
+      "bytes": 359
+    },
+    {
+      "path": "web/public/pets/LICENSE.md",
+      "sha256": "08b5fc6b3ca3a5e4290468ac65c50697706ca939bc5575d9f97b1c2f034081cc",
+      "bytes": 805
+    },
+    {
+      "path": "web/public/pets/cat.glb",
+      "sha256": "c374abb90dd0993b80bfedfa195552a168f9713c630e8bd0b50a56458298e3e4",
+      "bytes": 286736
+    },
+    {
+      "path": "web/public/worklets/capture-processor.js",
+      "sha256": "e2cf38e4814f38a43b1958055beaef3b5ec9f1570baa8b0062fa80fe4c3745ed",
+      "bytes": 1227
+    },
+    {
+      "path": "web/public/worklets/playback-processor.js",
+      "sha256": "ac403d9af010e2ba159d6d7a96a13a0497dc074da0cb14342230383855dc42db",
+      "bytes": 2223
+    },
+    {
+      "path": "web/public/world/lobby-preview.png",
+      "sha256": "d10094dcdb08bd2062358560b2695211317dfec08dd606579f60719eeecd0754",
+      "bytes": 1469734
+    },
+    {
+      "path": "web/public/world/precinct-courtyard-manifest.json",
+      "sha256": "a70a2d7685d48231f4fbd1d3d0ad647d370a8ea42670cf3a795476c7ac1caa96",
+      "bytes": 88716
+    },
+    {
+      "path": "web/public/world/precinct-courtyard-navmesh.json",
+      "sha256": "4da61e8ecff9a5895dc674739a55f46d14416feedde5db948066d2528e05e925",
+      "bytes": 402798
+    },
+    {
+      "path": "web/public/world/precinct-courtyard.glb",
+      "sha256": "e985fe9677cf56ce77ee361b8567b5c2bb1eaae9304464f54c473ca2d7c9c4a0",
+      "bytes": 3167788
+    },
+    {
+      "path": "web/public/world/precinct-manifest.json",
+      "sha256": "fc85679e66e176e2fc29c1b6caa2ad364b3a4c60e099fc3c22cc46b26b24552f",
+      "bytes": 60176
+    },
+    {
+      "path": "web/public/world/precinct-office-navmesh.json",
+      "sha256": "04d6cb5f47316474a6d8a98a1ed14363094a4d3562530dc0a887d316d56b6b64",
+      "bytes": 277712
+    },
+    {
+      "path": "web/public/world/precinct.glb",
+      "sha256": "a9801458da3ff10911d49d03ba80cfa60eae9a70e42121b67a3066ec9aab9e9e",
+      "bytes": 3075764
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctControls.navmesh.test.tsx",
+      "sha256": "ecce6ae7a7446ad5af80676d53619c416b1f6df4c213c9dad49a953e7359d54a",
+      "bytes": 5088
+    },
+    {
+      "path": "web/src/lib/precinct/precinctNavmesh.ts",
+      "sha256": "8a5357541a02aaf51f3a2442b329c026f892f69f77116ae54945b976e6b4b4e8",
+      "bytes": 19410
+    },
+    {
+      "path": "web/src/routes/PrecinctRoute.navmesh.test.tsx",
+      "sha256": "db6d15ef5193c433f8c63379dd0a7a10b1444467c8bace01b7ca7131e46e5b27",
+      "bytes": 6534
+    },
+    {
+      "path": "web/src/test/navmesh-digest.ts",
+      "sha256": "f679f3b6d1fd34fb05f20860f4cf32ee532169c0767bb9b517f6c5929ea883ba",
+      "bytes": 358
+    },
+    {
+      "path": "web/tools/author-precinct-world-navmeshes.ts",
+      "sha256": "bbb8d80ee3eec200f1138857a1ead69108eb7783c943920da44ebf347ed52328",
+      "bytes": 4621
+    }
+  ],
+  "combinedControlsSha256": "1967dbfc3d1b1b8d8e6393b4e57f40ad62fbde48f1b5c697d3ef4cfd280240cc",
+  "combinedControlsEqualIdleCandidate": true,
+  "outsideControlsEqualLowEnvironmentCandidate": true
+}

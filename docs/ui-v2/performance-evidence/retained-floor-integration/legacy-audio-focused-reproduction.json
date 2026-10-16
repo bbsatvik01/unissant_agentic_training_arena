@@ -1,0 +1,118 @@
+{
+  "status": "focused-reproduction-passed",
+  "startedAt": "2026-10-16T00:42:55.221763+00:00",
+  "command": [
+    "/workspace/shared/unissant_agentic_training_arena/web/node_modules/node/bin/node",
+    "--max-old-space-size=4096",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "src/routes/WorldRoute.audioLifecycle.test.tsx",
+    "src/routes/world/voiceEngines.lifecycle.test.tsx",
+    "src/routes/world/voiceEngines.test.ts",
+    "--reporter=verbose"
+  ],
+  "cwd": "/workspace/shared/unissant_agentic_training_arena/web",
+  "timeoutSeconds": 180,
+  "testConfig": "Unchanged project configuration; verbose reporter only; no test timeout/retry/isolation override",
+  "fullFailureLog": "/workspace/shared/arena-full-web-performance-check-20261016T002829Z/check.log",
+  "fullFailureLogSha256": "c0037e65bf101723b1fde168b652c5ae001f9b75fd10843eec81b08f98aed57d",
+  "originalFullCheckFailurePreserved": true,
+  "phases": [],
+  "sourceIntegrityBefore": {
+    "files": 681,
+    "inventorySha256": "15073c205942c1eaba09a4c0b4c60ae7dca77ffd1c2335e04b29bb9f66fa18a7",
+    "status": "passed"
+  },
+  "node": {
+    "executable": "/workspace/shared/unissant_agentic_training_arena/web/node_modules/node/bin/node",
+    "version": "v24.21.0",
+    "sha256": "7fde7b8afa198da66257f42ee2001d874c7355631e6d1579a5fb5ef1f246df4c",
+    "heapMiB": 4096
+  },
+  "keyInputs": [
+    {
+      "path": "web/src/routes/WorldRoute.audioLifecycle.test.tsx",
+      "sha256": "86811838d06e5424b731da4833d4478a86b1d3c5899910dab2c51acff7a38c54",
+      "greenBaseSha256": "86811838d06e5424b731da4833d4478a86b1d3c5899910dab2c51acff7a38c54",
+      "matchesGreenBase": true
+    },
+    {
+      "path": "web/src/routes/world/voiceEngines.lifecycle.test.tsx",
+      "sha256": "491c547dcf157a9dffd5253ecdf25cf3bf078e138c6f870d157b6982a6d26e60",
+      "greenBaseSha256": "491c547dcf157a9dffd5253ecdf25cf3bf078e138c6f870d157b6982a6d26e60",
+      "matchesGreenBase": true
+    },
+    {
+      "path": "web/src/routes/world/voiceEngines.test.ts",
+      "sha256": "6eedc5cb46b07944bb8f55278962514e6b028609268dc1a43c64c9752bcee8f9",
+      "greenBaseSha256": "6eedc5cb46b07944bb8f55278962514e6b028609268dc1a43c64c9752bcee8f9",
+      "matchesGreenBase": true
+    },
+    {
+      "path": "web/src/routes/WorldRoute.tsx",
+      "sha256": "a2751ce406882f1a520e05f1f7b220cc97bf5f31c51ffe9abb5f0bdbea2b425c",
+      "greenBaseSha256": "a2751ce406882f1a520e05f1f7b220cc97bf5f31c51ffe9abb5f0bdbea2b425c",
+      "matchesGreenBase": true
+    },
+    {
+      "path": "web/src/routes/world/useMe.ts",
+      "sha256": "86dfa890a96ad5dbe2c5a7dcb4819e78ec7367a8b3d87de2e4a14bbfc6cafbec",
+      "greenBaseSha256": "86dfa890a96ad5dbe2c5a7dcb4819e78ec7367a8b3d87de2e4a14bbfc6cafbec",
+      "matchesGreenBase": true
+    },
+    {
+      "path": "web/src/routes/world/voiceEngines.ts",
+      "sha256": "28ef42e63266cd50a80bf4110099eb0996da0ac01e621aba5920438e92e24fef",
+      "greenBaseSha256": "28ef42e63266cd50a80bf4110099eb0996da0ac01e621aba5920438e92e24fef",
+      "matchesGreenBase": true
+    },
+    {
+      "path": "web/src/lib/api/arena.ts",
+      "sha256": "7c49b11191e7548e9b02522029020e76479962bd54e50105e2535159f62832f5",
+      "greenBaseSha256": "7c49b11191e7548e9b02522029020e76479962bd54e50105e2535159f62832f5",
+      "matchesGreenBase": true
+    },
+    {
+      "path": "web/src/lib/api/client.ts",
+      "sha256": "965579fe31c396f294a2e1e3e7db9f2a4c7a098385232fe27718895e0b344a53",
+      "greenBaseSha256": "965579fe31c396f294a2e1e3e7db9f2a4c7a098385232fe27718895e0b344a53",
+      "matchesGreenBase": true
+    },
+    {
+      "path": "web/vitest.config.ts",
+      "sha256": "70d11deed66b5302c8728e1291c0d5db7225c169ee7df8dfe61e80a640e9633e",
+      "greenBaseSha256": "70d11deed66b5302c8728e1291c0d5db7225c169ee7df8dfe61e80a640e9633e",
+      "matchesGreenBase": true
+    },
+    {
+      "path": "web/vite.config.ts",
+      "sha256": "d3e8fb039a82a86d845824ad879aff4fcefa825cbf26d557fda1496bca268fbc",
+      "greenBaseSha256": "d3e8fb039a82a86d845824ad879aff4fcefa825cbf26d557fda1496bca268fbc",
+      "matchesGreenBase": true
+    },
+    {
+      "path": "web/package.json",
+      "sha256": "144d4009c4ddf27f245863de64d02a6f250300345dc2b679d7d6644ada6f293e",
+      "greenBaseSha256": "144d4009c4ddf27f245863de64d02a6f250300345dc2b679d7d6644ada6f293e",
+      "matchesGreenBase": true
+    },
+    {
+      "path": "web/pnpm-lock.yaml",
+      "sha256": "3b1ab24a57ae7def0ebfe9c4bd84bb1b7c4e1c0fbdfcd24b68e23f7ff5814198",
+      "greenBaseSha256": "3b1ab24a57ae7def0ebfe9c4bd84bb1b7c4e1c0fbdfcd24b68e23f7ff5814198",
+      "matchesGreenBase": true
+    }
+  ],
+  "ownedPid": 20,
+  "durationSeconds": 11.063,
+  "exit": 0,
+  "logSha256": "a6e76bd06229874d56c464f27edd43270c60100a78505d4a2d923dae30826b88",
+  "logSummary": "iceEngines.lifecycle.test.tsx > committed room audio lifecycle > stops actual playing sources, detaches mouth/nodes and refuses stale cached clips 2ms\n \u2713 src/routes/world/voiceEngines.test.ts > browserEngine > speaks with the persona's voice and reports start, boundaries and one end 11ms\n \u2713 src/routes/world/voiceEngines.test.ts > browserEngine > ends at once where the browser has no speech synthesis 2ms\n \u2713 src/routes/world/voiceEngines.test.ts > webAudioPort > fetches a line once per voice and text, decodes it, and plays and stops it at the item's volume 6ms\n \u2713 src/routes/world/voiceEngines.test.ts > webAudioPort > drives the speaker's mouth from the playing clip, and plays the coach as a quiet earpiece aside to one side 7ms\n \u2713 src/routes/world/voiceEngines.test.ts > webAudioPort > gives no clip when the browser keeps audio suspended past the wait, and unlocks audio on the first gesture 10ms\n \u2713 src/routes/world/voiceEngines.test.ts > webAudioPort > gives no clip for the server's silence or a refusal 1ms\n \u2713 src/routes/world/voiceEngines.test.ts > roomEngine > is the browser's own without the server 2ms\n \u2713 src/routes/world/voiceEngines.test.ts > roomEngine > falls back to the browser's voice when the server answers with silence 3ms\n\n Test Files  3 passed (3)\n      Tests  17 passed (17)\n   Start at  20:42:58\n   Duration  10.15s (environment 62%, transform 15%, import 12%, tests 10%)\n\n    Isolate  3 workers spawned \u00b7 ~2.19s startup each (spawn + environment, per file)\n             at least ~4.39s faster with isolate: false \u2014 reuses workers across files instead of one per file\n\n",
+  "interpretation": "One focused run cannot establish the cause of the earlier full-suite readiness failure. The original aggregate remains failed; no full rerun, coverage or build occurred.",
+  "sourceIntegrityAfter": {
+    "files": 681,
+    "inventorySha256": "15073c205942c1eaba09a4c0b4c60ae7dca77ffd1c2335e04b29bb9f66fa18a7",
+    "status": "passed"
+  },
+  "finishedAt": "2026-10-16T00:43:09.253879+00:00"
+}

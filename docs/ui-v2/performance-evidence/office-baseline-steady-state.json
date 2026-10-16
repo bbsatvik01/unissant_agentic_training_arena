@@ -1,0 +1,1053 @@
+{
+  "status": "steady-state-completed-cold-start-failed",
+  "readiness": {
+    "originalGateMs": 5000,
+    "initialReady": false,
+    "initialFailure": "Error: expect(locator).toBeEnabled() failed\n\nLocator: getByRole('button', { name: 'Enter the precinct', exact: true })\nExpected: enabled\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeEnabled\" getByRole('button', { name: 'Enter the precinct', exact: true }) with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Enter the precinct', exact: true })\n\n    at captureRawStack (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeEnabled (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at benchmarkPrecinct (/workspace/shared/precinct-performance-ab-20261015/baseline/web/tools/precinct-performance.ts:150:95)",
+    "initialGateElapsedMs": 5056.757664999999,
+    "diagnosticOnly": false,
+    "slowStartDiagnostic": true,
+    "captureErrors": [],
+    "followupLimitMs": 60000,
+    "followupReady": true,
+    "followupElapsedMs": 26.66907600000195,
+    "failureEvidence": [
+      "cold-start-failure.html",
+      "cold-start-failure.png"
+    ]
+  },
+  "requests": [
+    {
+      "path": "/",
+      "resourceType": "document",
+      "startedMs": 1797.80866,
+      "responseMs": 1858.3070329999998,
+      "finishedMs": 2080.195828,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098266925.693,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 6.234,
+        "responseStart": 26.643,
+        "responseEnd": 47.148
+      }
+    },
+    {
+      "path": "/assets/index-BU2cJcAH.js",
+      "resourceType": "script",
+      "startedMs": 2064.208237,
+      "responseMs": 2576.307508,
+      "finishedMs": 2576.6209849999996,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098267191.1821,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 0.778,
+        "responseStart": 27.566,
+        "responseEnd": 218.786
+      }
+    },
+    {
+      "path": "/assets/jsx-runtime-D3jfb0Ew.js",
+      "resourceType": "script",
+      "startedMs": 2068.382923,
+      "responseMs": 2157.122996,
+      "finishedMs": 2157.517654,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098267202.1282,
+        "domainLookupStart": 2.957,
+        "domainLookupEnd": 2.966,
+        "connectStart": 2.966,
+        "secureConnectionStart": -1,
+        "connectEnd": 3.128,
+        "requestStart": 3.368,
+        "responseStart": 20.562,
+        "responseEnd": 70.302
+      }
+    },
+    {
+      "path": "/assets/index-C6r9BfG-.css",
+      "resourceType": "stylesheet",
+      "startedMs": 2069.845577,
+      "responseMs": 2117.4612589999997,
+      "finishedMs": 2156.753133,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098267203.5789,
+        "domainLookupStart": 0.937,
+        "domainLookupEnd": 0.961,
+        "connectStart": 0.961,
+        "secureConnectionStart": -1,
+        "connectEnd": 1.691,
+        "requestStart": 1.822,
+        "responseStart": 12.493,
+        "responseEnd": 74.264
+      }
+    },
+    {
+      "path": "/assets/PrecinctCanvas-BWSa9TlA.js",
+      "resourceType": "script",
+      "startedMs": 3287.448937,
+      "responseMs": 3982.070143,
+      "finishedMs": 3984.4960580000006,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098268423.5151,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 2.883,
+        "responseStart": 15.727,
+        "responseEnd": 122.269
+      }
+    },
+    {
+      "path": "/assets/quality-jWhz7yH6.js",
+      "resourceType": "script",
+      "startedMs": 3294.215104,
+      "responseMs": 3988.5683290000006,
+      "finishedMs": 3989.198526,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098268423.6738,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 4.875,
+        "responseStart": 19.377,
+        "responseEnd": 172.044
+      }
+    },
+    {
+      "path": "/favicon.svg",
+      "resourceType": "other",
+      "startedMs": 3986.745718,
+      "responseMs": 4443.305268,
+      "finishedMs": 4443.357840000001,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098269108.9238,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 1.316,
+        "responseStart": 11.453,
+        "responseEnd": 41.787
+      }
+    },
+    {
+      "path": "/world/precinct.glb",
+      "resourceType": "fetch",
+      "startedMs": 5514.948944000001,
+      "responseMs": 5866.204031,
+      "finishedMs": 12404.754425000001,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098270653.477,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 2.172,
+        "responseStart": 40.586,
+        "responseEnd": 7196.525
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 5520.856138,
+      "responseMs": 5865.633861,
+      "finishedMs": 12106.175312,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098270654.0078,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 2.771,
+        "responseStart": 35.668,
+        "responseEnd": 811.439
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 5526.992077,
+      "responseMs": 5859.017351,
+      "finishedMs": 12098.264108,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098270653.825,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 2.717,
+        "responseStart": 31.224,
+        "responseEnd": 775.117
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_06/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 5533.088665,
+      "responseMs": 5867.31224,
+      "finishedMs": 12123.457953000001,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098270666.1538,
+        "domainLookupStart": 2.659,
+        "domainLookupEnd": 2.81,
+        "connectStart": 2.81,
+        "secureConnectionStart": -1,
+        "connectEnd": 2.965,
+        "requestStart": 4.643,
+        "responseStart": 60.663,
+        "responseEnd": 804.863
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/body.jpg",
+      "resourceType": "image",
+      "startedMs": 12543.563752,
+      "responseMs": 12873.627375,
+      "finishedMs": 12874.125384,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098277699.678,
+        "domainLookupStart": 12.79,
+        "domainLookupEnd": 13.456,
+        "connectStart": 13.456,
+        "secureConnectionStart": -1,
+        "connectEnd": 20.771,
+        "requestStart": 21.621,
+        "responseStart": 37.087,
+        "responseEnd": 303.631
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/body_n.jpg",
+      "resourceType": "image",
+      "startedMs": 12546.299378,
+      "responseMs": 12879.269563,
+      "finishedMs": 12881.534043,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098277703.404,
+        "domainLookupStart": 9.812,
+        "domainLookupEnd": 9.818,
+        "connectStart": 9.818,
+        "secureConnectionStart": -1,
+        "connectEnd": 16.962,
+        "requestStart": 17.968,
+        "responseStart": 34.419,
+        "responseEnd": 315.118
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/head.jpg",
+      "resourceType": "image",
+      "startedMs": 12547.620064,
+      "responseMs": 12881.719186,
+      "finishedMs": 12882.094515,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098277705.9053,
+        "domainLookupStart": 7.377,
+        "domainLookupEnd": 7.381,
+        "connectStart": 7.381,
+        "secureConnectionStart": -1,
+        "connectEnd": 14.467,
+        "requestStart": 15.682,
+        "responseStart": 38.808,
+        "responseEnd": 319.066
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/head_n.jpg",
+      "resourceType": "image",
+      "startedMs": 12548.720515,
+      "responseMs": 12882.586609,
+      "finishedMs": 12883.563618,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098277710.695,
+        "domainLookupStart": 2.813,
+        "domainLookupEnd": 2.817,
+        "connectStart": 2.817,
+        "secureConnectionStart": -1,
+        "connectEnd": 9.689,
+        "requestStart": 11.389,
+        "responseStart": 42.404,
+        "responseEnd": 321.21
+      }
+    },
+    {
+      "path": "/avatars/Business_Female_01/opacity.png",
+      "resourceType": "image",
+      "startedMs": 12549.986272,
+      "responseMs": 12889.209428,
+      "finishedMs": 12889.804432,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098277711.253,
+        "domainLookupStart": 2.328,
+        "domainLookupEnd": 2.332,
+        "connectStart": 2.332,
+        "secureConnectionStart": -1,
+        "connectEnd": 9.211,
+        "requestStart": 10.907,
+        "responseStart": 43.243,
+        "responseEnd": 323.809
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/body.jpg",
+      "resourceType": "image",
+      "startedMs": 12551.793968,
+      "responseMs": 12890.101724,
+      "finishedMs": 12891.269488,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098277711.51,
+        "domainLookupStart": 2.171,
+        "domainLookupEnd": 2.174,
+        "connectStart": 2.174,
+        "secureConnectionStart": -1,
+        "connectEnd": 8.98,
+        "requestStart": 10.906,
+        "responseStart": 51.374,
+        "responseEnd": 322.165
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/body_n.jpg",
+      "resourceType": "image",
+      "startedMs": 12553.313829,
+      "responseMs": 12893.506718,
+      "finishedMs": 12893.685226,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098277754.077,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 3.73,
+        "responseStart": 19.125,
+        "responseEnd": 340.647
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/head.jpg",
+      "resourceType": "image",
+      "startedMs": 12554.486296000001,
+      "responseMs": 12899.083872000001,
+      "finishedMs": 12899.237725,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098277764.132,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 1.802,
+        "responseStart": 17.767,
+        "responseEnd": 340.381
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_04/head_n.jpg",
+      "resourceType": "image",
+      "startedMs": 12557.258393,
+      "responseMs": 12899.288419,
+      "finishedMs": 12899.373079,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098277766.5552,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 4.132,
+        "responseStart": 18.715,
+        "responseEnd": 343.39
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 23547.141545,
+      "responseMs": 23606.530689,
+      "finishedMs": 23627.883228,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098288669.116,
+        "domainLookupStart": 0.853,
+        "domainLookupEnd": 0.939,
+        "connectStart": 0.939,
+        "secureConnectionStart": -1,
+        "connectEnd": 1.082,
+        "requestStart": 1.234,
+        "responseStart": 10.032,
+        "responseEnd": 61.589
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/body.jpg",
+      "resourceType": "image",
+      "startedMs": 23818.860988999997,
+      "responseMs": 23873.152545999998,
+      "finishedMs": 23873.672333,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098288958.14,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 0.516,
+        "responseStart": 8.64,
+        "responseEnd": 124.992
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/body_n.jpg",
+      "resourceType": "image",
+      "startedMs": 23825.049378,
+      "responseMs": 23875.883845999997,
+      "finishedMs": 23883.822527999997,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098288958.988,
+        "domainLookupStart": 0.373,
+        "domainLookupEnd": 0.391,
+        "connectStart": 0.391,
+        "secureConnectionStart": -1,
+        "connectEnd": 0.644,
+        "requestStart": 5.621,
+        "responseStart": 15.035,
+        "responseEnd": 120.494
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/head.jpg",
+      "resourceType": "image",
+      "startedMs": 23826.656487,
+      "responseMs": 23876.376377999997,
+      "finishedMs": 23883.834929999997,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098288963.405,
+        "domainLookupStart": 2.733,
+        "domainLookupEnd": 2.743,
+        "connectStart": 2.743,
+        "secureConnectionStart": -1,
+        "connectEnd": 3.241,
+        "requestStart": 3.314,
+        "responseStart": 9.901,
+        "responseEnd": 130.026
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/head_n.jpg",
+      "resourceType": "image",
+      "startedMs": 23827.954866999997,
+      "responseMs": 23876.723933999998,
+      "finishedMs": 23883.843095999997,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098288963.551,
+        "domainLookupStart": 2.706,
+        "domainLookupEnd": 2.72,
+        "connectStart": 2.72,
+        "secureConnectionStart": -1,
+        "connectEnd": 3.094,
+        "requestStart": 3.643,
+        "responseStart": 9.771,
+        "responseEnd": 130.455
+      }
+    },
+    {
+      "path": "/avatars/Business_Male_02/opacity.png",
+      "resourceType": "image",
+      "startedMs": 23830.118553999997,
+      "responseMs": 23883.902476,
+      "finishedMs": 23884.619975999998,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098288963.665,
+        "domainLookupStart": 2.661,
+        "domainLookupEnd": 2.666,
+        "connectStart": 2.666,
+        "secureConnectionStart": -1,
+        "connectEnd": 2.99,
+        "requestStart": 9.301,
+        "responseStart": 24.585,
+        "responseEnd": 135.673
+      }
+    }
+  ],
+  "buildAssets": [
+    {
+      "path": "/assets/index-BU2cJcAH.js",
+      "bytes": 2466821,
+      "sha256": "43c6b31cf56b95aa9839bd6d7858ae6c7baabde39c904daa986cc8c61e24f44b"
+    },
+    {
+      "path": "/assets/index-C6r9BfG-.css",
+      "bytes": 138749,
+      "sha256": "a3226fa18c7b22ab4769aa76100b87a15082818ad82fe2a415b5d7344132b805"
+    },
+    {
+      "path": "/assets/jsx-runtime-D3jfb0Ew.js",
+      "bytes": 8901,
+      "sha256": "a2c68294426b0ded53fa2d6c97bb39c4a51f99e5e4b23e7953a2c69298e361f8"
+    },
+    {
+      "path": "/assets/PrecinctCanvas-BWSa9TlA.js",
+      "bytes": 300130,
+      "sha256": "54da9bd477f17fde1df9bf04f2cffca94add7bf155f3e72cbe05821b188d9d93"
+    },
+    {
+      "path": "/assets/quality-jWhz7yH6.js",
+      "bytes": 960002,
+      "sha256": "ead601f7d310faa568a69c969c8fbe6ad0572e460ed0bc3aec06e925a5befa3e"
+    },
+    {
+      "path": "/avatars/Business_Female_01/avatar.glb",
+      "bytes": 1747872,
+      "sha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2"
+    },
+    {
+      "path": "/avatars/Business_Female_01/body_n.jpg",
+      "bytes": 207836,
+      "sha256": "ed66976001f9316aba07ae747147d270896ec9c6adeecc4f570079faa7fdabca"
+    },
+    {
+      "path": "/avatars/Business_Female_01/body.jpg",
+      "bytes": 150493,
+      "sha256": "0c340ed502930f4f474bc75678236b48fb620cd360ffc33b230122029f08be93"
+    },
+    {
+      "path": "/avatars/Business_Female_01/head_n.jpg",
+      "bytes": 268806,
+      "sha256": "f14db1f2c7cd06741620e2816cbcce096f59b409139b8854d004badc625de7fb"
+    },
+    {
+      "path": "/avatars/Business_Female_01/head.jpg",
+      "bytes": 228716,
+      "sha256": "a0c4d8d88a7ccb7464e94c473fb2a89531c22dbe0aa63df8d1fd67a6fbfc61e1"
+    },
+    {
+      "path": "/avatars/Business_Female_01/opacity.png",
+      "bytes": 293137,
+      "sha256": "8068f18c812dd38bee42c54a81d7d406cb9a6f911ec2d56bf548ebb8e9136992"
+    },
+    {
+      "path": "/avatars/Business_Male_02/avatar.glb",
+      "bytes": 1626492,
+      "sha256": "17b4ca9fec7eb2f369ec4b8be34e606e9cf30dabd7e49f1d32042c60c086d24f"
+    },
+    {
+      "path": "/avatars/Business_Male_02/body_n.jpg",
+      "bytes": 240721,
+      "sha256": "7191ab42c58715225934ae80d68546b66b6f6d9b3e5dc52ecd9e7b2bb2eb9792"
+    },
+    {
+      "path": "/avatars/Business_Male_02/body.jpg",
+      "bytes": 136735,
+      "sha256": "d0b9d3b209cba698ce79096cd39b4edc4d40de07bbac7a5c7e4f599d75f85d2c"
+    },
+    {
+      "path": "/avatars/Business_Male_02/head_n.jpg",
+      "bytes": 205892,
+      "sha256": "62955b3e6c654bcbf148e73b136144ac6ae3271137c8906ff6b7072091e0f72c"
+    },
+    {
+      "path": "/avatars/Business_Male_02/head.jpg",
+      "bytes": 172570,
+      "sha256": "cdb2ed753952ae02ec517f06bda7761d8df625a2d1d2d535aad07fa34d83ac17"
+    },
+    {
+      "path": "/avatars/Business_Male_02/opacity.png",
+      "bytes": 245105,
+      "sha256": "5b18691cd0d2c1a5b3addd38e06e3249cc2a885edbefa36341b8e9cc00b5dfdf"
+    },
+    {
+      "path": "/avatars/Business_Male_04/avatar.glb",
+      "bytes": 1186692,
+      "sha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51"
+    },
+    {
+      "path": "/avatars/Business_Male_04/body_n.jpg",
+      "bytes": 341212,
+      "sha256": "c8e255a09b02fc7b8569f368da22891bc413d9c8cd8c0eeee9072fbba1f891cd"
+    },
+    {
+      "path": "/avatars/Business_Male_04/body.jpg",
+      "bytes": 171399,
+      "sha256": "b1d81314507a28946b8520e258befa10b6436953b2de3a0ec58b37dbfea7e911"
+    },
+    {
+      "path": "/avatars/Business_Male_04/head_n.jpg",
+      "bytes": 184387,
+      "sha256": "c4e7839a130a72fa5512baa62e76946866a1493bf4415634b45f7fdaf303acdd"
+    },
+    {
+      "path": "/avatars/Business_Male_04/head.jpg",
+      "bytes": 178406,
+      "sha256": "c7221882489e50a24626a2abbfccb3f3ec9dbc7567abec19b3ddf494dc6a0ff4"
+    },
+    {
+      "path": "/avatars/Business_Male_06/avatar.glb",
+      "bytes": 1420560,
+      "sha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b"
+    },
+    {
+      "path": "/world/precinct.glb",
+      "bytes": 3075764,
+      "sha256": "a9801458da3ff10911d49d03ba80cfa60eae9a70e42121b67a3066ec9aab9e9e"
+    }
+  ],
+  "loadedArtifactFingerprint": "a40e4cfd6ca0f758c0a97ab260c8b6537ce011240b36d50055694fc6bf2168d0",
+  "options": {
+    "url": "http://127.0.0.1:4185/?precinctPerf=1&precinctPerfPinned=1",
+    "output": "/workspace/shared/precinct-performance-ab-20261015/baseline/results/native-office-low-v4-slow-start",
+    "seconds": 60,
+    "warmup": 15,
+    "dpr": 2,
+    "scene": "office",
+    "tier": "low",
+    "camera": "third",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "software": true,
+    "headed": false,
+    "readinessDiagnostics": false,
+    "slowStartDiagnostic": true,
+    "machineLabel": "Not supplied; device model unverified"
+  },
+  "browserVersion": "154.0.8037.57",
+  "movement": [
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.2
+      },
+      "after": {
+        "x": 0,
+        "z": -5.040000000000001
+      },
+      "distance": 0.8400000000000007
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.040000000000001
+      },
+      "after": {
+        "x": 0,
+        "z": -4.2
+      },
+      "distance": 0.8400000000000007
+    },
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.2
+      },
+      "after": {
+        "x": 0,
+        "z": -5.040000000000001
+      },
+      "distance": 0.8400000000000007
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.040000000000001
+      },
+      "after": {
+        "x": 0,
+        "z": -4.2
+      },
+      "distance": 0.8400000000000007
+    },
+    {
+      "key": "KeyW",
+      "before": {
+        "x": 0,
+        "z": -4.2
+      },
+      "after": {
+        "x": 0,
+        "z": -5.040000000000001
+      },
+      "distance": 0.8400000000000007
+    },
+    {
+      "key": "KeyS",
+      "before": {
+        "x": 0,
+        "z": -5.040000000000001
+      },
+      "after": {
+        "x": 0,
+        "z": -4.2
+      },
+      "distance": 0.8400000000000007
+    }
+  ],
+  "turns": [
+    {
+      "key": "ArrowLeft",
+      "quaternionDistance": 0.1697953656048337
+    },
+    {
+      "key": "ArrowRight",
+      "quaternionDistance": 0.1697953656048337
+    }
+  ],
+  "errors": [],
+  "blockedRequests": [],
+  "host": {
+    "platform": "linux",
+    "release": "6.18.44",
+    "arch": "x64",
+    "cpuModels": [
+      "INTEL(R) XEON(R) PLATINUM 8573C"
+    ]
+  },
+  "protocol": "Production app, no video/screenshot during timed interval, warmed assets, real Playwright keyboard holds, visible minimap displacement assertions. This does not validate live backend/model behavior.",
+  "report": {
+    "durationMs": 70073.29999999702,
+    "framesRendered": 53,
+    "averageRenderedFps": 0.7563508497530764,
+    "frameIntervalMs": {
+      "samples": 52,
+      "retained": 52,
+      "dropped": 0,
+      "p50": 1248.7999999970198,
+      "p95": 2076.1999999955297,
+      "p99": 2761.7999999970198,
+      "max": 2761.7999999970198
+    },
+    "cpuFrameAndRenderSubmissionMs": {
+      "samples": 53,
+      "retained": 53,
+      "dropped": 0,
+      "p50": 9.699999995529652,
+      "p95": 21.400000005960464,
+      "p99": 46.100000001490116,
+      "max": 46.100000001490116
+    },
+    "drawCalls": {
+      "samples": 53,
+      "retained": 53,
+      "dropped": 0,
+      "p50": 78,
+      "p95": 78,
+      "p99": 78,
+      "max": 78
+    },
+    "triangles": {
+      "samples": 53,
+      "retained": 53,
+      "dropped": 0,
+      "p50": 140375,
+      "p95": 140375,
+      "p99": 140375,
+      "max": 140375
+    },
+    "dpr": {
+      "samples": 53,
+      "retained": 53,
+      "dropped": 0,
+      "p50": 0.75,
+      "p95": 0.75,
+      "p99": 0.75,
+      "max": 0.75
+    },
+    "drawingBufferPixels": {
+      "samples": 53,
+      "retained": 53,
+      "dropped": 0,
+      "p50": 729000,
+      "p95": 729000,
+      "p99": 729000,
+      "max": 729000
+    },
+    "inputToRenderSubmissionMs": {
+      "samples": 8,
+      "retained": 8,
+      "dropped": 0,
+      "p50": 1171.7999999970198,
+      "p95": 2573.2999999970198,
+      "p99": 2573.2999999970198,
+      "max": 2573.2999999970198
+    },
+    "eventTimingDurationMs": {
+      "samples": 8,
+      "retained": 8,
+      "dropped": 0,
+      "p50": 5040,
+      "p95": 7256,
+      "p99": 7256,
+      "max": 7256
+    },
+    "longTaskMs": {
+      "samples": 6,
+      "retained": 6,
+      "dropped": 0,
+      "p50": 89,
+      "p95": 716,
+      "p99": 716,
+      "max": 716
+    },
+    "intervalsOver20Ms": 52,
+    "intervalsOver33_34Ms": 52,
+    "intervalsOver50Ms": 52,
+    "hiddenFrames": 0,
+    "demandFrames": 0,
+    "visibilityInterruptions": 0,
+    "tierFrames": {
+      "low": 53,
+      "medium": 0,
+      "high": 0
+    },
+    "gpuFrameMs": null,
+    "actualInputToPhotonMs": null,
+    "schema": "arena.precinct-render-performance.v1",
+    "production": true,
+    "sceneAsset": "/world/precinct.glb",
+    "renderer": {
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "vendor": "Google Inc. (Google)",
+      "unmaskedAvailable": true,
+      "softwareRenderer": true,
+      "contextLost": false,
+      "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+      "shadowsEnabled": false,
+      "geometries": 90,
+      "textures": 75,
+      "programs": 16,
+      "actualGpuMemoryBytes": null,
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "deviceDpr": 2,
+      "hardwareConcurrency": 9
+    },
+    "scene": {
+      "meshes": 78,
+      "uncullableMeshes": 27,
+      "shadowCastingMeshes": 9,
+      "uniqueMaterials": 72,
+      "transparentMaterials": 3,
+      "materialTextures": 19,
+      "unknownTextureDimensions": 0,
+      "textureDimensions": [
+        {
+          "width": 1536,
+          "height": 864,
+          "mipmaps": true
+        },
+        {
+          "width": 1536,
+          "height": 864,
+          "mipmaps": true
+        },
+        {
+          "width": 1536,
+          "height": 864,
+          "mipmaps": true
+        },
+        {
+          "width": 2048,
+          "height": 628,
+          "mipmaps": true
+        },
+        {
+          "width": 2048,
+          "height": 810,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 512,
+          "height": 512,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 1024,
+          "height": 1024,
+          "mipmaps": true
+        },
+        {
+          "width": 512,
+          "height": 512,
+          "mipmaps": true
+        }
+      ],
+      "materialTextureRgba8MiBEstimate": 101.89583333333331,
+      "textureEstimateCaveat": "RGBA8 + mip-chain estimate, deduplicated by Texture. Excludes environment/render targets; real formats, compression and driver allocation differ. Not measured VRAM."
+    },
+    "budgets": {
+      "low": {
+        "dpr": 0.75,
+        "pixels": 1500000,
+        "drawCalls": 140,
+        "triangles": 500000,
+        "textureMiB": 192
+      },
+      "medium": {
+        "dpr": 1.25,
+        "pixels": 2500000,
+        "drawCalls": 200,
+        "triangles": 800000,
+        "textureMiB": 256
+      },
+      "high": {
+        "dpr": 1.75,
+        "pixels": 4000000,
+        "drawCalls": 260,
+        "triangles": 1100000,
+        "textureMiB": 384
+      }
+    },
+    "observers": {
+      "longtask": true,
+      "event": true
+    },
+    "measurementNotes": [
+      "Frame intervals are measured after actual R3F render submissions. No synthetic frames or FPS.",
+      "CPU duration includes frame callbacks and WebGL submission; it is not GPU execution time.",
+      "Input proxy is canvas movement key dispatch to next render submission. It is not input-to-photon latency.",
+      "Event Timing duration is browser-reported event-to-next-presentation estimate, rounded and thresholded at 16 ms; unsupported or zero samples means unavailable, not zero latency.",
+      "Long tasks use browser PerformanceObserver (>=50 ms); unsupported means unavailable.",
+      "No diagnostic export is sent over the network. No typed text, actor truth labels, credentials or case payloads are recorded."
+    ]
+  },
+  "evaluation": {
+    "complete": true,
+    "timingPassed": false,
+    "result": "software-renderer diagnostic only; no hardware acceptance",
+    "targetHardwareAcceptance": "Not inferred. Verify the MacBook Air M5 model, native browser, power/thermal state and a >=300-second run before claiming that target.",
+    "thresholds": {
+      "averageRenderedFpsMin": 58,
+      "frameIntervalP50MaxMs": 17.5,
+      "frameIntervalP95MaxMs": 20,
+      "frameIntervalP99MaxMs": 33.333333333333336,
+      "over33_34MsFractionMax": 0.01
+    }
+  }
+}

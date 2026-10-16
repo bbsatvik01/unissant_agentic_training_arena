@@ -1,0 +1,7 @@
+.precinct-desk-review { margin-top: 1.4rem; padding: 1.25rem; border: 1px solid #9ba79a; border-radius: .5rem; background: #f6f4e9; color: #263f36; }
+.precinct-desk-review p { max-width: 65ch; line-height: 1.6; }
+.precinct-case-choice .station-directory button[aria-pressed="true"] { border-color: #254e3d; background: #e5eddf; opacity: 1; }
+.precinct-case-choice .station-directory button { text-align: left; }
+.high-contrast .precinct-desk-review { background: #fff; color: #101e18; border: 2px solid #101e18; }
+.high-contrast .precinct-case-choice .station-directory button[aria-pressed="true"] { background: #fff; color: #101e18; outline: 2px solid #101e18; }
+@media (forced-colors: active) { .precinct-desk-review, .precinct-case-choice .station-directory button[aria-pressed="true"] { border-color: ButtonText; background: Canvas; color: CanvasText; } }

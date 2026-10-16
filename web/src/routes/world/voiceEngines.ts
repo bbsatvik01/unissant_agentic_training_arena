@@ -58,6 +58,7 @@ interface WebClip {
   readonly buffer: AudioBuffer;
   /** Who speaks it (the voice catalogue key): the mouth it drives, and whether it is the coach's earpiece aside. */
   readonly voice: string;
+  readonly generation: number;
 }
 
 /** The coach speaks in the investigator's earpiece (stage 8): its catalogue keys. */
@@ -70,24 +71,32 @@ export const EARPIECE = { lowCutHz: 300, highCutHz: 3400, pan: 0.7, gain: 0.55 }
 /** The analyser that lips read: small enough to be cheap, fine enough for the speech bands. */
 const LIPS_FFT = 512;
 
-/** The speech route and Web Audio: a line's WAV fetched once per (voice, text) in this page, decoded, played. */
-export function webAudioPort(api: Pick<ArenaApi, "speak">): AudioPort<WebClip> {
+/** Construction is pure; a committed owner activates once and releases its own activation. */
+export interface RoomAudioLifecycle { readonly activate: () => () => void }
+export type RoomVoiceEngine = VoiceEngine & RoomAudioLifecycle;
+
+/** The speech route and Web Audio: WAVs cached only within the current committed activation. */
+export function webAudioPort(api: Pick<ArenaApi, "speak">): AudioPort<WebClip> & RoomAudioLifecycle {
   let context: AudioContext | null = null;
+  let owner: object | null = null, generation = 0;
+  const playing = new Set<() => void>();
+  const isCurrent = (mine: number, audio?: AudioContext) => owner !== null && mine === generation && (audio === undefined || audio === context);
   const ctx = () => {
+    if (owner === null) throw new Error("Room audio has no committed owner.");
     context ??= new AudioContext();
     return context;
   };
-  // Browsers start audio only from a user gesture: the first click or key in the page unlocks it (entering the room
-  // always takes one).
-  const unlock = () => {
-    void ctx()
-      .resume()
-      .catch(() => undefined);
+  const removeUnlock = () => {
+    if (typeof window === "undefined") return;
+    window.removeEventListener("pointerdown", unlock, true);
+    window.removeEventListener("keydown", unlock, true);
   };
-  if (typeof window !== "undefined") {
-    window.addEventListener("pointerdown", unlock, { once: true, capture: true });
-    window.addEventListener("keydown", unlock, { once: true, capture: true });
-  }
+  // The first gesture unlocks only the committed engine, and removes both listeners.
+  const unlock = () => {
+    removeUnlock();
+    if (owner === null) return;
+    void ctx().resume().catch(() => undefined);
+  };
   /** Whether audio can play now. A context the browser keeps suspended (its resume may never settle while playback
    * is blocked) is waited for at most RESUME_WAIT_MS; then the browser's voice speaks instead. */
   const running = async (c: AudioContext) => {
@@ -99,16 +108,35 @@ export function webAudioPort(api: Pick<ArenaApi, "speak">): AudioPort<WebClip> {
   };
   const clips = new Map<string, Promise<WebClip | null>>();
   return {
+    activate() {
+      if (owner !== null) throw new Error("Room audio already has a committed owner.");
+      const token = {}; owner = token;
+      if (typeof window !== "undefined") {
+        window.addEventListener("pointerdown", unlock, { once: true, capture: true });
+        window.addEventListener("keydown", unlock, { once: true, capture: true });
+      }
+      return () => {
+        if (owner !== token) return;
+        owner = null; generation += 1; removeUnlock(); clips.clear();
+        for (const stop of [...playing]) stop();
+        const old = context; context = null;
+        if (old !== null && old.state !== "closed") void old.close().catch(() => undefined);
+      };
+    },
     fetchClip(voice, text) {
+      if (owner === null) return Promise.resolve(null);
+      const mine = generation;
       const key = `${voice}\n${text}`;
       let clip = clips.get(key);
       if (clip === undefined) {
         clip = api.speak(voice, text).then(
           async ({ audio, silent }) => {
-            if (silent) return null;
+            if (silent || !isCurrent(mine)) return null;
             const c = ctx();
             const buffer = await c.decodeAudioData(audio);
-            return (await running(c)) ? { duration: buffer.duration, buffer, voice } : null;
+            if (!isCurrent(mine, c)) return null;
+            const ready = await running(c);
+            return ready && isCurrent(mine, c) ? { duration: buffer.duration, buffer, voice, generation: mine } : null;
           },
           () => null,
         );
@@ -117,6 +145,7 @@ export function webAudioPort(api: Pick<ArenaApi, "speak">): AudioPort<WebClip> {
       return clip;
     },
     play(clip, volume, onended): Playing {
+      if (owner === null || clip.generation !== generation) throw new Error("Room audio clip belongs to an inactive owner.");
       const c = ctx();
       const source = c.createBufferSource();
       source.buffer = clip.buffer;
@@ -125,6 +154,7 @@ export function webAudioPort(api: Pick<ArenaApi, "speak">): AudioPort<WebClip> {
       const analyser = c.createAnalyser();
       analyser.fftSize = LIPS_FFT;
       analyser.smoothingTimeConstant = 0.5;
+      const nodes: AudioNode[] = [source, gain, analyser];
       let tail: AudioNode = source;
       if (isEarpiece(clip.voice)) {
         const low = c.createBiquadFilter();
@@ -135,6 +165,7 @@ export function webAudioPort(api: Pick<ArenaApi, "speak">): AudioPort<WebClip> {
         high.frequency.value = EARPIECE.highCutHz;
         const pan = c.createStereoPanner();
         pan.pan.value = EARPIECE.pan;
+        nodes.push(low, high, pan);
         tail = tail.connect(low).connect(high).connect(pan);
         gain.gain.value = volume * EARPIECE.gain;
       } else gain.gain.value = volume;
@@ -142,25 +173,43 @@ export function webAudioPort(api: Pick<ArenaApi, "speak">): AudioPort<WebClip> {
       tail.connect(gain).connect(c.destination);
       const detach = audioMouth.attach(clip.voice, analyserSource(analyser));
       const started = c.currentTime;
-      source.onended = () => {
-        detach();
-        onended();
+      let finished = false;
+      const release = (stopSource: boolean) => {
+        if (finished) return;
+        finished = true; source.onended = null; detach(); playing.delete(stop);
+        if (stopSource) { try { source.stop(); } catch { /* Already ended or never started. */ } }
+        for (const node of nodes) { try { node.disconnect(); } catch { /* Already disconnected. */ } }
       };
-      source.start();
-      return {
-        stop: () => {
-          source.onended = null;
-          detach();
-          source.stop();
-        },
-        elapsed: () => c.currentTime - started,
-      };
+      const stop = () => { release(true); };
+      playing.add(stop);
+      source.onended = () => { release(false); onended(); };
+      try { source.start(); } catch (error) { release(false); throw error; }
+      return { stop, elapsed: () => c.currentTime - started };
     },
   };
 }
 
 /** The engine the room uses: Gemini voices through the server when it is there, the browser's own otherwise. */
-export function roomEngine(api: Pick<ArenaApi, "speak"> | null): VoiceEngine {
+export function roomEngine(api: Pick<ArenaApi, "speak"> | null): RoomVoiceEngine {
   const browser = browserEngine();
-  return api === null ? browser : createGeminiEngine(webAudioPort(api), browser);
+  const port = api === null ? null : webAudioPort(api);
+  const engine = port === null ? browser : createGeminiEngine(port, browser);
+  let owner: object | null = null;
+  return {
+    activate() {
+      if (owner !== null) throw new Error("Room engine already has a committed owner.");
+      const release = port?.activate();
+      const token = {}; owner = token;
+      return () => {
+        if (owner !== token) return;
+        owner = null;
+        try { engine.cancel(); } finally { release?.(); }
+      };
+    },
+    speak(item, hooks) {
+      if (owner === null) { hooks.onend(); return; }
+      engine.speak(item, hooks);
+    },
+    cancel: engine.cancel,
+  };
 }

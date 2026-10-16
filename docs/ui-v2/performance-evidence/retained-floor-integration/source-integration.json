@@ -1,0 +1,124 @@
+{
+  "baseCommit": "a88f5c245d92f2e22a597bb4be38a7d8bb887730",
+  "candidateSourceInventorySha256": "52b676d291b16979f558e5bc557c948fef9cafbb794263ff322d00beb433208d",
+  "focusedGateSha256": "2cf75e1856c395a87df13cf001942189e938b33be06bef34afdfbbb33c794b81",
+  "files": [
+    {
+      "path": "web/src/components/precinct/PrecinctCanvas.environment.test.tsx",
+      "beforeSha256": null,
+      "afterSha256": "49bc7e1c46ed09ad1294ea2770b33b1c9d68738eff184e426f69d8ba87251761"
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctCanvas.tsx",
+      "beforeSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "afterSha256": "9e420cfc9bdec0a0bce7cbc6f12e81c44374a661655ef1d50016c0c763b00b7b"
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctControls.idleWork.test.tsx",
+      "beforeSha256": null,
+      "afterSha256": "b5dd827176f3af1f9a9445f9e8d7c4621c3d56cd7094f95ade0937268d85ec8a"
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctEnvironment.test.tsx",
+      "beforeSha256": null,
+      "afterSha256": "61a08d19ddd003a2750b5fa825551d5190e56a4f881d0172868997996e32ad0a"
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctEnvironment.tsx",
+      "beforeSha256": null,
+      "afterSha256": "81ea81aba7994d81736940b4b487e04afb613e4c5968967229da0a0ed2f1ccf5"
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctThemeControl.benchmark.test.tsx",
+      "beforeSha256": null,
+      "afterSha256": "6180b2b56026932c05ce286e5c4bd258130081f0ff4d7586483c1b2b72a376e3"
+    },
+    {
+      "path": "web/src/components/precinct/inspectPrecinctRenderer.test.ts",
+      "beforeSha256": "d2c66622a02c53adb19008c85f454dde70ea836613fe2e0abacd39c4d49b643e",
+      "afterSha256": "b12f325d1a5a5aae26686720d991957dd601b6288a4ccd9c622e3f80e01af970"
+    },
+    {
+      "path": "web/src/components/precinct/inspectPrecinctRenderer.ts",
+      "beforeSha256": "f9671e3dda45e5aba518742ebc3001f9f6168cd944a7d57d0a231d4efddc3120",
+      "afterSha256": "d8f126c048aca20954b0e5d3f459b3361da68cb627da9e25990c40635f63df6a"
+    },
+    {
+      "path": "web/src/lib/precinct/lowEnvironmentExperiment.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "7304bcf0b83b82f31934613a09712ef8bfa843d5a1bb72012d9d882bd8b77b79"
+    },
+    {
+      "path": "web/src/lib/precinct/lowEnvironmentExperiment.ts",
+      "beforeSha256": null,
+      "afterSha256": "0fff56739b7f08aac402601cd979219fbfdb0747be93790ad78ba39ac6e1e7b6"
+    },
+    {
+      "path": "web/src/lib/precinct/staffCrowd.idleWork.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "fba9beb4154702c0a6f09f73742cf1015c8166ced9ee5cc21bef635edc75baae"
+    },
+    {
+      "path": "web/src/lib/precinct/staffCrowd.ts",
+      "beforeSha256": "e1d070b507b55511bb43c406e7da7e7c3b44c044296076788b85cc91723245eb",
+      "afterSha256": "fe1bce0d74edda96cd1aa8dd752e90f4ff68e0afd7f2b2ebc29b2d3670ed4a01"
+    },
+    {
+      "path": "web/src/routes/PrecinctRoute.tsx",
+      "beforeSha256": "8ce479720680e56efc82e33053e858ce261eec62156d5a406f7a91ae6abd46da",
+      "afterSha256": "ddcd579a4404264bcfed77e94e7bcb0f18c2c8e638a39362b3dd290e1eed9350"
+    },
+    {
+      "path": "web/tools/precinct-click-floor.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "2d7b69e9a65d2735559e0a2725fc6616efb36c4efdde84895a9c37eb7d96c4eb"
+    },
+    {
+      "path": "web/tools/precinct-performance-theme.ts",
+      "beforeSha256": null,
+      "afterSha256": "791ed27248b05609d6b00f46f658179814fa5044af65b27d84c0e289e58797c1"
+    },
+    {
+      "path": "web/tools/precinct-performance.test.ts",
+      "beforeSha256": "6722ecf4d258fa711e9bfb40783a482ce6225dc28f5b1f76a9fc95db9f0a53b4",
+      "afterSha256": "95d97b4138aa9f8dfec412a75719a031d8271624b70e38f02780cc8cc494a9ae"
+    },
+    {
+      "path": "web/tools/precinct-performance.ts",
+      "beforeSha256": "3877d93143746ec3544e47d556e59016973117b05f66f45edd8be51a696984f1",
+      "afterSha256": "350186e5a6e7601478eab8801cf59b52f155aebb1416ed98111cb83d00aca30b"
+    },
+    {
+      "path": "web/tools/precinct-floor-routing-model.ts",
+      "beforeSha256": null,
+      "afterSha256": "97a78f64d0b6cd85bbfd17e4344a715297a3c12c9b0974c820dfdd809e60665a"
+    },
+    {
+      "path": "web/tools/precinct-floor-routing-model.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "3c163b1411359917636f00c6ee4db42dc3a059ddaa940a31db7738f38b1831f6"
+    },
+    {
+      "path": "web/tools/precinct-floor-routing-smoke.ts",
+      "beforeSha256": null,
+      "afterSha256": "f302b518f96bf35a63121ae24b4cfb8d0d28570837941c2d523d441c24952b93"
+    },
+    {
+      "path": "web/tools/precinct-minimap-stability.ts",
+      "beforeSha256": null,
+      "afterSha256": "750d70eb1427718fe67e372ae480144f1f204be7247ee6fad6d411991ffc24ef"
+    },
+    {
+      "path": "web/tools/precinct-minimap-stability.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "4d1e8cdf0f9abfd39f9e39d41ced3119abb90e90a3c1acf0b8c99ec5f1cab3a9"
+    }
+  ],
+  "originalFloorBlockSha256": "e6fa9bfa90c78b4aeb61f76010fdf3a9147dc33d3917444e2c236b7d1c1ac5b1",
+  "floorOptimization": "DEFERRED; genuine transparent floor restored exactly",
+  "performanceAcceptance": "FAILED prior cloud timing; successor timing and actual MacBook Air M5 unmeasured",
+  "browserAcceptance": "Prior experimental routing failed; successor not yet measured",
+  "fullUnchangedPnpmCheck": "PENDING",
+  "status": "integrated-full-gate-pending",
+  "integratedAtUtc": "2026-10-16T00:28:29.856379+00:00"
+}

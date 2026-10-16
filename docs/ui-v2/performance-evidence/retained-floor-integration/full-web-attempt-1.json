@@ -1,0 +1,36 @@
+{
+  "schema": "arena.ui-v2.full-web-gate.v1",
+  "startedAtUtc": "2026-10-16T00:28:30Z",
+  "observedTerminalAtUtc": "2026-10-16T00:39:52Z",
+  "command": "cd web && pnpm check",
+  "node": "24.21.0",
+  "pnpm": "11.0.8",
+  "sourceBaseCommit": "a88f5c245d92f2e22a597bb4be38a7d8bb887730",
+  "sourceInventorySha256": "15073c205942c1eaba09a4c0b4c60ae7dca77ffd1c2335e04b29bb9f66fa18a7",
+  "gateLogSha256": "c0037e65bf101723b1fde168b652c5ae001f9b75fd10843eec81b08f98aed57d",
+  "exit": 1,
+  "sourceIntegrityExit": 0,
+  "lint": "passed, whole-project zero warnings",
+  "typecheck": "passed, unchanged tsc -b",
+  "tests": {
+    "files": 255,
+    "passedFiles": 254,
+    "failedFiles": 1,
+    "tests": 2863,
+    "passed": 2862,
+    "failed": 1,
+    "durationSeconds": 428.41,
+    "failure": {
+      "path": "web/src/routes/WorldRoute.audioLifecycle.test.tsx",
+      "line": 30,
+      "observed": "Unable to find button with accessible name Progress within the existing findByRole readiness bound. Test duration1520ms. Failure before audio ownership assertions.",
+      "sourceUnchangedFrom": "a7626569ce7764b3d81cd884ff3c2768c6c5c069",
+      "cause": "Not yet established. Narrow unchanged reproduction pending; no timeout/assertion/config relaxation.",
+      "followup": "One unchanged focused reproduction passed17/17 including this case in756ms. Did not reproduce; cause unproven. See legacy-audio-focused-reproduction.json."
+    }
+  },
+  "coverage": "not reached",
+  "productionBuild": "not reached",
+  "performanceAcceptance": "not established; known prior cloud timing failed; actual M5 unmeasured",
+  "localLogs": "Preserved outside Git, not renamed or encoded into repository artifacts."
+}

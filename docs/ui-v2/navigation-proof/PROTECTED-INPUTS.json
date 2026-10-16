@@ -1,0 +1,86 @@
+[
+  {
+    "path": "web/public/world/precinct.glb",
+    "sha256": "a9801458da3ff10911d49d03ba80cfa60eae9a70e42121b67a3066ec9aab9e9e",
+    "bytes": 3075764,
+    "matches_base_commit": true,
+    "excluded_from_delta": true
+  },
+  {
+    "path": "web/public/world/precinct-manifest.json",
+    "sha256": "fc85679e66e176e2fc29c1b6caa2ad364b3a4c60e099fc3c22cc46b26b24552f",
+    "bytes": 60176,
+    "matches_base_commit": true,
+    "excluded_from_delta": true
+  },
+  {
+    "path": "web/public/world/precinct-courtyard.glb",
+    "sha256": "e985fe9677cf56ce77ee361b8567b5c2bb1eaae9304464f54c473ca2d7c9c4a0",
+    "bytes": 3167788,
+    "matches_base_commit": true,
+    "excluded_from_delta": true
+  },
+  {
+    "path": "web/public/world/precinct-courtyard-manifest.json",
+    "sha256": "a70a2d7685d48231f4fbd1d3d0ad647d370a8ea42670cf3a795476c7ac1caa96",
+    "bytes": 88716,
+    "matches_base_commit": true,
+    "excluded_from_delta": true
+  },
+  {
+    "path": "web/src/lib/precinct/effectiveWorldGeometry.ts",
+    "sha256": "b1f2ee069446e462285227b963a8c448972cd10a860845483eb52cba729a6b39",
+    "bytes": 1267,
+    "matches_base_commit": true,
+    "excluded_from_delta": true
+  },
+  {
+    "path": "web/src/lib/precinct/proceduralReviewerV2.ts",
+    "sha256": "df6b04537932aa8b210d84592713d56319ac5f83f52a31b8621c7d3018e21cd3",
+    "bytes": 6026,
+    "matches_base_commit": true,
+    "excluded_from_delta": true
+  },
+  {
+    "path": "web/src/components/precinct/recordedCameraV1.ts",
+    "sha256": "68cb796b8fd6e860af968561486297c51201a2db60e25e34b47ac7f278af3a97",
+    "bytes": 546,
+    "matches_base_commit": true,
+    "excluded_from_delta": true
+  },
+  {
+    "path": "web/src/lib/precinct/sceneReadiness.ts",
+    "sha256": "4df04cda6c2bc515e7960a44dbe52695d3c1b4d4e9656c3b23d52dd1eaebeee6",
+    "bytes": 704,
+    "matches_base_commit": true,
+    "excluded_from_delta": true
+  },
+  {
+    "path": "web/src/lib/world/sceneContext.ts",
+    "sha256": "376052a33a08bae0005f4ede63ea40e052ef048b58ebef117a343eea3621c59b",
+    "bytes": 5324,
+    "matches_base_commit": true,
+    "excluded_from_delta": true
+  },
+  {
+    "path": "web/src/lib/precinct/proceduralActors.ts",
+    "sha256": "367fea547ba48ad4b7f6366495f41bfc9962f658a11fbd664c3694c539447adc",
+    "bytes": 8062,
+    "matches_base_commit": true,
+    "excluded_from_delta": true
+  },
+  {
+    "path": "web/src/lib/contracts/generated/types.ts",
+    "sha256": "04c6ae38722bf7748fb3c2b590a091035e6d52b7b068129dbb75099e15b3836a",
+    "bytes": 32090,
+    "matches_base_commit": true,
+    "excluded_from_delta": true
+  },
+  {
+    "path": "web/src/lib/copy/ex4.ts",
+    "sha256": "45192d680aa145ff5e4d1f5bacf40354eb579b135e29b4a6f7cb109bbd584b43",
+    "bytes": 572,
+    "matches_base_commit": true,
+    "excluded_from_delta": true
+  }
+]

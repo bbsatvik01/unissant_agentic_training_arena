@@ -1,6 +1,6 @@
 import { createBrowserRouter } from "react-router";
 
-import { WorldRoute } from "./routes/WorldRoute";
+import { PrecinctRoute } from "./routes/PrecinctRoute";
 
 /**
  * React Router data mode (S6 1.1). The world (D-020) holds the hub, the room, onboarding, progress, the debrief and
@@ -8,7 +8,8 @@ import { WorldRoute } from "./routes/WorldRoute";
  * the consoles acting only on the referee origin.
  */
 export const router = createBrowserRouter([
-  { path: "/", element: <WorldRoute /> },
+  { path: "/", element: <PrecinctRoute /> },
+  { path: "/session", lazy: () => import("./routes/WorldRoute").then((m) => ({ Component: m.WorldRoute })) },
   { path: "/trust/:section?", lazy: () => import("./routes/TrustRoute").then((m) => ({ Component: m.TrustRoute })) },
   { path: "/review", lazy: () => import("./routes/ConsoleRoute").then((m) => ({ Component: m.ReviewRoute })) },
   { path: "/admin", lazy: () => import("./routes/ConsoleRoute").then((m) => ({ Component: m.AdminRoute })) },

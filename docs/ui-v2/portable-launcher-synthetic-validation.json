@@ -1,0 +1,93 @@
+{
+  "schema": "arena.portable-synthetic-validation.v1",
+  "validated_at_utc": "2026-10-16T01:09:22Z",
+  "status": "pass_synthetic_only",
+  "scope": "Frozen launcher and packager sources; disposable synthetic fixtures and synthetic archive only.",
+  "runtime": {
+    "node": "24.21.0",
+    "zlib": "1.3.2.1-motley-8002e91",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "source_hashes": {
+    "INTEGRATION-PLAN.md": "4e111bc03b1131036f6fa08137700ad10dfadd5496d2a1d5b8cfab063e99e5f5",
+    "SOURCE-REVIEW.md": "1264ae628d3b598794ce13d48d3da2ef18ab6443ffcc3c5c62fd26b242cd5462",
+    "SUCCESSOR-SOURCE-MANIFEST.json": "8b3de615c6b03e812206326fc4dbfb22bb5045b394f278e1d10b22708ec51e10",
+    "docs/ui-v2/portable-preview/PACKAGE-README.txt": "c873ba00ec5cd4496b3db2e61aaa574a3aceb5467c66bcf1d7df3a2f237dcb87",
+    "web/tools/package-precinct-preview.js": "b8a546ad3d3cb3583e1cd259af97a45ef2e507850ff184200ab412190e1c698e",
+    "web/tools/package-precinct-preview.node-tests.js": "0b37b00ce3f8fddcdef6ceee06ee9d8b5e32f06e96ab5dd2be6e9010518c16ec",
+    "web/tools/precinct-portable-preview.test.ts": "90f40b25a314167bffc2aab9876ebed9558058fb5cf775d0b116df39fe737437",
+    "web/tools/precinct-static-preview.js": "d2853189e527796bf96ac62dadafafe78e14027e4a645466d79e72cac86594a7",
+    "web/tools/precinct-static-preview.node-tests.js": "d392cb713df556eee660e58a119a99627af01335398fe58e45a5bdcbceba005e"
+  },
+  "source_preservation": {
+    "files": 133,
+    "all_bytes_unchanged": true,
+    "manifest_entries_verified": 132,
+    "notice_rows_hash_verified_only": 113
+  },
+  "tests": {
+    "launcher-node-tests": {
+      "tests": 11,
+      "pass": 11,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exit_status": 0
+    },
+    "packager-node-tests": {
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exit_status": 0
+    }
+  },
+  "archive_validation": {
+    "independent_tar": "tar (GNU tar) 1.35",
+    "independent_tar_extraction": "pass",
+    "independent_extracted_byte_inventory": "pass",
+    "package_checksum_verification": "pass",
+    "archive_sidecar_verification": "pass",
+    "two_process_archive_byte_determinism": "pass",
+    "archive_bytes": 2141,
+    "archive_sha256": "52e6963050a08d9dd153738554decc19216a60dffc197f0d158c77f3f30d801f",
+    "archive_members": 16,
+    "extracted_regular_file_mode": "0600",
+    "extracted_file_mtime": 0
+  },
+  "execution": {
+    "recorded_commands": 12,
+    "all_exit_statuses": [
+      0
+    ],
+    "suite_timeout_seconds_each": 45,
+    "archive_command_timeout_seconds_each": 15,
+    "timeout_kill_after_seconds": 5,
+    "suite_driver_timeout_seconds": 120,
+    "archive_driver_timeout_seconds": 90,
+    "driver_exit_statuses": [
+      0,
+      0
+    ]
+  },
+  "failures": [],
+  "limits": [
+    "Synthetic WAV/GLB placeholders were not decoded or rendered.",
+    "Reproducibility is limited to two separate processes on the same recorded Node/zlib/Linux runtime.",
+    "No ESLint, TypeScript, Vitest wrapper, aggregate pnpm check or production build ran.",
+    "No real application bundle, GSAP, browser, audio playback or MacBook Air M5 validation ran.",
+    "No source integration, real application archive, distribution, private-data review or license clearance is established.",
+    "GSAP license choice and actual hardware testing remain holds."
+  ],
+  "evidence": {
+    "raw_logs_preserved_outside_application_checkout": true,
+    "full_source_before_and_after_inventories_preserved": true,
+    "recorded_commands": 12,
+    "repository_copy": "Structured summary only; no logs, synthetic archive or application bundle is committed."
+  },
+  "original_summary_sha256": "0f27d4553a7e3753a651271e0d83c98148b3d1a585290c149dc7d32b6a91a725"
+}

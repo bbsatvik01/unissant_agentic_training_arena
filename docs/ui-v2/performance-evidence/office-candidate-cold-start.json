@@ -1,0 +1,261 @@
+{
+  "status": "cold-start-failed-observing",
+  "readiness": {
+    "originalGateMs": 5000,
+    "initialReady": false,
+    "initialFailure": "Error: expect(locator).toBeEnabled() failed\n\nLocator: getByRole('button', { name: 'Enter the precinct', exact: true })\nExpected: enabled\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeEnabled\" getByRole('button', { name: 'Enter the precinct', exact: true }) with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Enter the precinct', exact: true })\n\n    at captureRawStack (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:8588:17)\n    at callMatcherAsStep (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13310:57)\n    at Object.toBeEnabled (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13302:23)\n    at benchmarkPrecinct (/workspace/shared/precinct-performance-ab-20261015/candidate/web/tools/precinct-performance.ts:150:95)",
+    "initialGateElapsedMs": 5042.084743000001,
+    "diagnosticOnly": false,
+    "slowStartDiagnostic": true,
+    "captureErrors": [],
+    "followupLimitMs": 60000,
+    "followupReady": null,
+    "followupElapsedMs": null,
+    "failureEvidence": []
+  },
+  "requests": [
+    {
+      "path": "/",
+      "resourceType": "document",
+      "startedMs": 1848.2146369999998,
+      "responseMs": 1890.5954880000002,
+      "finishedMs": 1967.288871,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098485665.7158,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 1.485,
+        "responseStart": 26.364,
+        "responseEnd": 55.279
+      }
+    },
+    {
+      "path": "/assets/index-ettryF_G.js",
+      "resourceType": "script",
+      "startedMs": 1969.7888340000002,
+      "responseMs": 2361.562854,
+      "finishedMs": 2362.558715,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098485787.145,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 0.683,
+        "responseStart": 30.832,
+        "responseEnd": 254.077
+      }
+    },
+    {
+      "path": "/assets/jsx-runtime-D3jfb0Ew.js",
+      "resourceType": "script",
+      "startedMs": 1975.3749529999998,
+      "responseMs": 2126.5740539999997,
+      "finishedMs": 2132.537435,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098485791.915,
+        "domainLookupStart": 1.42,
+        "domainLookupEnd": 1.43,
+        "connectStart": 1.43,
+        "secureConnectionStart": -1,
+        "connectEnd": 1.537,
+        "requestStart": 1.836,
+        "responseStart": 22.473,
+        "responseEnd": 72.092
+      }
+    },
+    {
+      "path": "/assets/index-Ci14sePE.css",
+      "resourceType": "stylesheet",
+      "startedMs": 1976.9575419999999,
+      "responseMs": 2014.150953,
+      "finishedMs": 2148.6068029999997,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098485792.3572,
+        "domainLookupStart": 0.512,
+        "domainLookupEnd": 0.534,
+        "connectStart": 0.534,
+        "secureConnectionStart": -1,
+        "connectEnd": 1.077,
+        "requestStart": 1.32,
+        "responseStart": 18.844,
+        "responseEnd": 168.835
+      }
+    },
+    {
+      "path": "/assets/PrecinctCanvas-CnakTLx4.js",
+      "resourceType": "script",
+      "startedMs": 3040.5566230000004,
+      "responseMs": 3429.8871640000007,
+      "finishedMs": 3430.6871790000005,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098486860.793,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 3.577,
+        "responseStart": 11.627,
+        "responseEnd": 146.347
+      }
+    },
+    {
+      "path": "/assets/RoomEnvironment-BHuNn4AT.js",
+      "resourceType": "script",
+      "startedMs": 3041.727642,
+      "responseMs": 3454.9653,
+      "finishedMs": 3455.577924,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098486861.832,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 2.642,
+        "responseStart": 17.356,
+        "responseEnd": 173.622
+      }
+    },
+    {
+      "path": "/favicon.svg",
+      "resourceType": "other",
+      "startedMs": 3427.6332920000004,
+      "responseMs": 3614.589094,
+      "finishedMs": 3614.6257210000003,
+      "status": 200,
+      "failure": null,
+      "timing": {
+        "startTime": 1792098487243.498,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 5.494,
+        "responseStart": 11.454,
+        "responseEnd": 26.231
+      }
+    },
+    {
+      "path": "/world/precinct.glb",
+      "resourceType": "fetch",
+      "startedMs": 5866.226891,
+      "responseMs": 6347.379966,
+      "finishedMs": null,
+      "status": 200,
+      "failure": null,
+      "timing": null
+    },
+    {
+      "path": "/avatars/Business_Female_01/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 5868.580154,
+      "responseMs": 6341.904292,
+      "finishedMs": null,
+      "status": 200,
+      "failure": null,
+      "timing": null
+    },
+    {
+      "path": "/avatars/Business_Male_04/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 5869.308984,
+      "responseMs": 6345.686526,
+      "finishedMs": null,
+      "status": 200,
+      "failure": null,
+      "timing": null
+    },
+    {
+      "path": "/avatars/Business_Male_06/avatar.glb",
+      "resourceType": "fetch",
+      "startedMs": 5872.677875,
+      "responseMs": 6347.949036,
+      "finishedMs": null,
+      "status": 200,
+      "failure": null,
+      "timing": null
+    }
+  ],
+  "buildAssets": [
+    {
+      "path": "/assets/jsx-runtime-D3jfb0Ew.js",
+      "bytes": 8901,
+      "sha256": "a2c68294426b0ded53fa2d6c97bb39c4a51f99e5e4b23e7953a2c69298e361f8"
+    },
+    {
+      "path": "/assets/index-Ci14sePE.css",
+      "bytes": 138769,
+      "sha256": "dec25bf7fdb65464ae9df06d13f885219a361e338885ca372e744ad85acc352b"
+    },
+    {
+      "path": "/assets/index-ettryF_G.js",
+      "bytes": 2466829,
+      "sha256": "580642699404d787a70958677941484eba27e3f0a7c66f1ae48a3a397dfb50d7"
+    },
+    {
+      "path": "/assets/PrecinctCanvas-CnakTLx4.js",
+      "bytes": 302301,
+      "sha256": "b240ddf1b9c179023afef167bf0c2f1ba274a9604af83abea45c63df75cc3e33"
+    },
+    {
+      "path": "/assets/RoomEnvironment-BHuNn4AT.js",
+      "bytes": 959546,
+      "sha256": "c1ca9ba149df6b935f0dadff4bb8dff9c3791f347893f5360b3b1674406ae870"
+    }
+  ],
+  "loadedArtifactFingerprint": null,
+  "options": {
+    "url": "http://127.0.0.1:4186/?precinctPerf=1&precinctPerfPinned=1",
+    "output": "/workspace/shared/precinct-performance-ab-20261015/candidate/results/native-office-low-v4-slow-start",
+    "seconds": 60,
+    "warmup": 15,
+    "dpr": 2,
+    "scene": "office",
+    "tier": "low",
+    "camera": "third",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "software": true,
+    "headed": false,
+    "readinessDiagnostics": false,
+    "slowStartDiagnostic": true,
+    "machineLabel": "Not supplied; device model unverified"
+  },
+  "browserVersion": "154.0.8037.57",
+  "movement": [],
+  "turns": [],
+  "errors": [],
+  "blockedRequests": [],
+  "host": {
+    "platform": "linux",
+    "release": "6.18.44",
+    "arch": "x64",
+    "cpuModels": [
+      "INTEL(R) XEON(R) PLATINUM 8573C"
+    ]
+  },
+  "protocol": "Production app, no video/screenshot during timed interval, warmed assets, real Playwright keyboard holds, visible minimap displacement assertions. This does not validate live backend/model behavior.",
+  "report": null,
+  "evaluation": null
+}

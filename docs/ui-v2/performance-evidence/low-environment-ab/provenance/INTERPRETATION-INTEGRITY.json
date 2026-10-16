@@ -1,0 +1,451 @@
+{
+  "method": "Read-only byte/hash inventory, not executed runtime tests.",
+  "controlsBeforeSha256": "3394601e454c962c619f4d0a543a81bc2863d5977104fdff6ba0720a18c73b88",
+  "controlsAfterSha256": "3394601e454c962c619f4d0a543a81bc2863d5977104fdff6ba0720a18c73b88",
+  "controlsByteIdentical": true,
+  "scenes": [
+    {
+      "world": "office",
+      "adapterPath": "web/src/lib/world/scene-adapter-office-v2.json",
+      "adapterSha256": "3f0cebe1d2b20692c634b2625d179f6f3378217dbbad269d521df70a2210e1a0",
+      "frozenDependencyCount": 27,
+      "touchedFrozenDependencies": [],
+      "dependencies": [
+        {
+          "path": "web/src/lib/precinct/proceduralActors.ts",
+          "pinnedSha256": "367fea547ba48ad4b7f6366495f41bfc9962f658a11fbd664c3694c539447adc",
+          "actualSha256": "367fea547ba48ad4b7f6366495f41bfc9962f658a11fbd664c3694c539447adc",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralSeatedV1.ts",
+          "pinnedSha256": "53249924dd5536fd2a1ca69c75dab33e67e75aabeeb87581bbdda41b7842b61e",
+          "actualSha256": "53249924dd5536fd2a1ca69c75dab33e67e75aabeeb87581bbdda41b7842b61e",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralStaffV1.ts",
+          "pinnedSha256": "5fdc7eb36884fa5d38595109561486893057e27320226ddcad3b3698ddcaf0a1",
+          "actualSha256": "5fdc7eb36884fa5d38595109561486893057e27320226ddcad3b3698ddcaf0a1",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralWalkingV1.ts",
+          "pinnedSha256": "70d567129bdd2d3ae0b120c8908a3c482a21366728947ccc1a02b12a02fabe60",
+          "actualSha256": "70d567129bdd2d3ae0b120c8908a3c482a21366728947ccc1a02b12a02fabe60",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/components/precinct/standingAvatarRigV1.ts",
+          "pinnedSha256": "98747f418f3975114799a94105fc53d2c671d0731f5623fa8ad64f2ef466974c",
+          "actualSha256": "98747f418f3975114799a94105fc53d2c671d0731f5623fa8ad64f2ef466974c",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/components/precinct/seatedAvatarRig.ts",
+          "pinnedSha256": "b8947afa49fb556c94c1fabda2c851f11ad81ed55c63c36d098498187745ef45",
+          "actualSha256": "b8947afa49fb556c94c1fabda2c851f11ad81ed55c63c36d098498187745ef45",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Business_Female_01/avatar.glb",
+          "pinnedSha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2",
+          "actualSha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Business_Female_02/avatar.glb",
+          "pinnedSha256": "36304f4a2e279640859a21662349e9a411e53f604d12fe19c329795c454cf7ec",
+          "actualSha256": "36304f4a2e279640859a21662349e9a411e53f604d12fe19c329795c454cf7ec",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Business_Male_02/avatar.glb",
+          "pinnedSha256": "17b4ca9fec7eb2f369ec4b8be34e606e9cf30dabd7e49f1d32042c60c086d24f",
+          "actualSha256": "17b4ca9fec7eb2f369ec4b8be34e606e9cf30dabd7e49f1d32042c60c086d24f",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Business_Male_04/avatar.glb",
+          "pinnedSha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51",
+          "actualSha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Business_Male_06/avatar.glb",
+          "pinnedSha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b",
+          "actualSha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Female_Adult_07/avatar.glb",
+          "pinnedSha256": "3c664edaba7a5472b05712102896c2d9b093cb1aa3bf8c1cd4e3f3df2dc50ca6",
+          "actualSha256": "3c664edaba7a5472b05712102896c2d9b093cb1aa3bf8c1cd4e3f3df2dc50ca6",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Female_Adult_14/avatar.glb",
+          "pinnedSha256": "a48adcb4661b2441231a81569b80a50a997c4f109d40d1a62abb8902f093ff7d",
+          "actualSha256": "a48adcb4661b2441231a81569b80a50a997c4f109d40d1a62abb8902f093ff7d",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Male_Adult_05/avatar.glb",
+          "pinnedSha256": "6e35eabaa912194f851e1ce2bdf49ffb934006e4eb0698d3ab7322f1b30b8180",
+          "actualSha256": "6e35eabaa912194f851e1ce2bdf49ffb934006e4eb0698d3ab7322f1b30b8180",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Male_Adult_08/avatar.glb",
+          "pinnedSha256": "5e716522f2d70e760d2afb48ccee82ca75f77239c07d915ac9033b1d222ec17f",
+          "actualSha256": "5e716522f2d70e760d2afb48ccee82ca75f77239c07d915ac9033b1d222ec17f",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Male_Adult_12/avatar.glb",
+          "pinnedSha256": "6f6c93ced906738096b9fd0f32731b21079a7a978324cfa841328d7872a685ff",
+          "actualSha256": "6f6c93ced906738096b9fd0f32731b21079a7a978324cfa841328d7872a685ff",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/worldVariant.ts",
+          "pinnedSha256": "de70c670220eafecf1ef48a668d6bff86d95876d1075a70d9c3042b2ae07ae98",
+          "actualSha256": "de70c670220eafecf1ef48a668d6bff86d95876d1075a70d9c3042b2ae07ae98",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/knownWorlds.ts",
+          "pinnedSha256": "97134ad9f6f642c71f834d15bc86affdb038d6880cf9698d4b41565d56c14b0d",
+          "actualSha256": "97134ad9f6f642c71f834d15bc86affdb038d6880cf9698d4b41565d56c14b0d",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/effectiveWorldGeometry.ts",
+          "pinnedSha256": "b1f2ee069446e462285227b963a8c448972cd10a860845483eb52cba729a6b39",
+          "actualSha256": "b1f2ee069446e462285227b963a8c448972cd10a860845483eb52cba729a6b39",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralReviewerV2.ts",
+          "pinnedSha256": "df6b04537932aa8b210d84592713d56319ac5f83f52a31b8621c7d3018e21cd3",
+          "actualSha256": "df6b04537932aa8b210d84592713d56319ac5f83f52a31b8621c7d3018e21cd3",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralPatrolV2.ts",
+          "pinnedSha256": "f25814f1ee25e3b6419a86ed09dbe6f37c620d924a244a29a2ee37ac89e6a610",
+          "actualSha256": "f25814f1ee25e3b6419a86ed09dbe6f37c620d924a244a29a2ee37ac89e6a610",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/components/precinct/reviewerBodyV2.ts",
+          "pinnedSha256": "e0857dfef96cd96b137e49b81af35ede8345990a1d9f56b9634ad12147c1da2c",
+          "actualSha256": "e0857dfef96cd96b137e49b81af35ede8345990a1d9f56b9634ad12147c1da2c",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/components/precinct/patrolBodyV2.ts",
+          "pinnedSha256": "bff81b131b0a23381aff9c285096c3cc93426db9e8549664c363aaee75b407af",
+          "actualSha256": "bff81b131b0a23381aff9c285096c3cc93426db9e8549664c363aaee75b407af",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/components/precinct/actorSamples.ts",
+          "pinnedSha256": "bbce2ef754e2e20180c15224144f334f2b540a9a0beceb1c604df4ca9a789ef7",
+          "actualSha256": "bbce2ef754e2e20180c15224144f334f2b540a9a0beceb1c604df4ca9a789ef7",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/interviewStage.ts",
+          "pinnedSha256": "1f332ec6a7944ac08c270703b4ef6df7639274a9b3535c55ca1a1b95245618a9",
+          "actualSha256": "1f332ec6a7944ac08c270703b4ef6df7639274a9b3535c55ca1a1b95245618a9",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/components/precinct/seatedBodyV1.ts",
+          "pinnedSha256": "22aaeb7faa410924f5b413425ae964243c17e2a0f59c80f7fb613c6d874dfdc2",
+          "actualSha256": "22aaeb7faa410924f5b413425ae964243c17e2a0f59c80f7fb613c6d874dfdc2",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/components/precinct/recordedCameraV1.ts",
+          "pinnedSha256": "68cb796b8fd6e860af968561486297c51201a2db60e25e34b47ac7f278af3a97",
+          "actualSha256": "68cb796b8fd6e860af968561486297c51201a2db60e25e34b47ac7f278af3a97",
+          "matches": true,
+          "experimentTouches": false
+        }
+      ]
+    },
+    {
+      "world": "courtyard",
+      "adapterPath": "web/src/lib/world/scene-adapter-courtyard-v2.json",
+      "adapterSha256": "dda90be527aca1b6e889e459cb1dc50971e4054607360071fd832c2b2b7e36c5",
+      "frozenDependencyCount": 27,
+      "touchedFrozenDependencies": [],
+      "dependencies": [
+        {
+          "path": "web/src/lib/precinct/proceduralActors.ts",
+          "pinnedSha256": "367fea547ba48ad4b7f6366495f41bfc9962f658a11fbd664c3694c539447adc",
+          "actualSha256": "367fea547ba48ad4b7f6366495f41bfc9962f658a11fbd664c3694c539447adc",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralSeatedV1.ts",
+          "pinnedSha256": "53249924dd5536fd2a1ca69c75dab33e67e75aabeeb87581bbdda41b7842b61e",
+          "actualSha256": "53249924dd5536fd2a1ca69c75dab33e67e75aabeeb87581bbdda41b7842b61e",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralStaffV1.ts",
+          "pinnedSha256": "5fdc7eb36884fa5d38595109561486893057e27320226ddcad3b3698ddcaf0a1",
+          "actualSha256": "5fdc7eb36884fa5d38595109561486893057e27320226ddcad3b3698ddcaf0a1",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralWalkingV1.ts",
+          "pinnedSha256": "70d567129bdd2d3ae0b120c8908a3c482a21366728947ccc1a02b12a02fabe60",
+          "actualSha256": "70d567129bdd2d3ae0b120c8908a3c482a21366728947ccc1a02b12a02fabe60",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/components/precinct/standingAvatarRigV1.ts",
+          "pinnedSha256": "98747f418f3975114799a94105fc53d2c671d0731f5623fa8ad64f2ef466974c",
+          "actualSha256": "98747f418f3975114799a94105fc53d2c671d0731f5623fa8ad64f2ef466974c",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/components/precinct/seatedAvatarRig.ts",
+          "pinnedSha256": "b8947afa49fb556c94c1fabda2c851f11ad81ed55c63c36d098498187745ef45",
+          "actualSha256": "b8947afa49fb556c94c1fabda2c851f11ad81ed55c63c36d098498187745ef45",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Business_Female_01/avatar.glb",
+          "pinnedSha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2",
+          "actualSha256": "4d529231468b2391237c2941e16840f8af3b8ad67ca4fd05d612184704eef7b2",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Business_Female_02/avatar.glb",
+          "pinnedSha256": "36304f4a2e279640859a21662349e9a411e53f604d12fe19c329795c454cf7ec",
+          "actualSha256": "36304f4a2e279640859a21662349e9a411e53f604d12fe19c329795c454cf7ec",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Business_Male_02/avatar.glb",
+          "pinnedSha256": "17b4ca9fec7eb2f369ec4b8be34e606e9cf30dabd7e49f1d32042c60c086d24f",
+          "actualSha256": "17b4ca9fec7eb2f369ec4b8be34e606e9cf30dabd7e49f1d32042c60c086d24f",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Business_Male_04/avatar.glb",
+          "pinnedSha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51",
+          "actualSha256": "5ce600b396c2ca9c068fce7b93dae04807c54abeee4b63fbeaec26aea4a2dd51",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Business_Male_06/avatar.glb",
+          "pinnedSha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b",
+          "actualSha256": "66676fa0a7de2b22f11f43ab07c8906fce043f03203f0bf609b665b78bdd815b",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Female_Adult_07/avatar.glb",
+          "pinnedSha256": "3c664edaba7a5472b05712102896c2d9b093cb1aa3bf8c1cd4e3f3df2dc50ca6",
+          "actualSha256": "3c664edaba7a5472b05712102896c2d9b093cb1aa3bf8c1cd4e3f3df2dc50ca6",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Female_Adult_14/avatar.glb",
+          "pinnedSha256": "a48adcb4661b2441231a81569b80a50a997c4f109d40d1a62abb8902f093ff7d",
+          "actualSha256": "a48adcb4661b2441231a81569b80a50a997c4f109d40d1a62abb8902f093ff7d",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Male_Adult_05/avatar.glb",
+          "pinnedSha256": "6e35eabaa912194f851e1ce2bdf49ffb934006e4eb0698d3ab7322f1b30b8180",
+          "actualSha256": "6e35eabaa912194f851e1ce2bdf49ffb934006e4eb0698d3ab7322f1b30b8180",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Male_Adult_08/avatar.glb",
+          "pinnedSha256": "5e716522f2d70e760d2afb48ccee82ca75f77239c07d915ac9033b1d222ec17f",
+          "actualSha256": "5e716522f2d70e760d2afb48ccee82ca75f77239c07d915ac9033b1d222ec17f",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/public/avatars/Male_Adult_12/avatar.glb",
+          "pinnedSha256": "6f6c93ced906738096b9fd0f32731b21079a7a978324cfa841328d7872a685ff",
+          "actualSha256": "6f6c93ced906738096b9fd0f32731b21079a7a978324cfa841328d7872a685ff",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/worldVariant.ts",
+          "pinnedSha256": "de70c670220eafecf1ef48a668d6bff86d95876d1075a70d9c3042b2ae07ae98",
+          "actualSha256": "de70c670220eafecf1ef48a668d6bff86d95876d1075a70d9c3042b2ae07ae98",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/knownWorlds.ts",
+          "pinnedSha256": "97134ad9f6f642c71f834d15bc86affdb038d6880cf9698d4b41565d56c14b0d",
+          "actualSha256": "97134ad9f6f642c71f834d15bc86affdb038d6880cf9698d4b41565d56c14b0d",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/effectiveWorldGeometry.ts",
+          "pinnedSha256": "b1f2ee069446e462285227b963a8c448972cd10a860845483eb52cba729a6b39",
+          "actualSha256": "b1f2ee069446e462285227b963a8c448972cd10a860845483eb52cba729a6b39",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralReviewerV2.ts",
+          "pinnedSha256": "df6b04537932aa8b210d84592713d56319ac5f83f52a31b8621c7d3018e21cd3",
+          "actualSha256": "df6b04537932aa8b210d84592713d56319ac5f83f52a31b8621c7d3018e21cd3",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/proceduralPatrolV2.ts",
+          "pinnedSha256": "f25814f1ee25e3b6419a86ed09dbe6f37c620d924a244a29a2ee37ac89e6a610",
+          "actualSha256": "f25814f1ee25e3b6419a86ed09dbe6f37c620d924a244a29a2ee37ac89e6a610",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/components/precinct/reviewerBodyV2.ts",
+          "pinnedSha256": "e0857dfef96cd96b137e49b81af35ede8345990a1d9f56b9634ad12147c1da2c",
+          "actualSha256": "e0857dfef96cd96b137e49b81af35ede8345990a1d9f56b9634ad12147c1da2c",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/components/precinct/patrolBodyV2.ts",
+          "pinnedSha256": "bff81b131b0a23381aff9c285096c3cc93426db9e8549664c363aaee75b407af",
+          "actualSha256": "bff81b131b0a23381aff9c285096c3cc93426db9e8549664c363aaee75b407af",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/components/precinct/actorSamples.ts",
+          "pinnedSha256": "bbce2ef754e2e20180c15224144f334f2b540a9a0beceb1c604df4ca9a789ef7",
+          "actualSha256": "bbce2ef754e2e20180c15224144f334f2b540a9a0beceb1c604df4ca9a789ef7",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/lib/precinct/interviewStage.ts",
+          "pinnedSha256": "1f332ec6a7944ac08c270703b4ef6df7639274a9b3535c55ca1a1b95245618a9",
+          "actualSha256": "1f332ec6a7944ac08c270703b4ef6df7639274a9b3535c55ca1a1b95245618a9",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/components/precinct/seatedBodyV1.ts",
+          "pinnedSha256": "22aaeb7faa410924f5b413425ae964243c17e2a0f59c80f7fb613c6d874dfdc2",
+          "actualSha256": "22aaeb7faa410924f5b413425ae964243c17e2a0f59c80f7fb613c6d874dfdc2",
+          "matches": true,
+          "experimentTouches": false
+        },
+        {
+          "path": "web/src/components/precinct/recordedCameraV1.ts",
+          "pinnedSha256": "68cb796b8fd6e860af968561486297c51201a2db60e25e34b47ac7f278af3a97",
+          "actualSha256": "68cb796b8fd6e860af968561486297c51201a2db60e25e34b47ac7f278af3a97",
+          "matches": true,
+          "experimentTouches": false
+        }
+      ]
+    }
+  ],
+  "assetsAndProvenance": [
+    {
+      "path": "web/src/lib/world/sceneContext.ts",
+      "sha256": "376052a33a08bae0005f4ede63ea40e052ef048b58ebef117a343eea3621c59b",
+      "unchangedSinceBase": true
+    },
+    {
+      "path": "assets-src/ASSET_PROVENANCE.md",
+      "sha256": "8582782f77ab4cff63eb6eb5e95821e0ff54b8fdd5222e6b758446a6d5e0e2c1",
+      "unchangedSinceBase": true
+    },
+    {
+      "path": "assets-src/COURTYARD-PROVENANCE.md",
+      "sha256": "0a41984b27c399e616691d336fb900d30a2209ca4a18628f3624ae785f966315",
+      "unchangedSinceBase": true
+    },
+    {
+      "path": "web/public/world/precinct-courtyard-manifest.json",
+      "sha256": "a70a2d7685d48231f4fbd1d3d0ad647d370a8ea42670cf3a795476c7ac1caa96",
+      "unchangedSinceBase": true
+    },
+    {
+      "path": "web/public/world/precinct-courtyard-navmesh.json",
+      "sha256": "4da61e8ecff9a5895dc674739a55f46d14416feedde5db948066d2528e05e925",
+      "unchangedSinceBase": true
+    },
+    {
+      "path": "web/public/world/precinct-courtyard.glb",
+      "sha256": "e985fe9677cf56ce77ee361b8567b5c2bb1eaae9304464f54c473ca2d7c9c4a0",
+      "unchangedSinceBase": true
+    },
+    {
+      "path": "web/public/world/precinct-manifest.json",
+      "sha256": "fc85679e66e176e2fc29c1b6caa2ad364b3a4c60e099fc3c22cc46b26b24552f",
+      "unchangedSinceBase": true
+    },
+    {
+      "path": "web/public/world/precinct-office-navmesh.json",
+      "sha256": "04d6cb5f47316474a6d8a98a1ed14363094a4d3562530dc0a887d316d56b6b64",
+      "unchangedSinceBase": true
+    },
+    {
+      "path": "web/public/world/precinct.glb",
+      "sha256": "a9801458da3ff10911d49d03ba80cfa60eae9a70e42121b67a3066ec9aab9e9e",
+      "unchangedSinceBase": true
+    }
+  ]
+}

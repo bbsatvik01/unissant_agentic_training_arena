@@ -1,0 +1,12 @@
+
+ RUN  v5.0.1 /workspace/shared/precinct-local-voice-qa/web
+
+
+ Test Files  2 passed (2)
+      Tests  4 passed (4)
+   Start at  12:27:44
+   Duration  7.48s (environment 56%, transform 25%, import 16%, tests 2%, worker 1%)
+
+    Isolate  2 workers spawned · ~2.26s startup each (spawn + environment, per file)
+             at least ~2.26s faster with isolate: false — reuses workers across files instead of one per file
+

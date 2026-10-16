@@ -1,0 +1,148 @@
+{
+  "checkedAtUtc": "2026-10-15T09:39:00Z",
+  "scope": "Seven asset-authoring and validation scripts. Root gate configurations, backend code and generated assets were not changed by this cleanup.",
+  "toolVersions": {
+    "python": "3.12.14",
+    "ruff": "0.16.8",
+    "mypy": "2.3.1"
+  },
+  "commands": [
+    {
+      "command": "/workspace/shared/.uv-cache/archive-v0/mq7KiK6vFNhNXHdr/bin/ruff check --config pyproject.toml .",
+      "result": "Passed for the whole checkout; no remaining baseline Ruff errors."
+    },
+    {
+      "command": "/workspace/shared/.uv-cache/archive-v0/mq7KiK6vFNhNXHdr/bin/ruff format --config pyproject.toml --check .",
+      "result": "Passed: 465 files already formatted."
+    },
+    {
+      "command": "UV_TOOL_DIR=/workspace/shared/.uv-tools UV_TOOL_BIN_DIR=/workspace/shared/.uv-tools/bin UV_CACHE_DIR=/workspace/shared/.uv-cache uv tool run --from mypy==2.3.1 mypy --config-file pyproject.toml assets-src/manifest_tools.py assets-src/audit_signage.py",
+      "result": "Passed: no issues found in 2 source files under the unchanged strict root configuration."
+    },
+    {
+      "command": "python -c \"from pathlib import Path; [compile(p.read_text(), str(p), 'exec') for p in Path('assets-src').glob('*.py')]\"",
+      "result": "Equivalent to the executed here-document syntax check: all 7 scripts compiled; no bytecode writes."
+    },
+    {
+      "command": "python /workspace/shared/asset-script-gates/compare_build_ast.py",
+      "result": "Normalized authoring AST equal: 27 functions and 338 authoring call sites."
+    },
+    {
+      "command": "python /workspace/shared/asset-script-gates/compare_support_ast.py",
+      "result": "Normalized executable AST equal in the other 6 scripts; all 30 original validation conditions retained."
+    },
+    {
+      "command": "python /workspace/shared/asset-script-gates/verify_semantics.py",
+      "result": "Passed actual asset comparisons, metadata fixtures, corruption rejection and optimized-Python checks."
+    },
+    {
+      "command": "python /workspace/shared/asset-script-gates/verify_source_inspection.py",
+      "result": "Passed source-inspection fixture and all four rejection cases, normally and with optimize=2; Blender was mocked, not launched."
+    }
+  ],
+  "repeatableGateCommands": [
+    "uv tool run --from ruff==0.16.8 ruff check --config pyproject.toml .",
+    "uv tool run --from ruff==0.16.8 ruff format --config pyproject.toml --check .",
+    "uv tool run --from mypy==2.3.1 mypy --config-file pyproject.toml assets-src/manifest_tools.py assets-src/audit_signage.py"
+  ],
+  "preservationEvidence": {
+    "authoringNormalizedAstSha256": "220db6032307fe97374ea43ee81d5e1a07cc381617d0950eef697be4262ef602",
+    "normalization": "Expand frozen style records and geometry tuples to the original scalar argument bindings; remove annotations/import organization/progress writes; inline named constants; normalize the explicit min/max bounds transfer. The executable geometry, label strings, values, metadata, ordering, and validation predicates match.",
+    "intentionalRuntimeDifferences": [
+      "Validation uses explicit ValueError checks instead of assert, so Python -O cannot disable it.",
+      "Material polygon/smoothing zip uses strict=True to fail on a mismatched batch.",
+      "Frozen typed style records and grouped geometry arguments replace long positional signatures; authoring values are unchanged.",
+      "Progress and JSON output use stdout writes; flushing is preserved where originally requested."
+    ],
+    "functional": {
+      "manifestNormalizationFixturesEqual": 2,
+      "runtimeAuditEqual": true,
+      "typographyRegionsCompared": 6,
+      "validatorReportAndStdoutEqual": true,
+      "optimizedPythonValidates": true,
+      "manifestCorruptionCasesRejectedNormallyAndOptimized": [
+        "asset filename",
+        "pending preview",
+        "units",
+        "up axis",
+        "north axis",
+        "duplicate collider",
+        "reciprocal edge",
+        "triangle count",
+        "byte count",
+        "material count"
+      ],
+      "malformedGlbCasesRejected": 5,
+      "signagePreservationPassAndFailChecked": true,
+      "assetReport": {
+        "passed": true,
+        "colliders": 121,
+        "hotspots": 12,
+        "navigationNodes": 30,
+        "rooms": 11,
+        "triangles": 116267,
+        "meshMaterialGroups": 38,
+        "runtimeAsset": "precinct.glb",
+        "runtimeBytes": 5668084,
+        "runtimeSha256": "dc6c19271bf1c7c93717240ae125029706823747d9945ad34a3aba2c7fd294b8",
+        "sourceBytes": 1235259,
+        "allNavigationLinksClearAtCapsuleRadius": 0.28,
+        "allNodesReachable": true
+      }
+    },
+    "sourceInspectionFixture": {
+      "sourceInspectionFixtureEqual": true,
+      "blenderExecuted": false,
+      "negativeCasesRejectedNormallyAndOptimized": [
+        "missing label",
+        "excessive width",
+        "regular font",
+        "unpacked font"
+      ]
+    }
+  },
+  "scriptHashes": [
+    {
+      "path": "assets-src/audit_signage.py",
+      "beforeSha256": "9f033072dad3700779edc677ec91213f1c0368f0e912322f499a860847885a4b",
+      "afterSha256": "227e8d168dd71e3b7c04255552c058f4329ff91b8b855c46f090ec83df7ab5e7"
+    },
+    {
+      "path": "assets-src/build_precinct.py",
+      "beforeSha256": "b55b1a368a0d998c3bb38bf15529e749f05e90e7e759025a8dd5113cb1dad630",
+      "afterSha256": "85a55ade83adf3da49ff62c54d67e665d8b9148ee8e8264a627d8e9ec3ab8f72"
+    },
+    {
+      "path": "assets-src/check_signage_preservation.py",
+      "beforeSha256": "74a37c3638ab88f3b313390bebe485445d25ad4a566d35166b9049a81725eba8",
+      "afterSha256": "893cea80fdcb331c57e7b4a6c51b7d5a8e82425d795cea94cfccff0205e856aa"
+    },
+    {
+      "path": "assets-src/export_runtime.py",
+      "beforeSha256": "d04f9b0278513aba31c7b493ed4eaefeea360806d585cc907026f0712fd10d59",
+      "afterSha256": "e8b895044297ec690f1c4b8183db3cbc4fc4b5b839a7eea99a38cb9f531839a6"
+    },
+    {
+      "path": "assets-src/inspect_signage_source.py",
+      "beforeSha256": "8490fbe4c27ae11ce70aa8380e5eb6c127f89217563bd7a32bc55bc839863a51",
+      "afterSha256": "0d374a18f04b01d952833cf5ccb54113a220dd1a53f675636753c3e23a9249a4"
+    },
+    {
+      "path": "assets-src/manifest_tools.py",
+      "beforeSha256": "228ab3f80c8a4a1f95ee90c27ffe92589a9d1cf5f373d5c6a42a3f16ad29e3d4",
+      "afterSha256": "b1fd74670c3719dab9e26ee3436ca6b1b068a1cab5527016b1064004d4b7d1e7"
+    },
+    {
+      "path": "assets-src/validate_manifest.py",
+      "beforeSha256": "55be212aafee93038938135a8dd68ad4d6bd254bfb28af3ef82bbb0e712ec811",
+      "afterSha256": "589cc88115fdc1bdbc705e07cadfbe05cab9b9ef34a51b0e7658d92c514f5459"
+    }
+  ],
+  "limitations": [
+    "No Blender rebuild, re-export, rendering or browser session was run for this lint cleanup. Existing integrated GLB and source were read only.",
+    "The four preservation harnesses and pre-edit snapshots are temporary local verification artifacts, not new committed CI gates.",
+    "Full make py-check was not run. The existing checkout has neither a workspace .venv nor .tools/bin, so full locked dependencies and pinned gate binaries must be provisioned first; that heavier setup is deferred to CI.",
+    "The unchanged root mypy file scope is packages, services, tools, scripts and conftest.py. The two pure typed helpers received an extra focused strict check. The Blender entrypoints were syntax/Ruff/AST checked, not claimed to pass a new Blender-stub mypy configuration.",
+    "No rule, exclusion, threshold, lockfile, backend/service/package/Supabase/generated-contract file was relaxed or edited."
+  ]
+}

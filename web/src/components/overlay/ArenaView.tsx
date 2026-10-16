@@ -475,3 +475,19 @@ export function ArenaView(props: {
     </div>
   );
 }
+/** Reusable board content for the precinct's native dialog. No route, overlay or nested dialog. */
+export function LeaderboardContent({ state, assistant, subject, motionOff }: {
+  readonly state: BoardsState;
+  readonly assistant: Board | null;
+  readonly subject: Board | null;
+  readonly motionOff: boolean;
+}) {
+  if (state.kind === "sealed") return <p className="empty sealed">Results are sealed until reveal.</p>;
+  if (state.kind === "missing") return <p className="empty">No leaderboard has been published for this tournament.</p>;
+  if (state.kind === "error") return <p className="empty">The leaderboards could not be read. Try again later.</p>;
+  return <>
+    {state.kind === "example" ? <p className="fine">Example data. Not a result.</p> : null}
+    {assistant === null ? <p className="empty">No assistant board published yet.</p> : <AssistantBoard board={assistant} motionOff={motionOff} />}
+    {subject === null ? null : <SubjectBoard board={subject} />}
+  </>;
+}

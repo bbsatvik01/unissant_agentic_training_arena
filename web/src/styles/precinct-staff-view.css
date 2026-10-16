@@ -1,0 +1,38 @@
+/* Keep the real colleague visible beside the existing native modal on wide screens.
+   Large-text and narrow layouts retain the original full-width reading surface. */
+@media (min-width: 1280px) and (min-height: 700px) {
+  .precinct-root:not(.large-text) .precinct-dialog:has(.npc-panel) {
+    width: clamp(500px, 38vw, 650px);
+    max-width: calc(100vw - 48px);
+    max-height: calc(100dvh - 164px);
+    margin: 102px 24px auto auto;
+    padding: 24px 28px;
+  }
+  .precinct-root:not(.large-text) .precinct-dialog:has(.npc-panel)::backdrop {
+    background: #101c181a;
+    backdrop-filter: none;
+  }
+  .precinct-root:not(.large-text) .precinct-dialog:has(.npc-panel) > header {
+    top: -24px;
+    margin: -24px -28px 12px;
+    padding: 24px 28px 14px;
+  }
+  .precinct-root:not(.large-text) .precinct-dialog .npc-panel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .precinct-root:not(.large-text) .precinct-dialog .npc-conversation {
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid currentColor;
+    padding-top: 20px;
+  }
+  .precinct-root:not(.large-text) .precinct-dialog .npc-conversation-heading {
+    display: block;
+  }
+  .precinct-root:not(.large-text) .precinct-dialog .npc-offline-label {
+    display: block;
+    max-width: none;
+    text-align: left;
+  }
+}

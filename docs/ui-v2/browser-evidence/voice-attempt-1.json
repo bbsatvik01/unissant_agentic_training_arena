@@ -1,0 +1,77 @@
+{
+  "attempt": "native-20261015T211812Z-2fb3cd22",
+  "launcher": {
+    "status": "failed",
+    "namespace": "approved native cloud Terminal",
+    "attempt": "/workspace/shared/precinct-rehearsal-browser-qa/results/native-20261015T211812Z-2fb3cd22",
+    "readyLimitSeconds": 45,
+    "recorderLimitSeconds": 420,
+    "logByteLimit": 2097152,
+    "previewExit": 143,
+    "recorderExit": 1,
+    "errors": [
+      "RuntimeError: Actual recorder failed; retain capture report and original diagnostics"
+    ],
+    "cleanupErrors": [],
+    "sourceInputs": {
+      "acceptedHead": "8eedd7564570c41def9892e4c1ddd4099b090872",
+      "toolSha256": "934a117cf938b560dc84eff3fb088203b71d4e966b0d3d62739c09e0bfca5ccd",
+      "canvasSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "sourceRoot": "/workspace/shared/unissant_agentic_training_arena",
+      "snapshotRoot": "/workspace/shared/precinct-rehearsal-browser-qa",
+      "recorderRevision": "3b, two reviewed genuine dirty paths",
+      "nativeLauncherSha256": "7e9c4fadc26fc6931c11dd02630655cecf10fac432161faadb3fbf27d35cf82c",
+      "runtimeSource": "accepted main merge plus validated performance candidate; not the earlier benchmark snapshot"
+    },
+    "strictGate": {
+      "status": "passed",
+      "checkedAt": "2026-10-15T21:17:11.758929+00:00",
+      "acceptedHead": "8eedd7564570c41def9892e4c1ddd4099b090872",
+      "toolSha256": "934a117cf938b560dc84eff3fb088203b71d4e966b0d3d62739c09e0bfca5ccd",
+      "canvasSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "typesExit": 0,
+      "lintExit": 0,
+      "typesLog": "/workspace/shared/precinct-rehearsal-browser-qa/results/recorder-types-initial.log",
+      "lintLog": "/workspace/shared/precinct-rehearsal-browser-qa/results/recorder-lint-initial.log",
+      "strictTools": "unchanged tsconfig.node.json; isolated build info",
+      "lint": "tools/precinct-rehearsal-recorder.ts --no-cache --max-warnings 0",
+      "browserExecuted": false
+    },
+    "nativeTmp": "/tmp/arena-rec-4pizxf4h",
+    "vitePid": 6948,
+    "recorderPid": 6974,
+    "nativeTmpRemoved": true,
+    "elapsedSeconds": 72.319
+  },
+  "capture": {
+    "status": "failed",
+    "description": "Actual browser canvas plus actual page-owned Web Audio, captured together. Scene only: DOM controls/subtitles are excluded. Fixed authored unscored TEXT rehearsal; no AI, microphone, overdub or fabricated frames.",
+    "blocked": [],
+    "errors": [
+      "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: /Select Local scripted fixture:/u })\n\n    at recordRehearsalScene (/workspace/shared/precinct-rehearsal-browser-qa/web/tools/precinct-rehearsal-recorder.ts:295:101)\n    at async file:///workspace/shared/precinct-rehearsal-browser-qa/web/tools/precinct-rehearsal-recorder.ts:447:104"
+    ],
+    "cleanupErrors": [],
+    "tts": [],
+    "recording": null,
+    "video": null,
+    "sha256": null,
+    "screenshots": [],
+    "voicedEvidence": "pending",
+    "overviews": [],
+    "mouthEvidence": {
+      "thresholds": {
+        "quietMouthMax": 1e-05,
+        "activeSignalMin": 0.0001,
+        "morphChangeMin": 0.01,
+        "minActiveFrames": 5,
+        "minChangedFramePairs": 2,
+        "settleMs": 5000
+      },
+      "quiet": [],
+      "active": [],
+      "changedFramePairs": [],
+      "settled": []
+    }
+  },
+  "accepted_playable_slice": false
+}

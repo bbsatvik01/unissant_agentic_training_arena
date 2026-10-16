@@ -1,0 +1,795 @@
+{
+  "generatedAt": "2026-10-15T10:33:24.939Z",
+  "target": "http://127.0.0.1:5173/",
+  "browser": "154.0.8037.57",
+  "executablePath": "/usr/bin/chromium",
+  "launchArgs": [
+    "--use-gl=angle",
+    "--use-angle=swiftshader",
+    "--enable-unsafe-swiftshader"
+  ],
+  "verification": "Automated isolated headless browser smoke and screenshots. Independent visual and real-device GPU checks remain separate.",
+  "status": "passed-automated-smoke",
+  "viewports": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "renderMode": "live-webgl",
+      "checks": [
+        {
+          "name": "precinct and both speaking staff assets load",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 19817
+        },
+        {
+          "name": "walk-up reception anchor and E interaction are reachable",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 5173
+        },
+        {
+          "name": "screenshot 01-reception-officer",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 24461
+        },
+        {
+          "name": "explicit check-in changes progress; greeting keeps keyboard focus",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 9265
+        },
+        {
+          "name": "screenshot 02-reception-dialogue",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 4570
+        },
+        {
+          "name": "unsupported case prompt redirects safely and never moves the player",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 637
+        },
+        {
+          "name": "explicit opt-in saves only a synthetic preferred name and staff counts",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 901
+        },
+        {
+          "name": "returning colleague remembers the explicit local name",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 5016
+        },
+        {
+          "name": "authored direction travels to the sergeant without reopening a panel",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 5232
+        },
+        {
+          "name": "screenshot 03-training-sergeant",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 7345
+        },
+        {
+          "name": "public briefing and technique dialogue remain distinct",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 3531
+        },
+        {
+          "name": "screenshot 04-evidence-first-briefing",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 5481
+        },
+        {
+          "name": "briefing speech is explicit and has an honest local-device fallback",
+          "status": "passed",
+          "detail": "No installed local voice is available. The full subtitle remains on screen.",
+          "durationMs": 160
+        },
+        {
+          "name": "explicit ground-rule acknowledgement completes this checkpoint",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 373
+        },
+        {
+          "name": "local memory controls remain visible and keyboard reachable",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 2143
+        },
+        {
+          "name": "screenshot 05-local-staff-memory",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 2521
+        },
+        {
+          "name": "forget deletes only the explicit staff-memory key",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 427
+        },
+        {
+          "name": "Escape restores world exploration and exact ground rule",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 192
+        },
+        {
+          "name": "no horizontal overflow or remote/API requests",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 8
+        }
+      ],
+      "screenshots": [
+        {
+          "name": "01-reception-officer",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-02/01-reception-officer-1440x900.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "02-reception-dialogue",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-02/02-reception-dialogue-1440x900.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "03-training-sergeant",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-02/03-training-sergeant-1440x900.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "04-evidence-first-briefing",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-02/04-evidence-first-briefing-1440x900.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "05-local-staff-memory",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-02/05-local-staff-memory-1440x900.png",
+          "renderMode": "live-webgl"
+        }
+      ],
+      "console": [
+        {
+          "type": "debug",
+          "text": "[vite] connecting...",
+          "location": {
+            "url": "http://127.0.0.1:5173/@vite/client",
+            "line": 882,
+            "column": 8,
+            "lineNumber": 882,
+            "columnNumber": 8
+          }
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected.",
+          "location": {
+            "url": "http://127.0.0.1:5173/@vite/client",
+            "line": 995,
+            "column": 11,
+            "lineNumber": 995,
+            "columnNumber": 11
+          }
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connecting...",
+          "location": {
+            "url": "http://127.0.0.1:5173/@vite/client",
+            "line": 882,
+            "column": 8,
+            "lineNumber": 882,
+            "columnNumber": 8
+          }
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected.",
+          "location": {
+            "url": "http://127.0.0.1:5173/@vite/client",
+            "line": 995,
+            "column": 11,
+            "lineNumber": 995,
+            "columnNumber": 11
+          }
+        },
+        {
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+          "location": {
+            "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=a8747813",
+            "line": 15557,
+            "column": 48,
+            "lineNumber": 15557,
+            "columnNumber": 48
+          }
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connecting...",
+          "location": {
+            "url": "http://127.0.0.1:5173/@vite/client",
+            "line": 882,
+            "column": 8,
+            "lineNumber": 882,
+            "columnNumber": 8
+          }
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected.",
+          "location": {
+            "url": "http://127.0.0.1:5173/@vite/client",
+            "line": 995,
+            "column": 11,
+            "lineNumber": 995,
+            "columnNumber": 11
+          }
+        },
+        {
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+          "location": {
+            "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=0982d449",
+            "line": 15557,
+            "column": 48,
+            "lineNumber": 15557,
+            "columnNumber": 48
+          }
+        },
+        {
+          "type": "warning",
+          "text": "THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.",
+          "location": {
+            "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three.module-QAJAubfM.js?v=0982d449",
+            "line": 1748,
+            "column": 15,
+            "lineNumber": 1748,
+            "columnNumber": 15
+          }
+        }
+      ],
+      "pageErrors": [],
+      "networkRequests": [
+        "http://127.0.0.1:5173/",
+        "http://127.0.0.1:5173/@vite/client",
+        "http://127.0.0.1:5173/src/main.tsx?t=1792059569603",
+        "http://127.0.0.1:5173/@react-refresh",
+        "http://127.0.0.1:5173/src/styles/app.css?t=1792059569603",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react.js?v=48354898",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=a8747813",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-router_dom.js?v=8b665cfa",
+        "http://127.0.0.1:5173/src/router.tsx?t=1792059464347",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=48354898",
+        "http://127.0.0.1:5173/node_modules/.pnpm/vite@8.3.1_@types+node@24.13.6_jiti@2.7.0/node_modules/vite/dist/client/env.mjs",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/rolldown-runtime-DC62tzP2.js?v=6736b7c2",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-router.js?v=bf92655b",
+        "http://127.0.0.1:5173/src/routes/PrecinctRoute.tsx?t=1792059464347",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom.js?v=48354898",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/development-mz1XJHPJ.js?v=6736b7c2",
+        "http://127.0.0.1:5173/public/world/precinct-manifest.json?import&t=1792059137213",
+        "http://127.0.0.1:5173/src/lib/copy/ex4.ts",
+        "http://127.0.0.1:5173/src/lib/world/cases.ts",
+        "http://127.0.0.1:5173/src/hooks/usePrecinctNpcController.ts?t=1792059464347",
+        "http://127.0.0.1:5173/src/components/precinct/ReceptionBriefingPanel.tsx?t=1792059464347",
+        "http://127.0.0.1:5173/src/lib/precinct/movement.ts",
+        "http://127.0.0.1:5173/src/components/precinct/sceneTypes.ts?t=1792057961753",
+        "http://127.0.0.1:5173/src/components/precinct/RenderBoundary.tsx",
+        "http://127.0.0.1:5173/src/styles/precinct.css?t=1792057961756",
+        "http://127.0.0.1:5173/",
+        "http://127.0.0.1:5173/@vite/client",
+        "http://127.0.0.1:5173/src/main.tsx?t=1792059569603",
+        "http://127.0.0.1:5173/@react-refresh",
+        "http://127.0.0.1:5173/node_modules/.pnpm/vite@8.3.1_@types+node@24.13.6_jiti@2.7.0/node_modules/vite/dist/client/env.mjs",
+        "http://127.0.0.1:5173/src/styles/app.css?t=1792059569603",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react.js?v=48354898",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=a8747813",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-router_dom.js?v=8b665cfa",
+        "http://127.0.0.1:5173/src/router.tsx?t=1792059464347",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=48354898",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/rolldown-runtime-DC62tzP2.js?v=6736b7c2",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom.js?v=48354898",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/scheduler-0aUpBaxj.js?v=6736b7c2",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/development-mz1XJHPJ.js?v=6736b7c2",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-router.js?v=bf92655b",
+        "http://127.0.0.1:5173/src/routes/PrecinctRoute.tsx?t=1792059464347",
+        "http://127.0.0.1:5173/public/world/precinct-manifest.json?import&t=1792059137213",
+        "http://127.0.0.1:5173/src/lib/copy/ex4.ts",
+        "http://127.0.0.1:5173/src/lib/world/cases.ts",
+        "http://127.0.0.1:5173/src/hooks/usePrecinctNpcController.ts?t=1792059464347",
+        "http://127.0.0.1:5173/src/components/precinct/ReceptionBriefingPanel.tsx?t=1792059464347",
+        "http://127.0.0.1:5173/src/lib/precinct/movement.ts",
+        "http://127.0.0.1:5173/src/components/precinct/sceneTypes.ts?t=1792057961753",
+        "http://127.0.0.1:5173/src/components/precinct/RenderBoundary.tsx",
+        "http://127.0.0.1:5173/src/styles/precinct.css?t=1792057961756",
+        "http://127.0.0.1:5173/src/fixtures/cases.json?import",
+        "http://127.0.0.1:5173/src/lib/precinct/npcLocalAdapter.ts?t=1792059464347",
+        "http://127.0.0.1:5173/src/lib/precinct/npcVisitMemory.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/npcIdentity.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/staffDialogue.ts?t=1792057961750",
+        "http://127.0.0.1:5173/src/components/precinct/LocalSpeech.tsx",
+        "http://127.0.0.1:5173/src/styles/precinct-staff-panel.css",
+        "http://127.0.0.1:5173/src/components/precinct/PrecinctCanvas.tsx?t=1792059137224",
+        "http://127.0.0.1:5173/favicon.svg",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/@react-three_fiber.js?v=cef94e88",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three.js?v=4e547cfb",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_loaders_GLTFLoader__js.js?v=096782d1",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_libs_meshopt___decoder__module__js.js?v=ac050b1e",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_environments_RoomEnvironment__js.js?v=2a3eeb03",
+        "http://127.0.0.1:5173/src/lib/precinct/cadence.ts",
+        "http://127.0.0.1:5173/src/lib/world/cast.ts",
+        "http://127.0.0.1:5173/src/lib/world/quality.ts",
+        "http://127.0.0.1:5173/src/components/precinct/WalkingAvatar.tsx",
+        "http://127.0.0.1:5173/src/components/precinct/PrecinctStaff.tsx?t=1792057961746",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three.module-QAJAubfM.js?v=6736b7c2",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_utils_SkeletonUtils__js.js?v=439df28c",
+        "http://127.0.0.1:5173/src/lib/precinct/staff.ts?t=1792057961746",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-runtime.js?v=48354898",
+        "http://127.0.0.1:5173/",
+        "http://127.0.0.1:5173/@vite/client",
+        "http://127.0.0.1:5173/src/main.tsx?t=1792059569603",
+        "http://127.0.0.1:5173/@react-refresh",
+        "http://127.0.0.1:5173/src/styles/app.css?t=1792059569603",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-router_dom.js?v=0982d449",
+        "http://127.0.0.1:5173/src/router.tsx?t=1792059464347",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/rolldown-runtime-DC62tzP2.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/development-mz1XJHPJ.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-router.js?v=0982d449",
+        "http://127.0.0.1:5173/src/routes/PrecinctRoute.tsx?t=1792059464347",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/scheduler-0aUpBaxj.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.pnpm/vite@8.3.1_@types+node@24.13.6_jiti@2.7.0/node_modules/vite/dist/client/env.mjs",
+        "http://127.0.0.1:5173/public/world/precinct-manifest.json?import&t=1792059137213",
+        "http://127.0.0.1:5173/src/lib/copy/ex4.ts",
+        "http://127.0.0.1:5173/src/lib/world/cases.ts",
+        "http://127.0.0.1:5173/src/hooks/usePrecinctNpcController.ts?t=1792059464347",
+        "http://127.0.0.1:5173/src/components/precinct/ReceptionBriefingPanel.tsx?t=1792059464347",
+        "http://127.0.0.1:5173/src/lib/precinct/movement.ts",
+        "http://127.0.0.1:5173/src/components/precinct/sceneTypes.ts?t=1792057961753",
+        "http://127.0.0.1:5173/src/components/precinct/RenderBoundary.tsx",
+        "http://127.0.0.1:5173/src/styles/precinct.css?t=1792057961756",
+        "http://127.0.0.1:5173/src/fixtures/cases.json?import",
+        "http://127.0.0.1:5173/src/lib/precinct/npcIdentity.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/npcLocalAdapter.ts?t=1792059464347",
+        "http://127.0.0.1:5173/src/lib/precinct/staffDialogue.ts?t=1792057961750",
+        "http://127.0.0.1:5173/src/components/precinct/LocalSpeech.tsx",
+        "http://127.0.0.1:5173/src/styles/precinct-staff-panel.css",
+        "http://127.0.0.1:5173/src/lib/precinct/npcVisitMemory.ts",
+        "http://127.0.0.1:5173/src/components/precinct/PrecinctCanvas.tsx?t=1792059137224",
+        "http://127.0.0.1:5173/favicon.svg",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/@react-three_fiber.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_loaders_GLTFLoader__js.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_libs_meshopt___decoder__module__js.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_environments_RoomEnvironment__js.js?v=0982d449",
+        "http://127.0.0.1:5173/src/lib/precinct/cadence.ts",
+        "http://127.0.0.1:5173/src/lib/world/cast.ts",
+        "http://127.0.0.1:5173/src/lib/world/quality.ts",
+        "http://127.0.0.1:5173/src/components/precinct/WalkingAvatar.tsx",
+        "http://127.0.0.1:5173/src/components/precinct/PrecinctStaff.tsx?t=1792057961746",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three.module-QAJAubfM.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_utils_SkeletonUtils__js.js?v=0982d449",
+        "http://127.0.0.1:5173/src/lib/precinct/staff.ts?t=1792057961746",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-runtime.js?v=0982d449",
+        "http://127.0.0.1:5173/world/precinct.glb",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/avatar.glb",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/avatar.glb",
+        "http://127.0.0.1:5173/avatars/Business_Male_06/avatar.glb",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/body.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/body_n.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/head.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/head_n.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/opacity.png",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/body.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/body_n.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/head.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/head_n.jpg"
+      ],
+      "failedRequests": [],
+      "httpErrors": [],
+      "assets": [
+        {
+          "url": "http://127.0.0.1:5173/world/precinct.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/avatar.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/avatar.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_06/avatar.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/body.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/body_n.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/head.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/head_n.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/opacity.png",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/body.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/body_n.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/head.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/head_n.jpg",
+          "status": 200
+        }
+      ],
+      "webgl": {
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "WebKit WebGL",
+        "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "width": 1080,
+        "height": 675
+      },
+      "frameTiming": null
+    },
+    {
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "renderMode": "live-webgl",
+      "checks": [
+        {
+          "name": "precinct and both speaking staff assets load",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 21226
+        },
+        {
+          "name": "walk-up reception anchor and E interaction are reachable",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 2063
+        },
+        {
+          "name": "screenshot 01-reception-officer",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 13086
+        },
+        {
+          "name": "explicit check-in changes progress; greeting keeps keyboard focus",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 13466
+        },
+        {
+          "name": "screenshot 02-reception-dialogue",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 6593
+        },
+        {
+          "name": "unsupported case prompt redirects safely and never moves the player",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 582
+        },
+        {
+          "name": "explicit opt-in saves only a synthetic preferred name and staff counts",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 1095
+        },
+        {
+          "name": "returning colleague remembers the explicit local name",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 3636
+        },
+        {
+          "name": "authored direction travels to the sergeant without reopening a panel",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 9761
+        },
+        {
+          "name": "screenshot 03-training-sergeant",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 25960
+        },
+        {
+          "name": "public briefing and technique dialogue remain distinct",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 6977
+        },
+        {
+          "name": "screenshot 04-evidence-first-briefing",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 21016
+        },
+        {
+          "name": "briefing speech is explicit and has an honest local-device fallback",
+          "status": "passed",
+          "detail": "No installed local voice is available. The full subtitle remains on screen.",
+          "durationMs": 594
+        },
+        {
+          "name": "explicit ground-rule acknowledgement completes this checkpoint",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 1537
+        },
+        {
+          "name": "local memory controls remain visible and keyboard reachable",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 3598
+        },
+        {
+          "name": "screenshot 05-local-staff-memory",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 3546
+        },
+        {
+          "name": "forget deletes only the explicit staff-memory key",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 685
+        },
+        {
+          "name": "Escape restores world exploration and exact ground rule",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 216
+        },
+        {
+          "name": "no horizontal overflow or remote/API requests",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 6
+        }
+      ],
+      "screenshots": [
+        {
+          "name": "01-reception-officer",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-02/01-reception-officer-1920x1080.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "02-reception-dialogue",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-02/02-reception-dialogue-1920x1080.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "03-training-sergeant",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-02/03-training-sergeant-1920x1080.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "04-evidence-first-briefing",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-02/04-evidence-first-briefing-1920x1080.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "05-local-staff-memory",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-02/05-local-staff-memory-1920x1080.png",
+          "renderMode": "live-webgl"
+        }
+      ],
+      "console": [
+        {
+          "type": "debug",
+          "text": "[vite] connecting...",
+          "location": {
+            "url": "http://127.0.0.1:5173/@vite/client",
+            "line": 882,
+            "column": 8,
+            "lineNumber": 882,
+            "columnNumber": 8
+          }
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected.",
+          "location": {
+            "url": "http://127.0.0.1:5173/@vite/client",
+            "line": 995,
+            "column": 11,
+            "lineNumber": 995,
+            "columnNumber": 11
+          }
+        },
+        {
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+          "location": {
+            "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=0982d449",
+            "line": 15557,
+            "column": 48,
+            "lineNumber": 15557,
+            "columnNumber": 48
+          }
+        },
+        {
+          "type": "warning",
+          "text": "THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.",
+          "location": {
+            "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three.module-QAJAubfM.js?v=0982d449",
+            "line": 1748,
+            "column": 15,
+            "lineNumber": 1748,
+            "columnNumber": 15
+          }
+        }
+      ],
+      "pageErrors": [],
+      "networkRequests": [
+        "http://127.0.0.1:5173/",
+        "http://127.0.0.1:5173/@vite/client",
+        "http://127.0.0.1:5173/src/main.tsx?t=1792059569603",
+        "http://127.0.0.1:5173/@react-refresh",
+        "http://127.0.0.1:5173/src/styles/app.css?t=1792059569603",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-router_dom.js?v=0982d449",
+        "http://127.0.0.1:5173/src/router.tsx?t=1792059464347",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.pnpm/vite@8.3.1_@types+node@24.13.6_jiti@2.7.0/node_modules/vite/dist/client/env.mjs",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/rolldown-runtime-DC62tzP2.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-router.js?v=0982d449",
+        "http://127.0.0.1:5173/src/routes/PrecinctRoute.tsx?t=1792059464347",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/development-mz1XJHPJ.js?v=0982d449",
+        "http://127.0.0.1:5173/public/world/precinct-manifest.json?import&t=1792059137213",
+        "http://127.0.0.1:5173/src/lib/copy/ex4.ts",
+        "http://127.0.0.1:5173/src/lib/world/cases.ts",
+        "http://127.0.0.1:5173/src/hooks/usePrecinctNpcController.ts?t=1792059464347",
+        "http://127.0.0.1:5173/src/components/precinct/ReceptionBriefingPanel.tsx?t=1792059464347",
+        "http://127.0.0.1:5173/src/lib/precinct/movement.ts",
+        "http://127.0.0.1:5173/src/components/precinct/sceneTypes.ts?t=1792057961753",
+        "http://127.0.0.1:5173/src/components/precinct/RenderBoundary.tsx",
+        "http://127.0.0.1:5173/src/styles/precinct.css?t=1792057961756",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/scheduler-0aUpBaxj.js?v=0982d449",
+        "http://127.0.0.1:5173/src/fixtures/cases.json?import",
+        "http://127.0.0.1:5173/src/lib/precinct/npcLocalAdapter.ts?t=1792059464347",
+        "http://127.0.0.1:5173/src/lib/precinct/npcVisitMemory.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/npcIdentity.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/staffDialogue.ts?t=1792057961750",
+        "http://127.0.0.1:5173/src/components/precinct/LocalSpeech.tsx",
+        "http://127.0.0.1:5173/src/styles/precinct-staff-panel.css",
+        "http://127.0.0.1:5173/src/components/precinct/PrecinctCanvas.tsx?t=1792059137224",
+        "http://127.0.0.1:5173/favicon.svg",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/@react-three_fiber.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_loaders_GLTFLoader__js.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_libs_meshopt___decoder__module__js.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_environments_RoomEnvironment__js.js?v=0982d449",
+        "http://127.0.0.1:5173/src/lib/precinct/cadence.ts",
+        "http://127.0.0.1:5173/src/lib/world/cast.ts",
+        "http://127.0.0.1:5173/src/lib/world/quality.ts",
+        "http://127.0.0.1:5173/src/components/precinct/WalkingAvatar.tsx",
+        "http://127.0.0.1:5173/src/components/precinct/PrecinctStaff.tsx?t=1792057961746",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three.module-QAJAubfM.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_utils_SkeletonUtils__js.js?v=0982d449",
+        "http://127.0.0.1:5173/src/lib/precinct/staff.ts?t=1792057961746",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-runtime.js?v=0982d449",
+        "http://127.0.0.1:5173/world/precinct.glb",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/avatar.glb",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/avatar.glb",
+        "http://127.0.0.1:5173/avatars/Business_Male_06/avatar.glb",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/body.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/body_n.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/head.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/head_n.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/opacity.png",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/body.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/body_n.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/head.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/head_n.jpg"
+      ],
+      "failedRequests": [],
+      "httpErrors": [],
+      "assets": [
+        {
+          "url": "http://127.0.0.1:5173/world/precinct.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/avatar.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/avatar.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_06/avatar.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/body.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/head.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/body_n.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/opacity.png",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/head_n.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/body.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/body_n.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/head.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/head_n.jpg",
+          "status": 200
+        }
+      ],
+      "webgl": {
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "WebKit WebGL",
+        "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "width": 1440,
+        "height": 810
+      },
+      "frameTiming": null
+    }
+  ],
+  "fatal": null
+}

@@ -1,0 +1,21 @@
+.precinct-replay { display: grid; gap: 1rem; color: inherit; }
+.precinct-replay p, .precinct-replay h2, .precinct-replay h3 { margin: 0; }
+.precinct-replay p { line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.precinct-replay__eyebrow { text-transform: uppercase; font-size: .75rem; letter-spacing: .16em; color: #bca67e; }
+.precinct-replay__controls { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.precinct-replay__controls label { display: flex; align-items: center; gap: .5rem; }
+.precinct-replay button, .precinct-replay select, .precinct-replay input[type="file"] { font: inherit; max-width: 100%; }
+.precinct-replay button, .precinct-replay select { border: 1px solid #778189; background: #202e36; color: #f4f2eb; border-radius: .35rem; padding: .6rem .8rem; }
+.precinct-replay button:disabled { opacity: .5; }
+.precinct-replay :focus-visible { outline: 3px solid #e7c67e; outline-offset: 3px; }
+.precinct-replay__upload { flex-wrap: wrap; }
+.precinct-replay__timeline { display: grid; gap: .5rem; }
+.precinct-replay__timeline input { width: 100%; accent-color: #d4b77c; }
+.precinct-replay__timeline span { font-variant-numeric: tabular-nums; }
+.precinct-replay__section { display: grid; gap: .75rem; padding-block: 1rem; border-block: 1px solid #64717a; }
+.precinct-replay__notice { padding: .85rem; background: #23313a; border-left: 3px solid #c5aa75; color: #ede9df; }
+.precinct-replay__notice button { margin-top: .5rem; margin-right: .5rem; }
+.precinct-replay ol { margin: 0; padding-left: 1.5rem; }
+.precinct-replay li { margin-bottom: 1rem; }
+.precinct-replay time { font-size: .8rem; color: #b6c9d0; }
+.precinct-replay__ground-rule { font-size: .85rem; color: inherit; border-top: 1px solid #64717a; padding-top: 1rem; }

@@ -1,0 +1,53 @@
+{
+  "full_aggregate_build_browser": "not run by this package",
+  "broader_runtime": {
+    "passed": 299,
+    "total": 299,
+    "suites": 31,
+    "log": "proof/runtime-second.log",
+    "note": "Before final test-only explicit renderHook generics; no production change afterward."
+  },
+  "final_strict": {
+    "app": "passed",
+    "tools": "passed",
+    "unchanged_configs": true,
+    "only_tsBuildInfoFile_redirected": true
+  },
+  "final_lint": {
+    "passed": true,
+    "max_warnings": 0,
+    "inventory": "final-lint-paths.txt"
+  },
+  "pure_coverage": {
+    "passed": true,
+    "tests": 95,
+    "suites": 8,
+    "statements": 96.74,
+    "branches": 92.54,
+    "functions": 98.97,
+    "lines": 99.71,
+    "thresholds_unchanged": 90,
+    "scope": "coverage-scope.txt"
+  },
+  "route_diagnostic": {
+    "tests_passed": 4,
+    "tests_total": 4,
+    "timeout_ms_unchanged": 5000,
+    "initial_instrumented_timeout": "one first route test, 5411 ms; exact cause unproven; preserved log",
+    "coverage_exit": 1,
+    "coverage_exit_reason": "Route-only diagnostic intentionally cannot cover all five pure modules; unchanged global floors failed. The complete scoped pure-module coverage leg passed."
+  },
+  "python_sources": {
+    "ruff": "0.16.8",
+    "check": "passed",
+    "format_check": "4 files already formatted",
+    "source_changes": false
+  },
+  "generation": {
+    "actual_execution": "proof/generate-first.log",
+    "both_profiles_in_both_worlds_validated": true,
+    "no_hand_authored_json": true,
+    "deterministic_second_generation": "not executed after CPU lane release; existing actual outputs are revalidated and SHA-256 checked by the actual-world tests"
+  },
+  "protected_inputs": "PROTECTED-INPUTS.json"
+}

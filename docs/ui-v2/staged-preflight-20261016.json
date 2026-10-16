@@ -1,0 +1,33 @@
+{
+  "schema": "arena.staged-preflight.summary.v1",
+  "checkedAtUtc": "2026-10-16T00:46:06.599157+00:00",
+  "checkedIndexTree": "3096a5c75c8c105fcabbd9035aa57885ada45cfb",
+  "checkedHead": "a88f5c245d92f2e22a597bb4be38a7d8bb887730",
+  "stagedFiles": 79,
+  "deletions": 4,
+  "completeIndexSnapshotFiles": 1934,
+  "artifactPolicyErrors": [],
+  "policyModuleSha256": "63244a92f6356f246f3ea437a480027803061df07ffdf7c663809fa7f8e3340a",
+  "scans": [
+    {
+      "name": "gitleaks",
+      "binarySha256": "88f91962aa2f93ac6ab281d553b9e125f5197bbbce38f9f2437f7299c32e5509",
+      "exit": 0,
+      "findings": 0,
+      "verificationNetworkCalls": "not applicable",
+      "reportSha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "name": "trufflehog",
+      "binarySha256": "3cf4e9c107825be81eac9402ec295323938ab5f1e556c257eee0a5e24bcf0369",
+      "exit": 0,
+      "findings": 0,
+      "verificationNetworkCalls": false,
+      "reportSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "expandedGzipArtifacts": 2,
+  "fullOutsideGitResultSha256": "17b94ffcb2ad084e43dc30e2a0880fb9933c2a1b12dafb76809263b18f564666",
+  "scope": "Unchanged path/content policy on actual staged paths and full staged repository snapshot; secret scans on changed staged bytes plus expanded source-diff archives. No secret verification network calls. This summary is added afterward and the final index is rechecked before commit.",
+  "history": "Separate whole-history asset/log/security blockers remain; no exception or rewrite."
+}

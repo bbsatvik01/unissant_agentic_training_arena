@@ -1,0 +1,377 @@
+{
+  "status": "focused-retained-floor-validation-passed",
+  "startedAt": "2026-10-16T00:24:42.415465+00:00",
+  "qa": "/workspace/shared/precinct-retained-floor-validation-qa/20261016T002216Z",
+  "planManifestSha256": "289872eac0e7cfc5bdf7d1b4047268160f9b33a0e161838568dd3a1daeb02138",
+  "binding": {
+    "qa": "/workspace/shared/precinct-retained-floor-validation-qa/20261016T002216Z",
+    "oldQa": "/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z",
+    "basePackage": "/workspace/shared/precinct-studio-combined-next-v3",
+    "retainedFloorPackage": "/workspace/shared/precinct-retained-floor-successor-v1",
+    "modelTestPackage": "/workspace/shared/precinct-retained-floor-model-test-successor-v1",
+    "candidateInventorySha256": "52b676d291b16979f558e5bc557c948fef9cafbb794263ff322d00beb433208d",
+    "packages": [
+      {
+        "root": "/workspace/shared/precinct-studio-combined-next-v3",
+        "manifest": "PACKAGE-MANIFEST.json",
+        "sha256": "903d40c111df00588e8ab9400ab371ca6873c9d8d032e139c4759ce539e37e17"
+      },
+      {
+        "root": "/workspace/shared/precinct-retained-floor-successor-v1",
+        "manifest": "PACKAGE-MANIFEST.json",
+        "sha256": "dae84808f844bf41343b40f26229ee52e00b0a66cf02746090c118c220fb84eb"
+      },
+      {
+        "root": "/workspace/shared/precinct-retained-floor-model-test-successor-v1",
+        "manifest": "PACKAGE-MANIFEST.json",
+        "sha256": "f994ce39fde39a94eb5dd26129662957c27cf73e3b0e68ec8cacbb5342e3afe9"
+      }
+    ],
+    "toolInputs": [
+      {
+        "path": "web/tools/precinct-floor-routing-model.ts",
+        "sha256": "97a78f64d0b6cd85bbfd17e4344a715297a3c12c9b0974c820dfdd809e60665a"
+      },
+      {
+        "path": "web/tools/precinct-floor-routing-model.test.ts",
+        "sha256": "5b7d088ad3b3f7c75ef81dd97e82a2208be7bbe13e731270c13a9f9b5dff15c5"
+      },
+      {
+        "path": "web/tools/precinct-floor-routing-smoke.ts",
+        "sha256": "f302b518f96bf35a63121ae24b4cfb8d0d28570837941c2d523d441c24952b93"
+      },
+      {
+        "path": "web/tools/precinct-minimap-stability.ts",
+        "sha256": "750d70eb1427718fe67e372ae480144f1f204be7247ee6fad6d411991ffc24ef"
+      },
+      {
+        "path": "web/tools/precinct-minimap-stability.test.ts",
+        "sha256": "4d1e8cdf0f9abfd39f9e39d41ced3119abb90e90a3c1acf0b8c99ec5f1cab3a9"
+      }
+    ],
+    "node": {
+      "executable": "/workspace/shared/unissant_agentic_training_arena/web/node_modules/node/bin/node",
+      "sha256": "7fde7b8afa198da66257f42ee2001d874c7355631e6d1579a5fb5ef1f246df4c",
+      "version": "v24.21.0",
+      "maxOldSpaceSizeMiB": 4096
+    },
+    "oldInventories": [
+      {
+        "kind": "source",
+        "path": "/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/candidate-sources.sha256",
+        "sha256": "d208aaf7e13989ab296ecd08e800b83116f5f8e741dd29d9d1cf6daf9b83f3c7"
+      },
+      {
+        "kind": "external",
+        "path": "/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/external-inputs.sha256",
+        "sha256": "c82a6973750367bef2297540fcf85ec40e75ceeaeb7b503eb34bee4d7565cc48"
+      },
+      {
+        "kind": "dist",
+        "path": "/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/production-build.sha256",
+        "sha256": "903c472f5449eb402f139440270712be617e31e7fae535b47598e426b9ef350b"
+      },
+      {
+        "kind": "augmented-qa",
+        "path": "/workspace/shared/precinct-routing-sampler-validation-plan-v1/runs/20261016T001003.757117Z/augmented-qa-sources.sha256",
+        "sha256": "d8a46bb21c3a03ad21998c4b0564ad37856d9b828ef57da1b01627592d6cb62b"
+      }
+    ],
+    "preservedResults": [
+      {
+        "path": "/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/VALIDATION-RESULTS.json",
+        "sha256": "b580c9d1a5a94e5e9aeb9c250533c535cc3318a84531eb26e3c1ff7ba9929589"
+      },
+      {
+        "path": "/workspace/shared/precinct-routing-sampler-validation-plan-v1/runs/20261016T001003.757117Z/RESULTS.json",
+        "sha256": "5388b4bcebc068ee649382fa7582de76b80be6b22b139e4e488c2fbea63eed65"
+      },
+      {
+        "path": "/workspace/shared/precinct-floor-routing-validation-plan-v3/runs/20261015T235247.680845Z/RESULTS.json",
+        "sha256": "4bed3ac64f00eb96e57f91923e83321fe76a60a7bcc499bb4450868628ab1c7b"
+      },
+      {
+        "path": "/workspace/shared/precinct-floor-routing-validation-plan-v2/runs/20261015T234941.070963Z/RESULTS.json",
+        "sha256": "c901ca6ed2b708b17e12a984405f7b81972027665b62b2a7bfe5e94010e8331d"
+      }
+    ],
+    "gate": {
+      "appSeconds": 240,
+      "toolsSeconds": 240,
+      "lintSeconds": 300,
+      "runtimeSeconds": 600,
+      "files": 47,
+      "tests": 451,
+      "changedLintFiles": 22
+    },
+    "noBuildOrBrowser": true
+  },
+  "phases": [
+    {
+      "name": "copy-source",
+      "command": [
+        "cp",
+        "-a",
+        "--reflink=auto",
+        "/workspace/shared/precinct-studio-combined-next-v3/source/.",
+        "/workspace/shared/precinct-retained-floor-validation-qa/20261016T002216Z/"
+      ],
+      "cwd": "/workspace/shared/precinct-retained-floor-validation-plan-v1",
+      "timeoutSeconds": 120,
+      "startedAt": "2026-10-16T00:24:46.105370+00:00",
+      "log": "logs/copy-source.log",
+      "exit": 0,
+      "timedOut": false,
+      "ownedPid": 8,
+      "durationSeconds": 0.723,
+      "finishedAt": "2026-10-16T00:24:46.829347+00:00",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "copy-dependencies",
+      "command": [
+        "cp",
+        "-a",
+        "--reflink=auto",
+        "/workspace/shared/precinct-studio-combined-validation-qa/20261015T233142Z/web/node_modules",
+        "/workspace/shared/precinct-retained-floor-validation-qa/20261016T002216Z/web/node_modules"
+      ],
+      "cwd": "/workspace/shared/precinct-retained-floor-validation-plan-v1",
+      "timeoutSeconds": 300,
+      "startedAt": "2026-10-16T00:24:47.164824+00:00",
+      "log": "logs/copy-dependencies.log",
+      "exit": 0,
+      "timedOut": false,
+      "ownedPid": 9,
+      "durationSeconds": 8.581,
+      "finishedAt": "2026-10-16T00:24:55.747425+00:00",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "types-app",
+      "command": [
+        "/workspace/shared/unissant_agentic_training_arena/web/node_modules/node/bin/node",
+        "--max-old-space-size=4096",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.app.json",
+        "--noEmit"
+      ],
+      "cwd": "/workspace/shared/precinct-retained-floor-validation-qa/20261016T002216Z/web",
+      "timeoutSeconds": 240,
+      "startedAt": "2026-10-16T00:24:55.749589+00:00",
+      "log": "logs/types-app.log",
+      "exit": 0,
+      "timedOut": false,
+      "ownedPid": 10,
+      "durationSeconds": 43.118,
+      "finishedAt": "2026-10-16T00:25:38.868839+00:00",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "types-tools",
+      "command": [
+        "/workspace/shared/unissant_agentic_training_arena/web/node_modules/node/bin/node",
+        "--max-old-space-size=4096",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.node.json",
+        "--noEmit"
+      ],
+      "cwd": "/workspace/shared/precinct-retained-floor-validation-qa/20261016T002216Z/web",
+      "timeoutSeconds": 240,
+      "startedAt": "2026-10-16T00:25:38.878141+00:00",
+      "log": "logs/types-tools.log",
+      "exit": 0,
+      "timedOut": false,
+      "ownedPid": 18,
+      "durationSeconds": 37.293,
+      "finishedAt": "2026-10-16T00:26:16.173270+00:00",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "lint",
+      "command": [
+        "/workspace/shared/unissant_agentic_training_arena/web/node_modules/node/bin/node",
+        "--max-old-space-size=4096",
+        "node_modules/eslint/bin/eslint.js",
+        "src/components/precinct/PrecinctCanvas.environment.test.tsx",
+        "src/components/precinct/PrecinctCanvas.tsx",
+        "src/components/precinct/PrecinctControls.idleWork.test.tsx",
+        "src/components/precinct/PrecinctEnvironment.test.tsx",
+        "src/components/precinct/PrecinctEnvironment.tsx",
+        "src/components/precinct/PrecinctThemeControl.benchmark.test.tsx",
+        "src/components/precinct/inspectPrecinctRenderer.test.ts",
+        "src/components/precinct/inspectPrecinctRenderer.ts",
+        "src/lib/precinct/lowEnvironmentExperiment.test.ts",
+        "src/lib/precinct/lowEnvironmentExperiment.ts",
+        "src/lib/precinct/staffCrowd.idleWork.test.ts",
+        "src/lib/precinct/staffCrowd.ts",
+        "src/routes/PrecinctRoute.tsx",
+        "tools/precinct-click-floor.test.ts",
+        "tools/precinct-performance-theme.ts",
+        "tools/precinct-performance.test.ts",
+        "tools/precinct-performance.ts",
+        "tools/precinct-floor-routing-model.ts",
+        "tools/precinct-floor-routing-model.test.ts",
+        "tools/precinct-floor-routing-smoke.ts",
+        "tools/precinct-minimap-stability.ts",
+        "tools/precinct-minimap-stability.test.ts",
+        "--max-warnings",
+        "0"
+      ],
+      "cwd": "/workspace/shared/precinct-retained-floor-validation-qa/20261016T002216Z/web",
+      "timeoutSeconds": 300,
+      "startedAt": "2026-10-16T00:26:16.182568+00:00",
+      "log": "logs/lint.log",
+      "exit": 0,
+      "timedOut": false,
+      "ownedPid": 26,
+      "durationSeconds": 31.388,
+      "finishedAt": "2026-10-16T00:26:47.573711+00:00",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "focused-runtime",
+      "command": [
+        "/workspace/shared/unissant_agentic_training_arena/web/node_modules/node/bin/node",
+        "--max-old-space-size=4096",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "src/components/precinct/PrecinctActorReplay.test.tsx",
+        "src/components/precinct/PrecinctCanvas.environment.test.tsx",
+        "src/components/precinct/PrecinctControls.crowd.test.tsx",
+        "src/components/precinct/PrecinctControls.distanceEvidence.test.tsx",
+        "src/components/precinct/PrecinctControls.idleWork.test.tsx",
+        "src/components/precinct/PrecinctControls.navmesh.test.tsx",
+        "src/components/precinct/PrecinctControls.substeps.test.tsx",
+        "src/components/precinct/PrecinctControls.test.tsx",
+        "src/components/precinct/PrecinctEnvironment.test.tsx",
+        "src/components/precinct/PrecinctPerformanceProbe.test.tsx",
+        "src/components/precinct/PrecinctRenderPolicy.test.tsx",
+        "src/components/precinct/PrecinctThemeControl.benchmark.test.tsx",
+        "src/components/precinct/PrecinctThemeControl.test.tsx",
+        "src/components/precinct/inspectPrecinctRenderer.test.ts",
+        "src/components/precinct/proceduralActorReplay.test.ts",
+        "src/components/precinct/recordedCameraV1.test.ts",
+        "src/components/precinct/useActorSampler.test.tsx",
+        "src/lib/precinct/crowdNavigation.test.ts",
+        "src/lib/precinct/crowdNavmesh.test.ts",
+        "src/lib/precinct/effectiveWorldGeometry.test.ts",
+        "src/lib/precinct/knownWorldNavigation.test.ts",
+        "src/lib/precinct/liveNavigationFrame.test.ts",
+        "src/lib/precinct/lowEnvironmentExperiment.test.ts",
+        "src/lib/precinct/movement.test.ts",
+        "src/lib/precinct/precinctNavmesh.test.ts",
+        "src/lib/precinct/seatedNavigation.test.ts",
+        "src/lib/precinct/staffCrowd.idleWork.test.ts",
+        "src/lib/precinct/staffCrowd.test.ts",
+        "src/lib/precinct/worldNavigation.actual.test.ts",
+        "src/lib/precinct/worldNavigation.test.ts",
+        "src/lib/world/freshClientCapture.test.ts",
+        "src/lib/world/localWorldCapture.test.ts",
+        "src/lib/world/sceneCapture.test.ts",
+        "src/lib/world/sceneContext.test.ts",
+        "src/lib/world/worldCapture.test.ts",
+        "src/routes/PrecinctRoute.replay.test.tsx",
+        "src/routes/PrecinctRoute.test.tsx",
+        "src/routes/PrecinctRoute.theme.test.tsx",
+        "src/routes/precinct/useLocalWorldCapture.scene.test.tsx",
+        "src/routes/precinct/useLocalWorldCapture.test.tsx",
+        "tools/precinct-capture-position.test.ts",
+        "tools/precinct-click-floor.test.ts",
+        "tools/precinct-performance.test.ts",
+        "tools/precinct-theme.test.ts",
+        "tools/replay-scene-manifest.test.ts",
+        "tools/precinct-floor-routing-model.test.ts",
+        "tools/precinct-minimap-stability.test.ts"
+      ],
+      "cwd": "/workspace/shared/precinct-retained-floor-validation-qa/20261016T002216Z/web",
+      "timeoutSeconds": 600,
+      "startedAt": "2026-10-16T00:26:47.582228+00:00",
+      "log": "logs/focused-runtime.log",
+      "exit": 0,
+      "timedOut": false,
+      "ownedPid": 38,
+      "durationSeconds": 79.403,
+      "finishedAt": "2026-10-16T00:28:06.988436+00:00",
+      "logSha256": "bb5cb9594913ff439fa9f1aea0ed35e5fdec379c9d488332f891aa6a1ac1fb07"
+    }
+  ],
+  "failure": null,
+  "sourceReady": true,
+  "build": "NOT RUN",
+  "browser": "NOT RUN",
+  "fullRepositoryGate": "NOT RUN; focused gate only",
+  "oldIntegrityBefore": [
+    {
+      "kind": "source",
+      "sha256": "d208aaf7e13989ab296ecd08e800b83116f5f8e741dd29d9d1cf6daf9b83f3c7",
+      "files": 681
+    },
+    {
+      "kind": "external",
+      "sha256": "c82a6973750367bef2297540fcf85ec40e75ceeaeb7b503eb34bee4d7565cc48",
+      "files": 5
+    },
+    {
+      "kind": "dist",
+      "sha256": "903c472f5449eb402f139440270712be617e31e7fae535b47598e426b9ef350b",
+      "files": 114
+    },
+    {
+      "kind": "augmented-qa",
+      "sha256": "d8a46bb21c3a03ad21998c4b0564ad37856d9b828ef57da1b01627592d6cb62b",
+      "files": 686
+    }
+  ],
+  "diskHeadroom": {
+    "availableBytes": 10176364544,
+    "reserveBytes": 1073741824,
+    "copyOverheadPercent": 25,
+    "sourceApparentBytes": 55286759,
+    "dependencyApparentBytes": 251274810,
+    "requiredBytes": 1456943786
+  },
+  "candidateIntegrityBefore": {
+    "files": 686,
+    "sha256": "52b676d291b16979f558e5bc557c948fef9cafbb794263ff322d00beb433208d",
+    "dist": "absent; no build performed"
+  },
+  "focusedTests": {
+    "files": 47,
+    "tests": 451,
+    "previousFocused": 423,
+    "additionalModel": 6,
+    "additionalSampler": 22,
+    "parserAndFloorAlreadyIncluded": true
+  },
+  "oldIntegrityAfter": [
+    {
+      "kind": "source",
+      "sha256": "d208aaf7e13989ab296ecd08e800b83116f5f8e741dd29d9d1cf6daf9b83f3c7",
+      "files": 681
+    },
+    {
+      "kind": "external",
+      "sha256": "c82a6973750367bef2297540fcf85ec40e75ceeaeb7b503eb34bee4d7565cc48",
+      "files": 5
+    },
+    {
+      "kind": "dist",
+      "sha256": "903c472f5449eb402f139440270712be617e31e7fae535b47598e426b9ef350b",
+      "files": 114
+    },
+    {
+      "kind": "augmented-qa",
+      "sha256": "d8a46bb21c3a03ad21998c4b0564ad37856d9b828ef57da1b01627592d6cb62b",
+      "files": 686
+    }
+  ],
+  "candidateIntegrityAfter": {
+    "files": 686,
+    "sha256": "52b676d291b16979f558e5bc557c948fef9cafbb794263ff322d00beb433208d",
+    "dist": "absent; no build performed"
+  },
+  "finishedAt": "2026-10-16T00:28:08.950445+00:00"
+}

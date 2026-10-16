@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "originalHotspotsPreserved": 12,
+  "originalRoomsPreserved": 11,
+  "roomsReachable": 16,
+  "navigationNodes": 48,
+  "clearGraphEdges": 53,
+  "portalCapsuleSamples": 45,
+  "reviewCamerasClear": 5,
+  "capsuleRadius": 0.28,
+  "sourceOnly": false,
+  "actualRendererValidated": false,
+  "variantId": "northstar-courtyard-v1",
+  "sourceSha256": "a6260bed9a30b9931daed9738c183457a63df9b86842921c0177fab770f356c9",
+  "runtimeSha256": "e985fe9677cf56ce77ee361b8567b5c2bb1eaae9304464f54c473ca2d7c9c4a0",
+  "manifestSha256": "a70a2d7685d48231f4fbd1d3d0ad647d370a8ea42670cf3a795476c7ac1caa96",
+  "runtimeBytes": 3167788,
+  "sourceBytes": 1652324,
+  "triangles": 121656,
+  "decodedBufferViews": 129,
+  "losslessGeometryVerified": true,
+  "originalModuleObjectsPreserved": 1960
+}

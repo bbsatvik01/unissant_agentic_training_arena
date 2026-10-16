@@ -1,0 +1,5 @@
+src/lib/precinct/precinctNavmesh.ts
+src/lib/precinct/worldNavigation.ts
+src/lib/precinct/knownWorldNavigation.ts
+src/lib/precinct/crowdNavigation.ts
+src/lib/precinct/staffCrowd.ts

@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "geometryAdapter": "precinct.effective-geometry.v1",
+  "reviewerCollider": {
+    "id": "reviewer-chair-v2",
+    "min": [
+      4.55,
+      0,
+      -17.9
+    ],
+    "max": [
+      5.35,
+      1.5,
+      -16.99
+    ]
+  },
+  "authoredManifestsUnchanged": true,
+  "browserValidated": false,
+  "variants": [
+    {
+      "id": "office",
+      "authoredManifestSha256": "fc85679e66e176e2fc29c1b6caa2ad364b3a4c60e099fc3c22cc46b26b24552f",
+      "navmeshSha256": "04d6cb5f47316474a6d8a98a1ed14363094a4d3562530dc0a887d316d56b6b64",
+      "bytes": 277712,
+      "artifact": "web/public/world/precinct-office-navmesh.json",
+      "profiles": [
+        {
+          "profile": "player",
+          "floorY": 0,
+          "radius": 0.28,
+          "effectiveSourceSha256": "9a3bac304fa7ae9e5d160e60748d39dab5fbc5be8e9af346ec19e81a103d546f",
+          "polygons": 182,
+          "portals": 200
+        },
+        {
+          "profile": "staff",
+          "floorY": 0.03,
+          "radius": 0.34,
+          "effectiveSourceSha256": "682a0c988e1cc89b2ffa42b7fd0c905c6884012aa0dc26c3e86ed1a6b0fc7443",
+          "polygons": 181,
+          "portals": 217
+        }
+      ]
+    },
+    {
+      "id": "courtyard",
+      "authoredManifestSha256": "a70a2d7685d48231f4fbd1d3d0ad647d370a8ea42670cf3a795476c7ac1caa96",
+      "navmeshSha256": "4da61e8ecff9a5895dc674739a55f46d14416feedde5db948066d2528e05e925",
+      "bytes": 402798,
+      "artifact": "web/public/world/precinct-courtyard-navmesh.json",
+      "profiles": [
+        {
+          "profile": "player",
+          "floorY": 0,
+          "radius": 0.28,
+          "effectiveSourceSha256": "7e0114ea70b2710785c84d54a35d1d382e6f747a9fcf09de798964f549e753b0",
+          "polygons": 245,
+          "portals": 291
+        },
+        {
+          "profile": "staff",
+          "floorY": 0.03,
+          "radius": 0.34,
+          "effectiveSourceSha256": "b0585b040c0a1aa7b6b013dbaeec74b9ff2d6cc718cadfc6b166adcd10ff9f6d",
+          "polygons": 258,
+          "portals": 345
+        }
+      ]
+    }
+  ]
+}

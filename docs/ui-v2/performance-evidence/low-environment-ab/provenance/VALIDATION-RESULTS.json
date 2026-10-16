@@ -1,0 +1,41 @@
+{
+  "status": "focused-gate-and-production-build-passed; awaiting parent-owned native benchmark",
+  "packageManifestSha256": "aba878b8b40d693c38a8c4f6eeac8e9d08e25209e7ff02cbad191f1bdffd173b",
+  "sourceInventorySha256": "d53fe0a6ea06ca648918c7cff05c771058abc95b76c03c22655983848bca1cb0",
+  "testInputInventorySha256": "4de27de149eca782c310546c87355e42a2cc6d04ad9300dc65699241caa2ab8e",
+  "strictAppTypes": "passed",
+  "strictToolsTypes": "passed",
+  "lint": "passed; zero warnings",
+  "runtime": {
+    "suites": 18,
+    "tests": 140,
+    "failed": 0,
+    "durationSeconds": 63.91,
+    "log": "logs/focused-runtime-with-fixture.log",
+    "warning": "Non-fatal THREE_CJS_DEPRECATED from the test process; no warning suppression added."
+  },
+  "preservedFailures": [
+    "../20261015T223137Z/logs/lint.log",
+    "logs/focused-runtime.log",
+    "logs/build-missing-shared-fixture.log"
+  ],
+  "browser": "not run; native launch remains parent-owned",
+  "theme": "The frozen runner retains default Office HUD/theme, including its blur. This is not a Studio-theme protocol.",
+  "aggregateGate": "Not run for this experiment; focused validation is not the full repository gate.",
+  "buildInventorySha256": "8034650c1d847f3f59b7e74a6bf57635606c17a09f7a95de2c14666710cabfeb",
+  "buildInputInventorySha256": "c1bf1e82c325fa6c179b167524e83d2002446058c3f2c715c40dbc8249364f37",
+  "supplementaryExternalInputsInventorySha256": "6d4be0ab050cde7df8509872d4fc4cfc13bc2f0db3123c629bab756dbc801ba7",
+  "productionBuild": {
+    "exit": 0,
+    "viteDurationSeconds": 4.71,
+    "log": "logs/build.log",
+    "warnings": [
+      "Existing chunks over 500 kB, including RoomEnvironment 959.54 kB and main index 2467.49 kB minified. No warning threshold changed.",
+      "Build plugin timing advisory retained."
+    ]
+  },
+  "inventorySuccessorProof": "SOURCE-INVENTORY-SUCCESSOR.json",
+  "externalInputAudit": "EXTERNAL-INPUT-AUDIT-SUMMARY.json",
+  "cpuLane": "Released to parent at 2026-10-15T22:45:05Z; all commands terminal.",
+  "negativePerformanceGates": "Unchanged. No frame-rate claim or MacBook Air M5 acceptance before measurement."
+}

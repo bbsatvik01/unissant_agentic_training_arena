@@ -1,0 +1,31 @@
+/* Scoped to station content; the precinct owns layout, focus and the only world canvas. */
+.precinct-session { color: var(--precinct-ink, #173b34); line-height: 1.65; }
+.precinct-session p { max-width: 76ch; margin-block: .5rem; overflow-wrap: anywhere; }
+.precinct-session-origin { font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #476c60; }
+.precinct-session-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; margin: 1rem 0; }
+.precinct-session button:disabled { cursor: not-allowed; opacity: .55; }
+.precinct-session input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), .precinct-session textarea { width: 100%; color: #183b34; background: #fffef7; border: 1px solid #9aaea4; border-radius: .3rem; padding: .75rem; font: inherit; }
+.precinct-session .composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .4rem .75rem; margin: .9rem 0; }
+/* Keep the count in document flow, outside the editable text, at every text size. */
+.precinct-session .composer textarea { grid-column: 1 / -1; box-sizing: border-box; min-width: 0; min-height: 5.5rem; padding: .65rem .75rem; line-height: 1.5; resize: vertical; }
+.precinct-session .composer .counter { position: static; justify-self: start; color: #45635b; font-size: .75rem; line-height: 1.5; }
+.precinct-session .composer button { min-width: 4.5rem; min-height: 2.5rem; justify-self: end; }
+.precinct-session .precinct-note { padding-top: .6rem; color: #45635b; }
+.precinct-session .playback { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; padding: 1rem; background: #e9eee7; border: 1px solid #bac8bf; }
+.precinct-session .playback input[type=range] { flex: 1; min-width: 10rem; }
+.precinct-session-audio { padding: .65rem 0; border-block: 1px solid #c0cdc2; margin-block: .75rem; }
+.precinct-session-audio label { display: flex; align-items: flex-start; gap: .6rem; }
+.precinct-session-audio input[type=checkbox] { flex: 0 0 auto; margin-top: .35rem; }
+.precinct-recording-file { position: relative; cursor: pointer; display: inline-flex; flex-direction: column; gap: .3rem; }
+.precinct-recording-file input { max-width: 19rem; }
+.precinct-debrief-total { font: 700 3.5rem/1.1 Georgia, serif; margin: 1.2rem 0; }
+.precinct-debrief-total small { font: 400 1.2rem/1.4 sans-serif; }
+.precinct-debrief-dimensions div { display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #c7d2c7; padding-block: .65rem; }
+.precinct-debrief-dimensions dd { white-space: nowrap; font-weight: 700; }
+.precinct-session-review { padding-left: 1.4rem; }
+.precinct-session-review li { border-bottom: 1px solid #c7d2c7; padding: 1rem 0; }
+.precinct-session-review p { margin: .5rem 0; }
+.precinct-root.high-contrast .precinct-session { color: #001b13; }
+.precinct-root.high-contrast .precinct-session-origin { color: #002f20; }
+.precinct-root.high-contrast .precinct-session :is(.precinct-note, .composer .counter) { color: #002f20; }
+.precinct-root.large-text .precinct-session :is(.precinct-session-origin, .composer .counter) { font-size: .875rem; }

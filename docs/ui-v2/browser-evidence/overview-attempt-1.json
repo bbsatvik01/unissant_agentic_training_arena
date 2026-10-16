@@ -1,0 +1,51 @@
+{
+  "attempt": "native-20261015T213635Z-4762fda2",
+  "launcher": {
+    "status": "failed",
+    "namespace": "approved native cloud Terminal",
+    "attempt": "/workspace/shared/precinct-overview-browser-qa/results/native-20261015T213635Z-4762fda2",
+    "readyLimitSeconds": 45,
+    "recorderLimitSeconds": 420,
+    "logByteLimit": 2097152,
+    "previewExit": 143,
+    "recorderExit": 1,
+    "errors": [
+      "RuntimeError: Actual recorder failed; retain capture report and original diagnostics"
+    ],
+    "cleanupErrors": [],
+    "sourceInputs": {
+      "acceptedHead": "8eedd7564570c41def9892e4c1ddd4099b090872",
+      "toolSha256": "5e9ee103b16e52f8e960d7fc2bd22e7bfb15d456953923544c60060709d99c56",
+      "canvasSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "note": "Independent read-only real browser stills; no audio/backend acceptance; runtime src is source checkpoint 8eedd756."
+    },
+    "strictGate": {
+      "status": "passed",
+      "checkedAt": "2026-10-15T21:36:24.461574+00:00",
+      "acceptedHead": "8eedd7564570c41def9892e4c1ddd4099b090872",
+      "toolSha256": "5e9ee103b16e52f8e960d7fc2bd22e7bfb15d456953923544c60060709d99c56",
+      "canvasSha256": "ded1bcc3ef847d1d8e8cd3b5a27a9df13bb1207c26e59d5c658d54cf20008904",
+      "typesExit": 0,
+      "lintExit": 0,
+      "typesLog": "/workspace/shared/precinct-overview-browser-qa/results/types-overview.log",
+      "lintLog": "/workspace/shared/precinct-overview-browser-qa/results/lint-overview.log",
+      "browserExecuted": false
+    },
+    "nativeTmp": "/tmp/arena-rec-2_1bz0wf",
+    "vitePid": 7343,
+    "recorderPid": 7368,
+    "nativeTmpRemoved": true,
+    "elapsedSeconds": 65.796
+  },
+  "capture": {
+    "status": "failed",
+    "description": "Actual cloud browser screenshots and real keyboard/settings interactions; Low quality. No hardware FPS, backend, audio or replay acceptance is implied.",
+    "errors": [
+      "Error: Missing actual player minimap position.\n    at position (file:///workspace/shared/precinct-overview-browser-qa/web/tools/precinct-overview-capture.ts:24:57)\n    at async expect.poll.timeout (file:///workspace/shared/precinct-overview-browser-qa/web/tools/precinct-overview-capture.ts:55:40)\n    at async /workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13391:19\n    at async raceAgainstDeadline (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:4602:10)\n    at async pollAgainstDeadline (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright-core@1.63.0/node_modules/playwright-core/lib/coreBundle.js:4623:22)\n    at async invokePollMatcher (/workspace/shared/unissant_agentic_training_arena/web/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/matchers/expect.js:13388:18)\n    at async file:///workspace/shared/precinct-overview-browser-qa/web/tools/precinct-overview-capture.ts:55:9"
+    ],
+    "blocked": [],
+    "cleanupErrors": [],
+    "screenshots": []
+  },
+  "accepted_playable_slice": false
+}

@@ -1,0 +1,446 @@
+{
+  "status": "Ready for coordinated source integration and real-browser QA. Not yet browser/audio-listening approved.",
+  "issue_url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/issues/16",
+  "completed_at_utc": "2026-10-15T16:31:33Z",
+  "baseline_repositories": {
+    "exact_origin": "https://github.com/bbsatvik01/unissant_agentic_training_arena.git",
+    "repository_read_only": true,
+    "frozen_procedural_files_unchanged": true,
+    "generated_contracts_unchanged": true
+  },
+  "qa": {
+    "new_initial_tests": "34/34 passed",
+    "expanded_final_tests": "69 unique tests passed across expanded run and targeted corrected-file rerun",
+    "final_frame_regressions": "4/4 passed after final subscription binding fix",
+    "strict_types": "tsc -b exit 0 on final QA source",
+    "scoped_lint": "19 modified/new TS/TSX files; --max-warnings 0 exit 0",
+    "browser": "UNRUN",
+    "human_listening": "UNVERIFIED: model/tool route cannot consume audio input",
+    "microphone": "UNRUN; unit mocks only",
+    "build": "UNRUN",
+    "coverage": "UNRUN",
+    "full_aggregate_check": "UNRUN",
+    "browser_proposal": "Source-reviewed only, UNRUN; not part of the passed 19-file lint gate"
+  },
+  "audio": {
+    "clips": 23,
+    "bytes": 10272010,
+    "duration_seconds": 232.90244897959184,
+    "maximum_file_bytes": 712616,
+    "format": "mono PCM16 WAV at 22050 Hz",
+    "generated": true,
+    "hash_pcm_duration_exact_inventory_checks": "passed"
+  },
+  "patch_only": [
+    "ATTRIBUTIONS.md",
+    "web/src/components/precinct/PrecinctCanvas.tsx",
+    "web/src/components/precinct/PrecinctStaff.tsx",
+    "web/src/components/precinct/ReceptionBriefingPanel.tsx",
+    "web/src/components/precinct/ReceptionBriefingPanel.test.tsx"
+  ],
+  "files": [
+    {
+      "path": "ATTRIBUTIONS.md",
+      "bytes": 51277,
+      "sha256": "c58ef728707e1b6f4a32c5cc8c414b17f433638fe0b12880228ab72c9da35cc5",
+      "integration": "narrow patch only; full file is reference"
+    },
+    {
+      "path": "assets-src/local-staff-voice/DEBIAN-PACKAGES.json",
+      "bytes": 4109,
+      "sha256": "91958f92b22403551f3f27be8daf48182f3a3facb4d7322649539477f4f9de81",
+      "integration": "owned copy"
+    },
+    {
+      "path": "assets-src/local-staff-voice/ESPEAK-NG-COPYRIGHT.txt",
+      "bytes": 3877,
+      "sha256": "bf721eede49d50f84bd2c50f96888629ced572b66ad4087c7a224c4a5e1193bb",
+      "integration": "owned copy"
+    },
+    {
+      "path": "assets-src/local-staff-voice/GPL-3.0.txt",
+      "bytes": 35149,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "integration": "owned copy"
+    },
+    {
+      "path": "assets-src/local-staff-voice/PACKAGE-VERIFICATION.json",
+      "bytes": 2748,
+      "sha256": "e0953079a0573d0073b875e77dbf6bf1856f78acb29b763bc93df467dc235926",
+      "integration": "owned copy"
+    },
+    {
+      "path": "assets-src/local-staff-voice/dialogue.json",
+      "bytes": 7751,
+      "sha256": "bf63e89f04670005b16ff1be35cfe7728f4f0020087d169c2f3c95ca505e6873",
+      "integration": "owned copy"
+    },
+    {
+      "path": "docs/ui-v2/LOCAL-STAFF-VOICE-BROWSER-PROPOSAL.md",
+      "bytes": 11892,
+      "sha256": "5a1502e9f2c741fa16df1a797228f9e3d861a6b1d3f6b47799405cba033706e5",
+      "integration": "owned copy"
+    },
+    {
+      "path": "docs/ui-v2/LOCAL-STAFF-VOICE-FRAME-RETRY.txt",
+      "bytes": 421,
+      "sha256": "4a584f2ab747aaeeef57f317fc81771e560ce2c0bbff47af1026dd95143057b7",
+      "integration": "owned copy"
+    },
+    {
+      "path": "docs/ui-v2/LOCAL-STAFF-VOICE-GENERATION.txt",
+      "bytes": 1411,
+      "sha256": "423b6cc21b22e671357caf221128a6d913ec07f90e4ae8b0677f4b0c4f6a3c07",
+      "integration": "owned copy"
+    },
+    {
+      "path": "docs/ui-v2/LOCAL-STAFF-VOICE-LINT.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration": "owned copy"
+    },
+    {
+      "path": "docs/ui-v2/LOCAL-STAFF-VOICE-MORPH-SOURCE.json",
+      "bytes": 599,
+      "sha256": "716423bf55effc4f9bdee27f4b343acaf28ffec053177a6865ab260bcbb9c978",
+      "integration": "owned copy"
+    },
+    {
+      "path": "docs/ui-v2/LOCAL-STAFF-VOICE-QA.md",
+      "bytes": 5825,
+      "sha256": "aade744ad040887d5d0442656ca6478ede7eec8147634d761d54d8546c1f5b74",
+      "integration": "owned copy"
+    },
+    {
+      "path": "docs/ui-v2/LOCAL-STAFF-VOICE-REGRESSION-RETRY.txt",
+      "bytes": 214,
+      "sha256": "7afdc9c65c6016f253ea706bfeeecb722e45973851c44810f1742b9122b8eff0",
+      "integration": "owned copy"
+    },
+    {
+      "path": "docs/ui-v2/LOCAL-STAFF-VOICE-TESTS.txt",
+      "bytes": 31093,
+      "sha256": "bdccd3ca0959f32c08f45d2b1deec324dbd2364fdc5b8dffb9adbb90cf7e842d",
+      "integration": "owned copy"
+    },
+    {
+      "path": "docs/ui-v2/LOCAL-STAFF-VOICE-TYPES.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration": "owned copy"
+    },
+    {
+      "path": "docs/ui-v2/LOCAL-STAFF-VOICE-VOICES.txt",
+      "bytes": 2376,
+      "sha256": "0f477481cd7ee7a95b89786d532f58183660f02f7299dc4d171f4cb84f3868c2",
+      "integration": "owned copy"
+    },
+    {
+      "path": "docs/ui-v2/LOCAL-STAFF-VOICE.md",
+      "bytes": 9346,
+      "sha256": "66c5a5aa08a1e8b3e821aeb4b5a540f40702d4b96d1e4145914776d7069f0e68",
+      "integration": "owned copy"
+    },
+    {
+      "path": "patches/ATTRIBUTIONS.patch",
+      "bytes": 3722,
+      "sha256": "e8b9ca57aa223041207ec6c2c3c873d05e3943d443df3d9819844a38947595f1",
+      "integration": "apply patch"
+    },
+    {
+      "path": "patches/PrecinctCanvas.tsx.patch",
+      "bytes": 5187,
+      "sha256": "8988bf406351ff2f8f602e9c985d30401c80494d654c12381b7c7da4e4cab7aa",
+      "integration": "apply patch"
+    },
+    {
+      "path": "patches/PrecinctStaff.tsx.patch",
+      "bytes": 3669,
+      "sha256": "b4c9a2f8679f63b7f7c5504a787f1ca9cecf5cbc2e127b9f58e8312f3d9cd785",
+      "integration": "apply patch"
+    },
+    {
+      "path": "patches/ReceptionBriefingPanel.test.tsx.patch",
+      "bytes": 1995,
+      "sha256": "02ae8f0521d81cbb9c2cdbb93773f7b039555a3238327fa2432942817ddfa9b7",
+      "integration": "apply patch"
+    },
+    {
+      "path": "patches/ReceptionBriefingPanel.tsx.patch",
+      "bytes": 3387,
+      "sha256": "ec6d44f85792f8415dafb5c83b4156aac768993a5e1349a2ff8c80eb30bcde68",
+      "integration": "apply patch"
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-access.wav",
+      "bytes": 437594,
+      "sha256": "d275c9e294cc5f0be8b2c1bb4f59b8988096afd4b0bcbe4f477b74c893d6c7c9",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-archive.wav",
+      "bytes": 353210,
+      "sha256": "9ab39e18620b905776e58d76758baaf60eedeeff686454d499983c58866c3813",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-briefing.wav",
+      "bytes": 240802,
+      "sha256": "dea3e30d5fa9a165dd9a8138584bf2ff8dd220169441b3e3e6e34abc24c54425",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-cases.wav",
+      "bytes": 392914,
+      "sha256": "6f9bc28a90146be9ab8d4078b8d11bb6b4bf626828c76d84c26afdb7ea35ce30",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-desk.wav",
+      "bytes": 316480,
+      "sha256": "f931a876aa6fc103264005e6b67c492f58c7debb31d0b7e92e711d1807492c2b",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-interview.wav",
+      "bytes": 365420,
+      "sha256": "3ee0caa5dfd83030a66acd727852c55a2261ca4299f9c24da2dea5c72882465c",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-introduction.wav",
+      "bytes": 278058,
+      "sha256": "fbe0970affac62c715337633a2e8d73b2761e7ba2247d70807ef926c686320aa",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-leaderboard.wav",
+      "bytes": 493570,
+      "sha256": "6a75bef27dab05a6c653c95381bb55b7532a6d7cdb8f5f8e80a3aaa49210d365",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-redirect.wav",
+      "bytes": 621066,
+      "sha256": "efe1e1b53f441de8371d140381e571404db0200f7da01f5c1c685e66eee16020",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-replay.wav",
+      "bytes": 309164,
+      "sha256": "ad63736f70a78106c9ceba84eab83252ca565158f15a7d856be848729d66763a",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-return.wav",
+      "bytes": 348694,
+      "sha256": "453ff38bef8859eab774182bdc818aaf830f1a677a45815c00fb707f13bbed34",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/receptionist-welcome.wav",
+      "bytes": 319796,
+      "sha256": "145dfac48f664abdf4a3d672565ae8585cbd8164190b8502afb55cfe6244228a",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-clarify.wav",
+      "bytes": 510472,
+      "sha256": "74669b58abaf04259539982654ce3fa61649832fbd0c0cb6a368ed8338a7aa09",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-demeanor.wav",
+      "bytes": 592564,
+      "sha256": "9f04dc3fa2348c4f32c14580faded4525910bf07c9378d264e25661f4201bcb6",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-disagreement.wav",
+      "bytes": 554214,
+      "sha256": "6bc5fbe6cdaccf9882477d1fd6d6ededde27190db4605940968865f7d724e754",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-evidence.wav",
+      "bytes": 581426,
+      "sha256": "c6fcef4d37122219802836ca27d7c1df773f87b9ac5dca0f26a10d47618e3712",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-introduction.wav",
+      "bytes": 384892,
+      "sha256": "1bd6378984191fbf7c3e5f0fd829fc42b2bf48b7c068d8c2263b6cb6022db34f",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-limits.wav",
+      "bytes": 712616,
+      "sha256": "dabfba3cd9b2cdd3bed0bafb5597de6162dca063162075631fd696e7461b4409",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-opening.wav",
+      "bytes": 449078,
+      "sha256": "3455ac577efa5854276dd6ecf0683a8aa768bddec35533f7396a412ad04ddf75",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-redirect.wav",
+      "bytes": 649074,
+      "sha256": "f291746082d26922693ccfc56b4f8483d1747c0c48cc3a593c4361f457529ad1",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-return.wav",
+      "bytes": 457542,
+      "sha256": "2c1ce3ebc8fec8eb0adae0c1f69ed342a4ff0eb4b67ee91d757ad7d717f35472",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-review.wav",
+      "bytes": 476360,
+      "sha256": "ccb1274a0cd48433dbbf089dca47c0ebbcf9296c1110409f47a64351b6ce91e8",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/public/audio/staff-v1/sergeant-welcome.wav",
+      "bytes": 427004,
+      "sha256": "fb69da3e642763eb63fa2c8f1e26f24e19c8fef0e27fa5cf22ba31ecc652bbe0",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/components/precinct/LocalStaffSpeech.test.tsx",
+      "bytes": 4221,
+      "sha256": "804ccdba65fc9958d3040ef5c1f6accebb763fb1fa4cc3ee1706507e769212d9",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/components/precinct/LocalStaffSpeech.tsx",
+      "bytes": 2746,
+      "sha256": "f6b0ed7692d58cf98f7007fb257e934d08518ae00eb94df9bdbf41f3a82bc1e2",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctCanvas.staffSpeech.test.tsx",
+      "bytes": 2923,
+      "sha256": "2c1b1ca0f85a6b768c33c05434e433e4083e4cf5bbd928b8341d5fdd23732511",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctCanvas.tsx",
+      "bytes": 31262,
+      "sha256": "459e9303f8b7ea557ea45f452b5f95ca95c07b771c55b43b40ed1b8341b9410c",
+      "integration": "narrow patch only; full file is reference"
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctStaff.tsx",
+      "bytes": 7694,
+      "sha256": "dc15ef29f138939016fa65954c10eaab61e52f113a9e42c796b5cff6a7d39422",
+      "integration": "narrow patch only; full file is reference"
+    },
+    {
+      "path": "web/src/components/precinct/ReceptionBriefingPanel.test.tsx",
+      "bytes": 12010,
+      "sha256": "7674dc0e5853f9b66da686631a52fae15f57d6461451fd7cb8bddeb9140ca985",
+      "integration": "narrow patch only; full file is reference"
+    },
+    {
+      "path": "web/src/components/precinct/ReceptionBriefingPanel.tsx",
+      "bytes": 11580,
+      "sha256": "e296a872d602d18bb18c32f0e6d64e6f7677bb873e4fae9042e6a31eba90ce67",
+      "integration": "narrow patch only; full file is reference"
+    },
+    {
+      "path": "web/src/components/precinct/StaffSpeechFrameInvalidation.tsx",
+      "bytes": 423,
+      "sha256": "1a2f1fd70a1853f778c6fb20e52102e2ad0cb5236619114617d63acdeb65bbc9",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/components/precinct/staffAudioMouth.test.ts",
+      "bytes": 961,
+      "sha256": "dac80047df67972a4c5f274c0abedee4a3741d6b58e466865c6ebfb677b0603f",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/components/precinct/staffAudioMouth.ts",
+      "bytes": 1521,
+      "sha256": "f5889564c63d3a5179a95e50cee30b12520954faddac0df2392ce45ba9398acc",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/lib/api/localStaffAudio.test.ts",
+      "bytes": 2354,
+      "sha256": "14c74687a43c648735a8714c6b351e446f4ca33499580b59bd99aa4e5f308a03",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/lib/api/localStaffAudio.ts",
+      "bytes": 1594,
+      "sha256": "5621aa077c2e7210bce2109a95f6c0a35c914df3d8eaec14811eb8418cb8c4f7",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/lib/precinct/localStaffPlaybackActivity.test.ts",
+      "bytes": 1333,
+      "sha256": "8d4d43a90c54ef35cde5996223649cfc466222a9122ac31edd490c569a94fb38",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/lib/precinct/localStaffPlaybackActivity.ts",
+      "bytes": 921,
+      "sha256": "1d2f69523a48aa7bafd32b2a62cf8e526fa48b83dff5914383bd687ae9a5366d",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/lib/precinct/localStaffVoice.test.ts",
+      "bytes": 8206,
+      "sha256": "30c4ced2137e472832e9eef9d436353fbf19de61f9a653f9bc839bd484eb2adc",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/lib/precinct/localStaffVoice.ts",
+      "bytes": 5590,
+      "sha256": "ecc619ccca4d28826fc610eeb2dc95c43a1debe526037b2b66e0a20226dfd9cb",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/lib/precinct/localStaffVoiceManifest.json",
+      "bytes": 16234,
+      "sha256": "21a5e1cced34649cee6054200e8840e2cb791e6004fe0b785250c74b244db138",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/lib/precinct/localStaffVoicePreview.json",
+      "bytes": 963,
+      "sha256": "f60d8ae02238f21126a8ad80de26fb4126380257770a291625db0645935e2ce5",
+      "integration": "authoring preview only"
+    },
+    {
+      "path": "web/src/routes/world/voiceAudio.test.ts",
+      "bytes": 5714,
+      "sha256": "ac470268a40bef27609cc0bb822bcf5e27aa9dd28c9cf7f658603fd7a17628dc",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/src/routes/world/voiceAudio.ts",
+      "bytes": 6025,
+      "sha256": "11962624c9ac4b2dd80b0e8cfaa499ec705e348240b35a4855fdb003aa2b0649",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/tools/generate-local-staff-voice.py",
+      "bytes": 4433,
+      "sha256": "dcbdca4082e698da926b236756ad1e3b286595eea35e5df40af271336bafa4fe",
+      "integration": "owned copy"
+    },
+    {
+      "path": "web/tools/local-staff-assets.test.ts",
+      "bytes": 2756,
+      "sha256": "899d74218eb0610ec4bb12ccf800809c6b706147137d8d2dc13fa5e182b78874",
+      "integration": "owned copy"
+    }
+  ],
+  "finalized_at_utc": "2026-10-15T16:38:42Z"
+}

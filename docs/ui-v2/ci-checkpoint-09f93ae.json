@@ -1,0 +1,116 @@
+{
+  "commit": "09f93aeba1a153051b66b447f15b2ec0c3846cd5",
+  "observedAtUtc": "2026-10-16T01:32:13Z",
+  "web": {
+    "status": "passed",
+    "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38831558717/job/116751266366",
+    "proof": "combined-web-check-09f93ae.json"
+  },
+  "database": {
+    "status": "passed",
+    "conclusion": "success",
+    "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38831558717/job/116751266003",
+    "completedAtUtc": "2026-10-16T01:31:50Z",
+    "observedAtUtc": "2026-10-16T01:32:13Z",
+    "logSha256": "54226b2c81e87c2345858b3405f67e897b9226993e2b07027db1a16467ad0164"
+  },
+  "python": {
+    "status": "failed_before_pytest",
+    "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38831558717/job/116751265700",
+    "logSha256": "acac6c25012631a58c7a0fff1e6b505a288396f26cb30f1959f064f3c18fdb45",
+    "stage": "push-clean",
+    "currentSnapshotErrors": 0,
+    "historyCauses": [
+      {
+        "kind": "forbidden_local_output",
+        "paths": [
+          "docs/ui-v2/performance-evidence/low-environment-ab/omit-1/runner.log",
+          "docs/ui-v2/performance-evidence/low-environment-ab/omit-2/runner.log",
+          "docs/ui-v2/performance-evidence/low-environment-ab/retain-1/runner.log",
+          "docs/ui-v2/performance-evidence/low-environment-ab/retain-2/runner.log"
+        ]
+      },
+      {
+        "kind": "oversized_file",
+        "path": "web/public/world/precinct.glb",
+        "historicalSizesBytes": [
+          5484180,
+          5668084
+        ],
+        "limitBytes": 5242880
+      }
+    ],
+    "correction": "Current logs removed and originals preserved outside Git; current snapshot policy passes. Historical entries remain. No rename/encoding substitute, rewrite or policy exception."
+  },
+  "security": {
+    "status": "failed",
+    "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38831559029",
+    "jobs": [
+      {
+        "name": "gitleaks",
+        "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38831559029/job/116751266863",
+        "logSha256": "3836f8e78733bf79062909c97757a05686aac583ac37be4269f56785f5a086a7",
+        "count": 2,
+        "exactIdentitySource": "Separate pinned Gitleaks 8.30.1 whole-history reproduction at this exact HEAD, not inference from CI count alone.",
+        "localReportSha256": "d40de9d6fdeb6e78b18477bb6c271a6b3f7b82e7f77e1c36f31b2f21ac25f4c3",
+        "redactedFindings": [
+          {
+            "RuleID": "generic-api-key",
+            "File": "docs/ui-v2/courtyard-asset-proof/courtyard-module-preservation.json",
+            "StartLine": 712,
+            "EndLine": 712,
+            "Commit": "9cd148b0590b7563d994308b4dcfa3d91e12c0f0",
+            "Fingerprint": "9cd148b0590b7563d994308b4dcfa3d91e12c0f0:docs/ui-v2/courtyard-asset-proof/courtyard-module-preservation.json:generic-api-key:712"
+          },
+          {
+            "RuleID": "generic-api-key",
+            "File": "web/src/lib/precinct/npcVisitMemory.ts",
+            "StartLine": 8,
+            "EndLine": 8,
+            "Commit": "82dbfe0bcf6dd78557a1357ab6f105ea50c7c776",
+            "Fingerprint": "82dbfe0bcf6dd78557a1357ab6f105ea50c7c776:web/src/lib/precinct/npcVisitMemory.ts:generic-api-key:8"
+          }
+        ],
+        "assessment": "Same reviewed public localStorage namespace and geometry-fingerprint digest; neither is an authentication secret. No scanner suppression."
+      },
+      {
+        "name": "trufflehog",
+        "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38831559029/job/116751267002",
+        "logSha256": "05f6ab60ce8333887c7b6257005793b27d94112aaf7045e08aa11dae8be9d8c5",
+        "verified": 0,
+        "unverified": 1,
+        "annotationPath": "web/tools/precinct-performance.test.ts",
+        "annotationLine": 31,
+        "annotationSha256": "1c987a64a5e6109f1554726f2ac9015b55fbc811602b3915a91551baea259d76",
+        "assessment": "Latest warning matches the previously reviewed synthetic credential-URL rejection test location. Historical original remains after current fixture was constructed without a credential-shaped literal. No credential verification or suppression was added."
+      },
+      {
+        "name": "bandit/semgrep/pip-audit/licenses",
+        "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38831559029/job/116751266510",
+        "logSha256": "30ab43ff92f70836f8a3c7f6b06a337f68a29d98b09641a0fbe6b13648a09ae5",
+        "runtimeAudit": "No known vulnerabilities found",
+        "toolingAudit": {
+          "package": "mcp",
+          "version": "1.29.0",
+          "advisory": "CVE-2026-59951",
+          "fixedVersions": [
+            "1.30.0",
+            "2.2.0"
+          ]
+        },
+        "licenseStageReached": false
+      },
+      {
+        "name": "osv-scanner",
+        "url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/actions/runs/38831559029/job/116751267333",
+        "logSha256": "85f81b14a0581b7dc0908c7311f45e93b6129edf1d29790fafc8ab8a586d0e5f",
+        "advisory": "GHSA-84m7-p3x7-pcfv",
+        "package": "mcp",
+        "version": "1.29.0",
+        "path": "tools/envs/semgrep/uv.lock",
+        "fixedVersion": "1.30.0"
+      }
+    ]
+  },
+  "scope": "CI diagnosis only. No outside-UI policy, backend, workflow or dependency edit. No browser-runtime exploitability or target-hardware success inferred."
+}

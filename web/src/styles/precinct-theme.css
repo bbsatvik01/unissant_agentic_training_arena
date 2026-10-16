@@ -1,0 +1,259 @@
+/*
+ * Office remains the untouched default. Studio is a route-local presentation layer;
+ * no global theme, world materials, render loops, or semantic finding colors change.
+ * Design rationale and review checklist: docs/ui-v2/DESIGN.md.
+ */
+.precinct-theme-picker { margin: 1.5rem 0; padding: 0; min-width: 0; border: 0; }
+.precinct-theme-picker legend { padding: 0; font: 600 1rem/1.5 var(--arena-font-sans); }
+.precinct-theme-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-top: .75rem; }
+.precinct-theme-option { display: flex; align-items: center; gap: .75rem; min-width: 0; padding: 1rem; border: 1px solid #a5b1a3; border-radius: 12px; background: #f9f8f1; color: #263f36; cursor: pointer; }
+.precinct-theme-option[data-selected="true"] { border-color: #315c43; box-shadow: inset 0 0 0 1px #315c43; background: #edf1e7; }
+.precinct-theme-copy { flex: 1; min-width: 0; }
+.precinct-theme-copy strong { display: block; font-size: .875rem; font-weight: 600; }
+.precinct-theme-copy small { display: block; margin-top: .3rem; font-size: .75rem; line-height: 1.5; color: #4d6252; }
+.precinct-theme-option input { flex: 0 0 auto; width: 20px; height: 20px; accent-color: #315c43; }
+.precinct-theme-picker input:focus-visible { outline: 3px solid #315c43; outline-offset: 4px; }
+.precinct-theme-swatch { display: grid; align-content: center; gap: 5px; flex: 0 0 32px; height: 44px; padding: 7px; border: 1px solid #a5b1a3; border-radius: 7px; background: #f4f2e9; }
+.precinct-theme-swatch span { display: block; height: 3px; background: #70816e; border-radius: 3px; }
+.precinct-theme-swatch span:first-child { width: 70%; height: 5px; background: #254c3e; }
+.precinct-theme-swatch[data-preview="studio"] { background: #141414; border-color: #73737c; }
+.precinct-theme-swatch[data-preview="studio"] span { background: #a8a8b0; }
+.precinct-theme-swatch[data-preview="studio"] span:first-child { background: #fff; }
+.precinct-theme-picker > p { margin: .65rem 0 0; font-size: .75rem; line-height: 1.6; color: #4d6252; }
+.precinct-root.large-text .precinct-theme-copy strong { font-size: 1.1rem; }
+.precinct-root.large-text .precinct-theme-copy small,
+.precinct-root.large-text .precinct-theme-picker > p { font-size: .95rem; }
+
+/* Dark semantic tokens also reach existing overlay controls inside native dialogs. */
+.precinct-root[data-theme="studio"] {
+  --studio-canvas: #09090b;
+  --studio-surface: #141416;
+  --studio-raised: #202024;
+  --studio-hover: #2c2c32;
+  --studio-ink: #fafafa;
+  --studio-muted: #b9b9c2;
+  --studio-line: #414149;
+  --studio-control-line: #7b7b85;
+  --studio-focus: #66bcff;
+  --studio-shadow: 0 1px 0 #ffffff0d inset, 0 18px 60px #0005;
+  --ui-border: var(--studio-line);
+  --precinct-ink: var(--studio-ink);
+  --arena-canvas: var(--studio-canvas);
+  --arena-surface: var(--studio-surface);
+  --arena-surface-2: var(--studio-raised);
+  --arena-ink: var(--studio-ink);
+  --arena-ink-2: var(--studio-muted);
+  --arena-muted: var(--studio-muted);
+  --arena-hairline: var(--studio-line);
+  --arena-hairline-strong: var(--studio-control-line);
+  --arena-focus-ring: var(--studio-focus);
+  --arena-signal: var(--studio-focus);
+  --arena-signal-soft: #19374b;
+  --arena-cite: var(--studio-focus);
+  --arena-cite-missing: var(--studio-ink);
+  --arena-ok: var(--studio-ink);
+  --arena-warn: var(--studio-ink);
+  --arena-danger: var(--studio-ink);
+  --arena-flag-gap: var(--studio-muted);
+  --arena-flag-contradiction: var(--studio-muted);
+  /* The three outcomes have equal visual weight. Color never implies a finding. */
+  --arena-finding-deceptive: var(--studio-ink);
+  --arena-finding-truthful: var(--studio-ink);
+  --arena-finding-insufficient: var(--studio-ink);
+  background: var(--studio-canvas);
+  color: var(--studio-ink);
+  font-family: var(--arena-font-sans);
+  color-scheme: dark;
+}
+.precinct-root[data-theme="studio"] :focus-visible { outline: 3px solid var(--studio-focus); outline-offset: 4px; }
+.precinct-root[data-theme="studio"] ::selection { background: #19374b; color: #fff; }
+.precinct-root[data-theme="studio"] .precinct-vignette { background: #05050740; }
+.precinct-root[data-theme="studio"] .precinct-header { top: 24px; left: 28px; right: 28px; padding: 14px 18px; gap: 20px; border: 1px solid var(--studio-line); border-radius: 18px; background: #141416f5; box-shadow: var(--studio-shadow); }
+.precinct-root[data-theme="studio"] .precinct-brand { font-size: 19px; letter-spacing: .14em; gap: 12px; }
+.precinct-root[data-theme="studio"] .brand-emblem { width: 40px; height: 40px; border-color: var(--studio-control-line); border-radius: 50%; transform: none; color: var(--studio-ink); }
+.precinct-root[data-theme="studio"] .brand-emblem svg { transform: none; width: 26px; height: 26px; }
+.precinct-root[data-theme="studio"] .precinct-brand small { color: var(--studio-muted); font-size: 9px; letter-spacing: .1em; }
+.precinct-root[data-theme="studio"] .precinct-location { color: var(--studio-muted); font-size: 11px; letter-spacing: .07em; }
+.precinct-root[data-theme="studio"] .live-dot { background: var(--studio-ink); }
+.precinct-root[data-theme="studio"] .local-badge { color: var(--studio-muted); font-size: 10px; letter-spacing: .08em; border-radius: 100px; padding: 6px 10px; }
+.precinct-root[data-theme="studio"] .icon-button { width: 44px; height: 44px; background: var(--studio-raised); color: var(--studio-ink); border-color: var(--studio-control-line); }
+.precinct-root[data-theme="studio"] .icon-button:hover { background: var(--studio-hover); }
+.precinct-root[data-theme="studio"] .precinct-kicker { font-size: 11px; line-height: 1.6; letter-spacing: .12em; color: var(--studio-muted); }
+
+/* The single atmosphere tile. Its gradient is decorative, static and contains no case signal. */
+.precinct-root[data-theme="studio"] .precinct-welcome { isolation: isolate; left: 7%; bottom: 15%; width: min(650px, 86%); max-width: none; box-sizing: border-box; padding: 36px 38px; border: 1px solid var(--studio-line); border-radius: 28px; background: var(--studio-canvas); text-shadow: none; box-shadow: var(--studio-shadow); }
+.precinct-root[data-theme="studio"] .precinct-welcome::before { content: ""; position: absolute; z-index: -1; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(ellipse at 105% -5%, #6a4cf550, transparent 58%), radial-gradient(ellipse at 100% 65%, #d44df024, transparent 48%), radial-gradient(ellipse at 80% 120%, #ff7a3d20, transparent 50%); }
+.precinct-root[data-theme="studio"] .welcome-rule { width: 28px; background: var(--studio-ink); margin-bottom: 24px; }
+.precinct-root[data-theme="studio"] .precinct-welcome h1 { font: 600 clamp(48px, 5.5vw, 80px)/1.04 var(--arena-font-sans); letter-spacing: -.055em; margin: 18px 0 20px; }
+.precinct-root[data-theme="studio"] .precinct-welcome p { color: var(--studio-muted); font-size: 17px; font-weight: 400; line-height: 1.65; }
+.precinct-root[data-theme="studio"] .welcome-actions { flex-wrap: wrap; gap: 16px 24px; margin-top: 28px; }
+.precinct-root[data-theme="studio"] .welcome-meta { color: var(--studio-muted); font-size: 10px; line-height: 1.6; letter-spacing: .08em; gap: 12px 24px; flex-wrap: wrap; margin-top: 28px; }
+.precinct-root[data-theme="studio"] .welcome-meta span:first-child { color: var(--studio-ink); }
+.precinct-root[data-theme="studio"] :is(.precinct-primary, .btn-primary, .btn-primary-sm, .dossier-button-primary) { background: var(--studio-ink); color: var(--studio-canvas); border: 1px solid var(--studio-ink); border-radius: 100px; min-height: 44px; height: auto; padding: 11px 18px; font: 600 .875rem/1.45 var(--arena-font-sans); letter-spacing: 0; text-shadow: none; }
+.precinct-root[data-theme="studio"] .dossier-button-primary { color: var(--studio-canvas) !important; }
+.precinct-root[data-theme="studio"] :is(.precinct-primary, .btn-primary, .btn-primary-sm, .dossier-button-primary):hover:not(:disabled) { background: #e2e2e7; border-color: #e2e2e7; }
+.precinct-root[data-theme="studio"] :is(.precinct-secondary, .btn-secondary-sm, .precinct-interview-links button, .precinct-seat-controls button, .npc-topics > button, .dossier-button:not(.dossier-button-primary), .precinct-replay button) { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; height: auto; padding: 10px 16px; border: 1px solid var(--studio-control-line); border-radius: 100px; color: var(--studio-ink); background: var(--studio-raised); font: 500 .875rem/1.5 var(--arena-font-sans); text-decoration: none; box-shadow: none; }
+.precinct-root[data-theme="studio"] :is(.precinct-secondary, .btn-secondary-sm, .precinct-interview-links button, .precinct-seat-controls button, .npc-topics > button, .dossier-button:not(.dossier-button-primary), .precinct-replay button):hover:not(:disabled) { background: var(--studio-hover); }
+.precinct-root[data-theme="studio"] :is(.precinct-text-button, .dossier-text-button) { color: var(--studio-focus); min-height: 44px; font-size: .875rem; line-height: 1.5; text-underline-offset: .25em; }
+.precinct-root[data-theme="studio"] .precinct-interview .precinct-text-button { color: var(--studio-focus); }
+.precinct-root[data-theme="studio"] .precinct-interview .precinct-secondary { background: var(--studio-raised); border-color: var(--studio-control-line); border-radius: 100px; }
+.precinct-root[data-theme="studio"] .precinct-recording-file { display: inline-flex; align-items: flex-start; border-radius: 16px; }
+.precinct-root[data-theme="studio"] button:disabled { opacity: .65; cursor: not-allowed; }
+
+/* Readable, compact world chrome. Existing actions and status copy remain visible. */
+.precinct-root[data-theme="studio"] .precinct-objective { top: 128px; left: 28px; width: 286px; padding: 18px 20px; border-color: var(--studio-line); border-radius: 18px; background: #141416f5; box-shadow: var(--studio-shadow); backdrop-filter: none; }
+.precinct-root[data-theme="studio"] .precinct-objective .precinct-kicker { color: var(--studio-muted); font-size: 10px; letter-spacing: .1em; }
+.precinct-root[data-theme="studio"] .precinct-objective h1 { font-size: 20px; font-weight: 600; line-height: 1.25; letter-spacing: -.035em; margin: 9px 0 8px; }
+.precinct-root[data-theme="studio"] .precinct-objective p { color: var(--studio-muted); font-size: 13px; line-height: 1.6; }
+.precinct-root[data-theme="studio"] .shift-progress { height: 3px; background: var(--studio-line); margin-top: 18px; border-radius: 3px; }
+.precinct-root[data-theme="studio"] .shift-progress span { background: var(--studio-ink); border-radius: inherit; }
+.precinct-root[data-theme="studio"] .precinct-objective small { color: var(--studio-muted); font-size: 10px; letter-spacing: .06em; }
+.precinct-root[data-theme="studio"] :is(.precinct-pause, .precinct-interact) { color: var(--studio-ink); background: var(--studio-surface); border-color: var(--studio-control-line); border-radius: 100px; font-size: 13px; min-height: 44px; backdrop-filter: none; box-shadow: var(--studio-shadow); }
+.precinct-root[data-theme="studio"] .precinct-pause { top: 128px; right: 28px; padding: 9px 14px; }
+.precinct-root[data-theme="studio"] .precinct-interact { padding: 12px 20px; }
+.precinct-root[data-theme="studio"] kbd { color: var(--studio-muted); opacity: 1; font-size: 11px; background: var(--studio-raised); border-color: var(--studio-control-line); border-radius: 5px; }
+.precinct-root[data-theme="studio"] .precinct-controls { left: 28px; bottom: 68px; gap: 12px; color: var(--studio-muted); font-size: 11px; line-height: 1.5; background: var(--studio-surface); padding: 10px 14px; border: 1px solid var(--studio-line); border-radius: 12px; max-width: calc(100% - 250px); flex-wrap: wrap; }
+.precinct-root[data-theme="studio"] .precinct-controls > span:nth-child(3) { display: flex; }
+.precinct-root[data-theme="studio"] .precinct-minimap { width: 150px; right: 28px; bottom: 72px; color: var(--studio-ink); background: var(--studio-surface); border-color: var(--studio-control-line); border-radius: 16px; padding: 12px; box-shadow: var(--studio-shadow); backdrop-filter: none; }
+.precinct-root[data-theme="studio"] .precinct-minimap > svg { height: 132px; opacity: 1; }
+.precinct-root[data-theme="studio"] .precinct-minimap > svg > rect { fill: #25252b; }
+.precinct-root[data-theme="studio"] .precinct-minimap > svg > rect:not(:first-child) { fill: #45454d; stroke: #1b1b20; }
+.precinct-root[data-theme="studio"] .precinct-minimap > svg > circle { fill: #c8c8d0; }
+.precinct-root[data-theme="studio"] .precinct-minimap > svg > g > :is(circle, path) { fill: #fff; stroke: #111; }
+.precinct-root[data-theme="studio"] .precinct-minimap > span:last-child { font-size: 9px; letter-spacing: .04em; }
+.precinct-root[data-theme="studio"] .map-north { color: var(--studio-muted); font-size: 10px; }
+.precinct-root[data-theme="studio"] .precinct-ground-rule { padding: 11px 28px; background: var(--studio-canvas); color: var(--studio-muted); border-top: 1px solid var(--studio-line); font-size: 12px; line-height: 1.55; }
+.precinct-root[data-theme="studio"] :is(.precinct-paused, .precinct-render-notice, .precinct-loading) { color: var(--studio-ink); background: var(--studio-surface); border-color: var(--studio-control-line); border-radius: 20px; font-family: var(--arena-font-sans); }
+.precinct-root[data-theme="studio"] .precinct-paused > span { color: var(--studio-muted); font-size: 11px; }
+.precinct-root[data-theme="studio"] .precinct-paused h2 { font: 600 40px/1.15 var(--arena-font-sans); letter-spacing: -.04em; }
+.precinct-root[data-theme="studio"] .precinct-paused p { font-size: 15px; line-height: 1.6; }
+
+/* Native dialogs keep their existing scrolling, focus-return, and safety structure. */
+.precinct-root[data-theme="studio"] .precinct-dialog { background: var(--studio-surface); color: var(--studio-ink); border-color: var(--studio-control-line); border-radius: 20px; box-shadow: var(--studio-shadow); font-family: var(--arena-font-sans); font-size: 15px; line-height: 1.65; }
+.precinct-root[data-theme="studio"] .precinct-dialog::backdrop { background: #000b; backdrop-filter: blur(4px); }
+.precinct-root[data-theme="studio"] .precinct-dialog > header { border-bottom-color: var(--studio-line); }
+.precinct-root[data-theme="studio"] .precinct-dialog :is(h2, h3, h4, h5) { color: var(--studio-ink); font-family: var(--arena-font-sans); font-weight: 600; letter-spacing: -.035em; }
+.precinct-root[data-theme="studio"] .precinct-dialog > header h2 { font-size: clamp(28px, 2.6vw, 36px); line-height: 1.15; }
+.precinct-root[data-theme="studio"] .precinct-dialog .precinct-kicker { color: var(--studio-muted); font-size: 10px; letter-spacing: .12em; }
+.precinct-root[data-theme="studio"] :is(.panel-lead, .precinct-note, .station-tag, .precinct-settings small, .station-directory small) { color: var(--studio-muted); }
+.precinct-root[data-theme="studio"] .panel-lead { font-size: 16px; }
+.precinct-root[data-theme="studio"] .precinct-note { font-size: 13px; line-height: 1.65; border-color: var(--studio-line); }
+.precinct-root[data-theme="studio"] .station-tag { font-size: 11px; letter-spacing: .1em; }
+.precinct-root[data-theme="studio"] .station-directory { gap: 10px; }
+.precinct-root[data-theme="studio"] .station-directory > button { gap: 12px; padding: 16px; min-width: 0; border: 1px solid var(--studio-line); border-radius: 14px; background: var(--studio-raised); }
+.precinct-root[data-theme="studio"] .station-directory > button:hover:not(:disabled) { background: var(--studio-hover); border-color: var(--studio-control-line); }
+.precinct-root[data-theme="studio"] .station-directory strong { font-size: 14px; }
+.precinct-root[data-theme="studio"] .station-directory small { font-size: 12px; }
+.precinct-root[data-theme="studio"] .precinct-case-choice .station-directory button[aria-pressed="true"] { background: var(--studio-raised); color: var(--studio-ink); border-color: var(--studio-focus); outline: 1px solid var(--studio-focus); }
+.precinct-root[data-theme="studio"] :is(.precinct-safety, .precinct-desk-review) { background: var(--studio-raised); color: var(--studio-muted); border-color: var(--studio-control-line); border-radius: 12px; font-size: 13px; line-height: 1.65; }
+.precinct-root[data-theme="studio"] .precinct-safety strong { color: var(--studio-ink); font-size: 14px; }
+.precinct-root[data-theme="studio"] .station-actions { flex-wrap: wrap; }
+.precinct-root[data-theme="studio"] .precinct-settings > label { font-size: 15px; border-color: var(--studio-line); gap: 20px; }
+.precinct-root[data-theme="studio"] .precinct-settings small { font-size: 13px; line-height: 1.5; }
+.precinct-root[data-theme="studio"] :is(input, select, textarea) { accent-color: var(--studio-ink); }
+.precinct-root[data-theme="studio"] :is(.precinct-settings select, .precinct-session input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), .precinct-session textarea, .precinct-interview select, .precinct-interview textarea, .npc-prompt textarea, .npc-memory input[type=text], .dossier-panel textarea, .dossier-panel select, .precinct-replay select) { color: var(--studio-ink); background: var(--studio-canvas); border: 1px solid var(--studio-control-line); border-radius: 10px; min-height: 44px; padding: .65rem .8rem; font: inherit; }
+.precinct-root[data-theme="studio"] :is(input, textarea)::placeholder { color: var(--studio-muted); opacity: 1; }
+.precinct-root[data-theme="studio"] :is(input[type=checkbox], input[type=radio]) { accent-color: var(--studio-ink); }
+.precinct-root[data-theme="studio"] .precinct-theme-option { color: var(--studio-ink); background: var(--studio-raised); border-color: var(--studio-control-line); }
+.precinct-root[data-theme="studio"] .precinct-theme-option[data-selected="true"] { border-color: var(--studio-focus); box-shadow: inset 0 0 0 1px var(--studio-focus); }
+.precinct-root[data-theme="studio"] :is(.precinct-theme-copy small, .precinct-theme-picker > p) { color: var(--studio-muted); }
+
+/* Case documents, colleague panels, and live interview controls share the same surfaces. */
+.precinct-root[data-theme="studio"] .dossier-panel { --dossier-ink: var(--studio-ink); --dossier-muted: var(--studio-muted); --dossier-paper: var(--studio-canvas); --dossier-bg: var(--studio-surface); --dossier-line: var(--studio-line); --dossier-tint: var(--studio-raised); --dossier-accent: var(--studio-muted); font-family: var(--arena-font-sans); }
+.precinct-root[data-theme="studio"] .dossier-paper { border-radius: 14px; box-shadow: 0 4px 0 var(--studio-raised), 0 5px 0 var(--studio-line); }
+.precinct-root[data-theme="studio"] .dossier-profile-monogram { background: var(--studio-raised); font-family: var(--arena-font-sans); }
+.precinct-root[data-theme="studio"] .dossier-margin-note { font-family: var(--arena-font-sans); font-style: normal; }
+.precinct-root[data-theme="studio"] .dossier-tabs button { border-radius: 10px 10px 0 0; }
+.precinct-root[data-theme="studio"] .dossier-tabs button[aria-selected="true"] { background: var(--studio-raised); color: var(--studio-ink); border-color: var(--studio-control-line); box-shadow: inset 0 -3px var(--studio-focus); }
+.precinct-root[data-theme="studio"] :is(.npc-assignment, .npc-assignment-summary, .npc-subtitle, .npc-assignment .precinct-safety) { color: var(--studio-ink); background: var(--studio-raised); border-color: var(--studio-line); border-radius: 14px; }
+.precinct-root[data-theme="studio"] :is(.npc-conversation, .npc-memory) { border-color: var(--studio-line); }
+.precinct-root[data-theme="studio"] :is(.npc-assignment dd, .npc-offline-label, .npc-help, .npc-subtitle > span, .npc-prompt small, .npc-memory-notice, .npc-panel .local-speech > span) { color: var(--studio-muted); font-size: 13px; }
+.precinct-root[data-theme="studio"] .npc-topics > button { justify-content: flex-start; text-align: left; border-radius: 12px; }
+.precinct-root[data-theme="studio"] :is(.precinct-interview, .precinct-observation) { --interview-paper: var(--studio-canvas); --interview-ink: var(--studio-ink); --interview-line: var(--studio-line); }
+.precinct-root[data-theme="studio"] :is(.precinct-intercom, .precinct-interview-controls, .precinct-interview-boundary, .precinct-table-status, .precinct-selected-source, .precinct-session .playback) { color: var(--studio-ink); background: var(--studio-raised); border-color: var(--studio-line); border-radius: 12px; }
+.precinct-root[data-theme="studio"] .precinct-selected-source { background: var(--studio-canvas); }
+.precinct-root[data-theme="studio"] :is(.precinct-interview-kicker, .precinct-interview .transcript .speaker, .precinct-interview .record-meta, .precinct-interview .fine, .precinct-interview .empty, .precinct-interview-ground-rule, .precinct-session-origin, .precinct-session .precinct-note, .precinct-session .composer .counter) { color: var(--studio-muted); }
+.precinct-root[data-theme="studio"] .precinct-interview .tab { color: var(--studio-muted); border-radius: 100px; min-height: 44px; height: auto; }
+.precinct-root[data-theme="studio"] .precinct-interview .tab[data-state="active"] { color: var(--studio-ink); background: var(--studio-raised); border-color: var(--studio-control-line); box-shadow: inset 0 -2px var(--studio-focus); }
+.precinct-root[data-theme="studio"] .precinct-interview .tab:hover:not([data-state="active"]) { background: var(--studio-raised); }
+.precinct-root[data-theme="studio"] .precinct-interview th { background: var(--studio-raised); }
+.precinct-root[data-theme="studio"] .precinct-interview .transcript [data-highlighted="true"] { background: #19374b; color: var(--studio-ink); }
+.precinct-root[data-theme="studio"] :is(.precinct-session-audio, .precinct-debrief-dimensions div, .precinct-session-review li) { border-color: var(--studio-line); }
+.precinct-root[data-theme="studio"] .precinct-debrief-total { color: var(--studio-ink); font-family: var(--arena-font-sans); font-variant-numeric: tabular-nums; }
+
+/* Keep monitor SVG illustrations intact. Only their surrounding controls/captions are themed. */
+.precinct-root[data-theme="studio"] .awm { --awm-ink: var(--studio-ink); --awm-muted: var(--studio-muted); --awm-paper: var(--studio-canvas); --awm-border: var(--studio-line); background: var(--studio-surface); }
+.precinct-root[data-theme="studio"] :is(.awm-header, .awm-style-picker, .awm-caption, .awm-flag-quotes) { color: var(--studio-ink); background: var(--studio-raised); border-color: var(--studio-line); }
+.precinct-root[data-theme="studio"] :is(.awm-eyebrow, .awm-item-kind, .awm-safety, .awm-thumbnail-note) { color: var(--studio-muted); }
+.precinct-root[data-theme="studio"] :is(.awm-expand, .awm-style-picker button) { color: var(--studio-ink); background: var(--studio-raised); border-color: var(--studio-control-line); min-height: 44px; border-radius: 100px; }
+.precinct-root[data-theme="studio"] .awm-expand { width: 44px; }
+.precinct-root[data-theme="studio"] .awm-style-picker button[aria-pressed="true"] { background: var(--studio-hover); color: var(--studio-ink); border-color: var(--studio-focus); }
+.precinct-root[data-theme="studio"] .awm-record li { border-color: var(--studio-line); }
+.precinct-root[data-theme="studio"] .awm-record li button { color: var(--studio-focus); }
+.precinct-root[data-theme="studio"] .awm-status-dot { background: var(--studio-muted); }
+.precinct-root[data-theme="studio"] .awm-agent-status [data-status="working"] .awm-status-dot { background: var(--studio-ink); outline-color: var(--studio-control-line); }
+.precinct-root[data-theme="studio"] .awm-agent-status [data-status="failed"] .awm-status-dot { background: var(--studio-ink); }
+.precinct-root[data-theme="studio"] .awm-agent-status [data-status="withheld"] .awm-status-dot { background: var(--studio-muted); }
+
+/* Slice-five capture/replay status is never suppressed or recolored as a success claim. */
+.precinct-root[data-theme="studio"] :is(.precinct-capture-status, .precinct-capture-error, .precinct-replay__notice) { color: var(--studio-ink); background: var(--studio-surface); border-color: var(--studio-control-line); }
+.precinct-root[data-theme="studio"] :is(.precinct-replay__eyebrow, .precinct-replay time) { color: var(--studio-muted); }
+.precinct-root[data-theme="studio"] :is(.precinct-replay__section, .precinct-replay__ground-rule) { border-color: var(--studio-line); }
+.precinct-root[data-theme="studio"] .precinct-replay__timeline input { accent-color: var(--studio-ink); }
+.precinct-root[data-theme="studio"] .precinct-replay__controls button { color: var(--studio-ink); background: var(--studio-raised); border: 1px solid var(--studio-control-line); border-radius: 100px; min-height: 44px; padding: 10px 16px; font: inherit; }
+.precinct-root[data-theme="studio"] :is(.dossier-error, .npc-prompt [role=alert], .npc-memory-error) { color: var(--studio-ink) !important; background: var(--studio-raised); border-color: var(--studio-ink); }
+.precinct-root[data-theme="studio"] [role=alert] { border-left: 3px solid var(--studio-ink); padding-left: .75rem; }
+
+/* Comfort preferences compose with either theme; high contrast remains dark in Studio. */
+.precinct-root[data-theme="studio"].high-contrast { --studio-canvas: #000; --studio-surface: #090909; --studio-raised: #171717; --studio-hover: #272727; --studio-ink: #fff; --studio-muted: #dedee3; --studio-line: #8b8b95; --studio-control-line: #b9b9c2; }
+.precinct-root[data-theme="studio"].high-contrast :is(.precinct-header, .precinct-objective, .precinct-controls) { background: var(--studio-surface); }
+.precinct-root[data-theme="studio"].high-contrast .precinct-welcome::before { background: none; }
+.precinct-root[data-theme="studio"].high-contrast .precinct-session { color: var(--studio-ink); }
+.precinct-root[data-theme="studio"].high-contrast :is(.npc-panel .npc-help, .npc-panel .npc-memory-notice, .npc-panel .npc-offline-label, .precinct-settings small, .precinct-note, .station-directory small, .precinct-session-origin) { color: var(--studio-muted); }
+.precinct-root[data-theme="studio"].high-contrast .precinct-session :is(.precinct-note, .composer .counter) { color: var(--studio-muted); }
+.precinct-root[data-theme="studio"].high-contrast .precinct-observation-grid .awm { --awm-ink: var(--studio-ink); --awm-muted: var(--studio-muted); --awm-border: var(--studio-line); }
+.precinct-root[data-theme="studio"].high-contrast .precinct-observation-grid .awm :is(.awm-eyebrow, .awm-thumbnail-note) { color: var(--studio-muted); }
+.precinct-root[data-theme="studio"].large-text :is(.precinct-dialog, .precinct-theme-picker legend) { font-size: 18px; }
+.precinct-root[data-theme="studio"].large-text .precinct-welcome h1 { letter-spacing: -.035em; }
+.precinct-root[data-theme="studio"].large-text :is(.precinct-primary, .precinct-secondary, .precinct-text-button, .btn-primary, .btn-primary-sm, .btn-secondary-sm, .precinct-settings > label, .precinct-settings select, .npc-topics > button) { font-size: 17px; }
+.precinct-root[data-theme="studio"].large-text :is(.precinct-objective p, .precinct-settings small, .precinct-note, .station-directory small, .precinct-safety, .precinct-ground-rule, .npc-help, .npc-memory-notice, .npc-prompt small, .npc-panel .local-speech > span) { font-size: 15px; }
+.precinct-root[data-theme="studio"].large-text :is(.precinct-controls, .precinct-objective small, .precinct-kicker, .welcome-meta) { font-size: 13px; }
+.precinct-root[data-theme="studio"].large-text :is(.panel-lead, .precinct-welcome p) { font-size: 20px; }
+.precinct-root[data-theme="studio"].large-text .precinct-objective { width: 320px; }
+
+@media (max-width: 1000px) {
+  .precinct-root[data-theme="studio"] .precinct-header { left: 20px; right: 20px; }
+  .precinct-root[data-theme="studio"] .precinct-objective { left: 20px; }
+  .precinct-root[data-theme="studio"] .precinct-controls { left: 20px; }
+}
+@media (max-width: 700px) {
+  .precinct-theme-options { grid-template-columns: minmax(0, 1fr); }
+  .precinct-root[data-theme="studio"] .precinct-header { top: 16px; left: 16px; right: 16px; gap: 10px; padding: 10px 12px; }
+  .precinct-root[data-theme="studio"] .precinct-header-actions { gap: 8px; }
+  .precinct-root[data-theme="studio"] .local-badge { font-size: 8px; letter-spacing: 0; padding: 5px 7px; }
+  .precinct-root[data-theme="studio"] .precinct-brand { font-size: 16px; gap: 8px; }
+  .precinct-root[data-theme="studio"] .precinct-brand small { font-size: 7px; }
+  .precinct-root[data-theme="studio"] .brand-emblem { width: 34px; height: 34px; }
+  .precinct-root[data-theme="studio"] .precinct-welcome { left: 16px; width: calc(100% - 32px); bottom: 13%; padding: 26px 24px; border-radius: 20px; }
+  .precinct-root[data-theme="studio"] .precinct-welcome h1 { font-size: clamp(42px, 10vw, 62px); }
+  .precinct-root[data-theme="studio"] .precinct-welcome p { font-size: 15px; }
+  .precinct-root[data-theme="studio"] .precinct-welcome p br { display: none; }
+  .precinct-root[data-theme="studio"] .precinct-objective { top: 108px; left: 16px; width: min(280px, calc(100% - 32px)); box-sizing: border-box; }
+  .precinct-root[data-theme="studio"] .precinct-pause { top: auto; right: 16px; bottom: 272px; }
+  .precinct-root[data-theme="studio"] .precinct-minimap { width: 118px; right: 16px; bottom: 112px; }
+  .precinct-root[data-theme="studio"] .precinct-minimap > svg { height: 100px; }
+  .precinct-root[data-theme="studio"] .precinct-controls { left: 16px; right: 16px; bottom: 78px; max-width: none; padding: 8px 10px; gap: 5px 9px; font-size: 10px; }
+  .precinct-root[data-theme="studio"] .precinct-interact { left: 16px; bottom: 206px; transform: none; min-width: 0; max-width: calc(100% - 166px); }
+  .precinct-root[data-theme="studio"] .precinct-ground-rule { font-size: 11px; padding: 8px 14px; }
+  .precinct-root[data-theme="studio"].large-text .precinct-objective { width: min(320px, calc(100% - 32px)); }
+}
+@media (forced-colors: active) {
+  .precinct-theme-option { border-color: ButtonText; background: Canvas; color: CanvasText; }
+  .precinct-theme-option[data-selected="true"] { outline: 2px solid Highlight; }
+  .precinct-root[data-theme="studio"] { --studio-canvas: Canvas; --studio-surface: Canvas; --studio-raised: Canvas; --studio-hover: Canvas; --studio-ink: CanvasText; --studio-muted: CanvasText; --studio-line: ButtonText; --studio-control-line: ButtonText; --studio-focus: Highlight; }
+  .precinct-root[data-theme="studio"] .precinct-welcome::before { background: none; }
+  .precinct-root[data-theme="studio"] :focus-visible { outline-color: Highlight; }
+  .precinct-root[data-theme="studio"] :is(.precinct-primary, .btn-primary, .btn-primary-sm, .dossier-button-primary) { color: ButtonText; background: ButtonFace; border-color: ButtonText; }
+  .precinct-root[data-theme="studio"] .dossier-button-primary { color: ButtonText !important; }
+  .precinct-root[data-theme="studio"] :is(.precinct-interview .tab[data-state="active"], .dossier-tabs button[aria-selected="true"]) { outline: 2px solid Highlight; }
+}

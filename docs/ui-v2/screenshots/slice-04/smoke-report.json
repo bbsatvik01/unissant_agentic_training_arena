@@ -1,0 +1,1832 @@
+{
+  "status": "passed",
+  "target": "http://127.0.0.1:5173/",
+  "mockPort": 8084,
+  "browser": "154.0.8037.57",
+  "executablePath": "/usr/bin/chromium",
+  "args": [
+    "--use-gl=angle",
+    "--use-angle=swiftshader",
+    "--enable-unsafe-swiftshader",
+    "--disable-background-networking"
+  ],
+  "verification": "Automated ephemeral browser smoke. Software WebGL captures still require independent visual and real-device review.",
+  "viewports": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "checks": [
+        {
+          "name": "actual renderer, explicit mock identity and EX4",
+          "passed": true,
+          "detail": "",
+          "durationMs": 129464
+        },
+        {
+          "name": "fresh practice, preparation handoff and explicit call/sit/exit",
+          "passed": true,
+          "detail": "",
+          "durationMs": 74402
+        },
+        {
+          "name": "typed exchanges, release thresholds, public table and cited draft",
+          "passed": true,
+          "detail": "",
+          "durationMs": 104753
+        },
+        {
+          "name": "committed trainee finding and own authored unscored debrief",
+          "passed": true,
+          "detail": "",
+          "durationMs": 17929
+        },
+        {
+          "name": "genuine recorded coach and four shared monitor projections",
+          "passed": true,
+          "detail": "",
+          "durationMs": 68376
+        },
+        {
+          "name": "pending and active assessment withhold coaching after recorded review",
+          "passed": true,
+          "detail": "",
+          "durationMs": 65115
+        },
+        {
+          "name": "five captures, zero external/audio attempts and no hidden failures",
+          "passed": true,
+          "detail": "",
+          "durationMs": 6
+        }
+      ],
+      "screenshots": [
+        {
+          "name": "01-seated-scripted-interview",
+          "path": "01-seated-scripted-interview-1440x900.png",
+          "renderer": "live-webgl"
+        },
+        {
+          "name": "02-released-evidence-and-cited-draft",
+          "path": "02-released-evidence-and-cited-draft-1440x900.png",
+          "renderer": "live-webgl"
+        },
+        {
+          "name": "03-authored-unscored-debrief",
+          "path": "03-authored-unscored-debrief-1440x900.png",
+          "renderer": "live-webgl"
+        },
+        {
+          "name": "04-genuine-recorded-coach-card",
+          "path": "04-genuine-recorded-coach-card-1440x900.png",
+          "renderer": "live-webgl"
+        },
+        {
+          "name": "05-genuine-recorded-observation-screens",
+          "path": "05-genuine-recorded-observation-screens-1440x900.png",
+          "renderer": "live-webgl"
+        }
+      ],
+      "sceneAudits": [
+        {
+          "name": "presented-paper-third-person",
+          "path": "audit-presented-paper-third-person-1440x900.png",
+          "renderer": "live-webgl-needs-independent-visual-review"
+        },
+        {
+          "name": "physical-observation-monitor",
+          "path": "audit-physical-observation-monitor-1440x900.png",
+          "renderer": "live-webgl-needs-independent-visual-review"
+        }
+      ],
+      "errors": [],
+      "shutdownDiagnostics": [],
+      "external": [],
+      "audio": [],
+      "requests": [
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/@vite/client"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/main.tsx?t=1792072787223"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/@react-refresh"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.pnpm/vite@8.3.1_@types+node@24.13.6_jiti@2.7.0/node_modules/vite/dist/client/env.mjs"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/app.css?t=1792072787223"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react.js?v=a0677768"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=213181d9"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-router_dom.js?v=089d94fa"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/router.tsx?t=1792072742902"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=a0677768"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/rolldown-runtime-DC62tzP2.js?v=b1d32f4f"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-router.js?v=14ddd935"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/PrecinctRoute.tsx?t=1792072742902"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom.js?v=a0677768"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/development-mz1XJHPJ.js?v=b1d32f4f"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/public/world/precinct-manifest.json?import"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/copy/ex4.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/hooks/usePrecinctNpcController.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/ReceptionBriefingPanel.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/PrecinctDeskPanel.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/PrecinctCaseChoicePanel.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/precinct/usePrecinctSession.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/precinct/usePrecinctNotebook.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/movement.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/sceneTypes.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/RenderBoundary.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/InterviewStationPanel.tsx?t=1792072585449"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/ObservationStationPanel.tsx?t=1792072581543"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/agent-work/AgentWorkMonitor.tsx?t=1792072417357"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/SessionControlPanel.tsx?t=1792072585449"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/SessionDebriefPanel.tsx?t=1792072585449"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/agent-work/model.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/evidenceTable.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/orientationProgress.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/interviewStage.ts?t=1792072417235"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/interviewStart.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/precinct/usePrecinctWorkFrame.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/precinct/useInterviewStationUi.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/precinct/useOrientationHandoff.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/precinct.css"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/precinct-interview-route.css?t=1792072742902"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/scheduler-0aUpBaxj.js?v=b1d32f4f"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/npcLocalAdapter.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/npcVisitMemory.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/npcIdentity.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/staffDialogue.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/LocalSpeech.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/precinct-staff-panel.css"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/DossierPanel.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/precinct-desk.css"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/api/precinctLocalApi.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/api/precinctStationReads.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/study/study.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/localReadAloud.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/session.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/cases.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/cast.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/latest.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/live.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/parseRecording.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/voice/liveWorld.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/world/useLiveSession.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/world/usePlayback.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/world/useVoice.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/world/useVoiceSession.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/world/voiceEngines.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/dossier.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/notebookWorkspace.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/preparationHandoff.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/copy/finding.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/overlay/CoachPanel.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/overlay/EvidencePanel.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/overlay/FindingPanel.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/overlay/Tabs.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/overlay/Transcript.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/PublicEvidenceTable.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/precinct-interview.css?t=1792072581543"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/observationScreens.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/overlay/Controls.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/overlay/VoiceBar.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/precinct-session.css?t=1792072585449"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/copy/rubric.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/debrief.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/agent-work.css"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/contracts/quote.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/visemes.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/workFrameSampler.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/orientationHandoff.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/notebook.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/dossier.css"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/api/arena.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/api/client.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/voice/tts.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/fixtures/cases.json?import"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/recording.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/contracts/validate.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/voice/voiceMachine.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/worldState.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/trial/trialReducer.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/voice/speechSync.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/trial/sessionController.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/sessionMemory.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/audioLips.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/world/voiceAudio.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/voice/gemini.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/notebookController.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/cadence.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/contracts/compiled/validators.js"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/contracts/invariants.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/companion/fsm.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/sse/trial-stream.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/voice/playbackLedger.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/sse/ticketed-stream.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/PrecinctCanvas.tsx?t=1792072571830"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/favicon.svg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/@react-three_fiber.js?v=6e5231c2"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three.js?v=0c9bd951"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_loaders_GLTFLoader__js.js?v=db264250"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_libs_meshopt___decoder__module__js.js?v=ad10bc2a"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_environments_RoomEnvironment__js.js?v=8104abd1"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/cadence.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/seatedNavigation.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/quality.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/WalkingAvatar.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/PrecinctStaff.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/PrecinctInterviewCast.tsx?t=1792072417235"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/ObservationWorkScreens.tsx?t=1792072571792"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/PresentedEvidencePaper.tsx?t=1792072571830"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three.module-QAJAubfM.js?v=b1d32f4f"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_utils_SkeletonUtils__js.js?v=b058bed6"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/staff.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_server.js?v=fed2ad2d"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/localSvgTexture.ts?t=1792072571792"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/seatedAvatarRig.ts?t=1792072417235"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-runtime.js?v=a0677768"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/world/precinct.glb"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/avatar.glb"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/avatar.glb"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_06/avatar.glb"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/body.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/body_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/head.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/head_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/opacity.png"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/body.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/body_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/head.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/head_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/me"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/cases"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/me/ack-ex4"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/cases/C-7Q2MXK4D"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Male_Adult_05/avatar.glb"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_02/avatar.glb"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Male_Adult_05/body.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Male_Adult_05/body_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Male_Adult_05/head.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Male_Adult_05/head_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Male_Adult_05/opacity.png"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_02/body.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_02/body_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_02/head.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_02/head_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_02/opacity.png"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/cases/C-7Q2MXK4D"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/sessions"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/snapshot"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/stream-tickets"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/events?ticket=LOCAL_FIXTURE_REDACTED&after=0"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_02/avatar.glb"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_02/body.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_02/body_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_02/head.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_02/head_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_02/opacity.png"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_02/glasses.png"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/evidence-requests"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/evidence-requests"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/evidence-requests"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/evidence-requests"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/finding"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/sessions/6f8f7a67-4751-4a7c-bbec-6471580fc007/debrief"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/me"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/cases"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/trials/a72cdfd4-0100-4ea7-a421-aa3e6b194f77/snapshot"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/fixtures/recordings/F01-coached.json?import"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/cases/C-7Q2MXK4D"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/cases/C-7Q2MXK4D"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/sessions"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/trials/d3ea8242-cbf1-4907-a9f6-6119cd18c612/snapshot"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/d3ea8242-cbf1-4907-a9f6-6119cd18c612/stream-tickets"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/trials/d3ea8242-cbf1-4907-a9f6-6119cd18c612/events?ticket=LOCAL_FIXTURE_REDACTED&after=0"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/d3ea8242-cbf1-4907-a9f6-6119cd18c612/turns"
+        }
+      ],
+      "failedRequests": [],
+      "mockExit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "checks": [
+        {
+          "name": "actual renderer, explicit mock identity and EX4",
+          "passed": true,
+          "detail": "",
+          "durationMs": 71170
+        },
+        {
+          "name": "fresh practice, preparation handoff and explicit call/sit/exit",
+          "passed": true,
+          "detail": "",
+          "durationMs": 86196
+        },
+        {
+          "name": "typed exchanges, release thresholds, public table and cited draft",
+          "passed": true,
+          "detail": "",
+          "durationMs": 127523
+        },
+        {
+          "name": "committed trainee finding and own authored unscored debrief",
+          "passed": true,
+          "detail": "",
+          "durationMs": 28550
+        },
+        {
+          "name": "genuine recorded coach and four shared monitor projections",
+          "passed": true,
+          "detail": "",
+          "durationMs": 104307
+        },
+        {
+          "name": "pending and active assessment withhold coaching after recorded review",
+          "passed": true,
+          "detail": "",
+          "durationMs": 106226
+        },
+        {
+          "name": "five captures, zero external/audio attempts and no hidden failures",
+          "passed": true,
+          "detail": "",
+          "durationMs": 9
+        }
+      ],
+      "screenshots": [
+        {
+          "name": "01-seated-scripted-interview",
+          "path": "01-seated-scripted-interview-1920x1080.png",
+          "renderer": "live-webgl"
+        },
+        {
+          "name": "02-released-evidence-and-cited-draft",
+          "path": "02-released-evidence-and-cited-draft-1920x1080.png",
+          "renderer": "live-webgl"
+        },
+        {
+          "name": "03-authored-unscored-debrief",
+          "path": "03-authored-unscored-debrief-1920x1080.png",
+          "renderer": "live-webgl"
+        },
+        {
+          "name": "04-genuine-recorded-coach-card",
+          "path": "04-genuine-recorded-coach-card-1920x1080.png",
+          "renderer": "live-webgl"
+        },
+        {
+          "name": "05-genuine-recorded-observation-screens",
+          "path": "05-genuine-recorded-observation-screens-1920x1080.png",
+          "renderer": "live-webgl"
+        }
+      ],
+      "sceneAudits": [
+        {
+          "name": "presented-paper-third-person",
+          "path": "audit-presented-paper-third-person-1920x1080.png",
+          "renderer": "live-webgl-needs-independent-visual-review"
+        },
+        {
+          "name": "physical-observation-monitor",
+          "path": "audit-physical-observation-monitor-1920x1080.png",
+          "renderer": "live-webgl-needs-independent-visual-review"
+        }
+      ],
+      "errors": [],
+      "shutdownDiagnostics": [
+        "502 http://127.0.0.1:5173/api/trials/45c36f61-182a-4497-8990-8f09ebad9c28/stream-tickets",
+        "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "external": [],
+      "audio": [],
+      "requests": [
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/@vite/client"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/main.tsx?t=1792072787223"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/@react-refresh"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/app.css?t=1792072787223"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react.js?v=a0677768"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=213181d9"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-router_dom.js?v=089d94fa"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/router.tsx?t=1792072742902"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=a0677768"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.pnpm/vite@8.3.1_@types+node@24.13.6_jiti@2.7.0/node_modules/vite/dist/client/env.mjs"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/rolldown-runtime-DC62tzP2.js?v=b1d32f4f"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-router.js?v=14ddd935"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/PrecinctRoute.tsx?t=1792072742902"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom.js?v=a0677768"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/development-mz1XJHPJ.js?v=b1d32f4f"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/scheduler-0aUpBaxj.js?v=b1d32f4f"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/public/world/precinct-manifest.json?import"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/copy/ex4.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/hooks/usePrecinctNpcController.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/ReceptionBriefingPanel.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/PrecinctDeskPanel.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/PrecinctCaseChoicePanel.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/precinct/usePrecinctSession.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/precinct/usePrecinctNotebook.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/movement.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/sceneTypes.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/RenderBoundary.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/InterviewStationPanel.tsx?t=1792072585449"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/ObservationStationPanel.tsx?t=1792072581543"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/agent-work/AgentWorkMonitor.tsx?t=1792072417357"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/SessionControlPanel.tsx?t=1792072585449"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/SessionDebriefPanel.tsx?t=1792072585449"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/agent-work/model.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/evidenceTable.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/orientationProgress.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/interviewStage.ts?t=1792072417235"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/interviewStart.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/precinct/usePrecinctWorkFrame.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/precinct/useInterviewStationUi.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/precinct/useOrientationHandoff.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/precinct.css"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/precinct-interview-route.css?t=1792072742902"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/npcLocalAdapter.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/npcVisitMemory.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/DossierPanel.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/precinct-desk.css"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/npcIdentity.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/staffDialogue.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/LocalSpeech.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/precinct-staff-panel.css"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/dossier.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/notebookWorkspace.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/preparationHandoff.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/api/precinctLocalApi.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/api/precinctStationReads.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/study/study.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/localReadAloud.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/session.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/cases.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/cast.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/latest.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/live.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/parseRecording.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/voice/liveWorld.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/world/useLiveSession.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/world/usePlayback.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/world/useVoice.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/world/useVoiceSession.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/world/voiceEngines.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/copy/finding.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/overlay/CoachPanel.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/overlay/EvidencePanel.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/overlay/FindingPanel.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/overlay/Tabs.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/overlay/Transcript.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/PublicEvidenceTable.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/precinct-interview.css?t=1792072581543"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/observationScreens.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/overlay/Controls.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/overlay/VoiceBar.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/precinct-session.css?t=1792072585449"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/agent-work.css"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/copy/rubric.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/debrief.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/workFrameSampler.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/visemes.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/contracts/quote.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/orientationHandoff.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/notebook.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/styles/dossier.css"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/api/arena.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/api/client.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/notebookController.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/voice/tts.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/fixtures/cases.json?import"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/recording.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/contracts/validate.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/trial/sessionController.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/trial/trialReducer.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/sessionMemory.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/voice/speechSync.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/worldState.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/voice/voiceMachine.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/audioLips.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/routes/world/voiceAudio.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/voice/gemini.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/cadence.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/contracts/compiled/validators.js"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/contracts/invariants.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/sse/trial-stream.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/companion/fsm.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/voice/playbackLedger.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/sse/ticketed-stream.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/PrecinctCanvas.tsx?t=1792072571830"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/favicon.svg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/@react-three_fiber.js?v=6e5231c2"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three.js?v=0c9bd951"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_loaders_GLTFLoader__js.js?v=db264250"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_libs_meshopt___decoder__module__js.js?v=ad10bc2a"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_environments_RoomEnvironment__js.js?v=8104abd1"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/cadence.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/seatedNavigation.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/world/quality.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/WalkingAvatar.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/PrecinctStaff.tsx"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/PrecinctInterviewCast.tsx?t=1792072417235"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/ObservationWorkScreens.tsx?t=1792072571792"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/PresentedEvidencePaper.tsx?t=1792072571830"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three.module-QAJAubfM.js?v=b1d32f4f"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_utils_SkeletonUtils__js.js?v=b058bed6"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/lib/precinct/staff.ts"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_server.js?v=fed2ad2d"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/localSvgTexture.ts?t=1792072571792"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/components/precinct/seatedAvatarRig.ts?t=1792072417235"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-runtime.js?v=a0677768"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/world/precinct.glb"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/avatar.glb"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/avatar.glb"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_06/avatar.glb"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/body.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/body_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/head.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/head_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/opacity.png"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/body.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/body_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/head.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/head_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/me"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/cases"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/me/ack-ex4"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/cases/C-7Q2MXK4D"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Male_Adult_05/avatar.glb"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_02/avatar.glb"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Male_Adult_05/body.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Male_Adult_05/body_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Male_Adult_05/head.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Male_Adult_05/head_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Male_Adult_05/opacity.png"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_02/body.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_02/body_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_02/head.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_02/head_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_02/opacity.png"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/cases/C-7Q2MXK4D"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/sessions"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/snapshot"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/stream-tickets"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/events?ticket=LOCAL_FIXTURE_REDACTED&after=0"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_02/avatar.glb"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_02/body.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_02/body_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_02/head.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_02/head_n.jpg"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_02/opacity.png"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_02/glasses.png"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/evidence-requests"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/evidence-requests"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/evidence-requests"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/evidence-requests"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/finding"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/sessions/7cba9f72-f8db-4a92-9728-60e4446b782c/debrief"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/me"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/cases"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/trials/bbbf50e4-f081-498d-b80e-ce67bcabd95e/snapshot"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/src/fixtures/recordings/F01-coached.json?import"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/cases/C-7Q2MXK4D"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/cases/C-7Q2MXK4D"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/sessions"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/trials/45c36f61-182a-4497-8990-8f09ebad9c28/snapshot"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/45c36f61-182a-4497-8990-8f09ebad9c28/stream-tickets"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:5173/api/trials/45c36f61-182a-4497-8990-8f09ebad9c28/events?ticket=LOCAL_FIXTURE_REDACTED&after=0"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/45c36f61-182a-4497-8990-8f09ebad9c28/turns"
+        },
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5173/api/trials/45c36f61-182a-4497-8990-8f09ebad9c28/stream-tickets"
+        }
+      ],
+      "failedRequests": [],
+      "mockExit": {
+        "code": 0,
+        "signal": null
+      }
+    }
+  ],
+  "fatal": null
+}

@@ -13,6 +13,15 @@ export default mergeConfig(
   defineConfig({
     test: {
       environment: "node",
+      // Keep the complete suite within shared-cloud/laptop memory; no tests, timeouts,
+      // coverage rules or assertions are relaxed. Excess forks can fail before tests start.
+      maxWorkers: 1,
+      // This checked-in, dependency-free ESM is already generated/drift-tested and excluded
+      // from coverage reporting. Native loading avoids Vite rewriting/transferring its 2 MB
+      // wrapper under precise coverage. The isolated CSP test still first imports it only
+      // after blocking Function/eval. Keep all handwritten source in the normal pipeline.
+      // Regenerating this native module in watch mode requires a fresh test process.
+      server: { deps: { external: [/\/src\/lib\/contracts\/compiled\/validators\.js$/] } },
       include: ["src/**/*.test.{ts,tsx}", "tools/**/*.test.ts"],
       coverage: {
         provider: "v8",

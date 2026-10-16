@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "description": "Original fictional authored staff lines. Native formant voices only. No user text or personalized names.",
+  "lines": [
+    {
+      "id": "receptionist-introduction",
+      "voice_id": "local-reception-v1",
+      "text": "Welcome to the training precinct. I can help you find a room or explain how to get started.",
+      "voice": "en-us",
+      "pitch": 55,
+      "words_per_minute": 155
+    },
+    {
+      "id": "receptionist-welcome",
+      "voice_id": "local-reception-v1",
+      "text": "Welcome. Welcome to the training precinct. I can help you find a room or explain how to get started.",
+      "voice": "en-us",
+      "pitch": 55,
+      "words_per_minute": 155
+    },
+    {
+      "id": "receptionist-return",
+      "voice_id": "local-reception-v1",
+      "text": "Good to see you again. Welcome to the training precinct. I can help you find a room or explain how to get started.",
+      "voice": "en-us",
+      "pitch": 55,
+      "words_per_minute": 155
+    },
+    {
+      "id": "receptionist-redirect",
+      "voice_id": "local-reception-v1",
+      "text": "I can help with directions and interviewing technique, not case-specific answers. Ask one neutral question at a time, distinguish observations from interpretations, and check claims against available evidence.",
+      "voice": "en-us",
+      "pitch": 55,
+      "words_per_minute": 155
+    },
+    {
+      "id": "receptionist-cases",
+      "voice_id": "local-reception-v1",
+      "text": "The case board is on the east side of the lobby, opposite reception. Choose a training case there, then review the public dossier at your desk.",
+      "voice": "en-us",
+      "pitch": 55,
+      "words_per_minute": 155
+    },
+    {
+      "id": "receptionist-desk",
+      "voice_id": "local-reception-v1",
+      "text": "Head north along the central corridor. Your dossier desk is the second room on the left, after the open office.",
+      "voice": "en-us",
+      "pitch": 55,
+      "words_per_minute": 155
+    },
+    {
+      "id": "receptionist-briefing",
+      "voice_id": "local-reception-v1",
+      "text": "The training sergeant is inside Briefing, toward the north end of the corridor on the left.",
+      "voice": "en-us",
+      "pitch": 55,
+      "words_per_minute": 155
+    },
+    {
+      "id": "receptionist-interview",
+      "voice_id": "local-reception-v1",
+      "text": "The interview room is the first room on the right as you enter the central corridor. Review your briefing and the public material before starting.",
+      "voice": "en-us",
+      "pitch": 55,
+      "words_per_minute": 155
+    },
+    {
+      "id": "receptionist-replay",
+      "voice_id": "local-reception-v1",
+      "text": "Debrief and replay is the third room on the right. Use your recorded session and the available evidence when you review it.",
+      "voice": "en-us",
+      "pitch": 55,
+      "words_per_minute": 155
+    },
+    {
+      "id": "receptionist-leaderboard",
+      "voice_id": "local-reception-v1",
+      "text": "The recognition wall is at the north end of the central corridor. Check eligibility gates before reading a tournament rank. A rank is not certification for real investigations.",
+      "voice": "en-us",
+      "pitch": 55,
+      "words_per_minute": 155
+    },
+    {
+      "id": "receptionist-archive",
+      "voice_id": "local-reception-v1",
+      "text": "The records office is at the north end on your right. It is the place for past recordings, training resources and methodology.",
+      "voice": "en-us",
+      "pitch": 55,
+      "words_per_minute": 155
+    },
+    {
+      "id": "receptionist-access",
+      "voice_id": "local-reception-v1",
+      "text": "Yes. The station menu is another way to reach the same rooms. Use the pause and reduced-motion controls whenever they make the training more comfortable.",
+      "voice": "en-us",
+      "pitch": 55,
+      "words_per_minute": 155
+    },
+    {
+      "id": "sergeant-introduction",
+      "voice_id": "local-sergeant-v1",
+      "text": "We practice clear questions and careful evidence review here. I can discuss technique, but I do not know the answers to your case.",
+      "voice": "en-gb",
+      "pitch": 38,
+      "words_per_minute": 148
+    },
+    {
+      "id": "sergeant-welcome",
+      "voice_id": "local-sergeant-v1",
+      "text": "Welcome. We practice clear questions and careful evidence review here. I can discuss technique, but I do not know the answers to your case.",
+      "voice": "en-gb",
+      "pitch": 38,
+      "words_per_minute": 148
+    },
+    {
+      "id": "sergeant-return",
+      "voice_id": "local-sergeant-v1",
+      "text": "Good to see you again. We practice clear questions and careful evidence review here. I can discuss technique, but I do not know the answers to your case.",
+      "voice": "en-gb",
+      "pitch": 38,
+      "words_per_minute": 148
+    },
+    {
+      "id": "sergeant-redirect",
+      "voice_id": "local-sergeant-v1",
+      "text": "I can help with directions and interviewing technique, not case-specific answers. Ask one neutral question at a time, distinguish observations from interpretations, and check claims against available evidence.",
+      "voice": "en-gb",
+      "pitch": 38,
+      "words_per_minute": 148
+    },
+    {
+      "id": "sergeant-opening",
+      "voice_id": "local-sergeant-v1",
+      "text": "Start with an invitation such as, “Please walk me through what you remember, from the beginning.” Give the person room to answer before narrowing the question.",
+      "voice": "en-gb",
+      "pitch": 38,
+      "words_per_minute": 148
+    },
+    {
+      "id": "sergeant-clarify",
+      "voice_id": "local-sergeant-v1",
+      "text": "Ask one neutral question at a time. Separate what the person directly observed from what they heard, inferred, or do not remember. Do not fill in missing details for them.",
+      "voice": "en-gb",
+      "pitch": 38,
+      "words_per_minute": 148
+    },
+    {
+      "id": "sergeant-evidence",
+      "voice_id": "local-sergeant-v1",
+      "text": "Keep observations, statements, and your interpretations separate. Check a claim against the available records or corroborating information, and record uncertainty when support is incomplete.",
+      "voice": "en-gb",
+      "pitch": 38,
+      "words_per_minute": 148
+    },
+    {
+      "id": "sergeant-demeanor",
+      "voice_id": "local-sergeant-v1",
+      "text": "Do not treat accent, pauses, stress, nervousness, eye contact, or appearance as evidence of truth or deception. Use the content of statements and independently checkable information.",
+      "voice": "en-gb",
+      "pitch": 38,
+      "words_per_minute": 148
+    },
+    {
+      "id": "sergeant-disagreement",
+      "voice_id": "local-sergeant-v1",
+      "text": "Describe the specific difference without assuming why it happened. Ask for clarification, check the source, and keep alternative explanations open until evidence supports a conclusion.",
+      "voice": "en-gb",
+      "pitch": 38,
+      "words_per_minute": 148
+    },
+    {
+      "id": "sergeant-limits",
+      "voice_id": "local-sergeant-v1",
+      "text": "This is a synthetic training exercise. Use the public briefing and authorized material, respect the exercise limits, and avoid pressure or promises. I cannot identify a culprit, reveal hidden facts, or evaluate your case.",
+      "voice": "en-gb",
+      "pitch": 38,
+      "words_per_minute": 148
+    },
+    {
+      "id": "sergeant-review",
+      "voice_id": "local-sergeant-v1",
+      "text": "Review the questions you asked, what each answer actually supported, and what remains uncertain. Use the replay room to find specific moments you can improve.",
+      "voice": "en-gb",
+      "pitch": 38,
+      "words_per_minute": 148
+    }
+  ]
+}

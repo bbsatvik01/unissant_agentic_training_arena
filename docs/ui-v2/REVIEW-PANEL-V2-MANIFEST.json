@@ -1,0 +1,121 @@
+{
+  "status": "source-only; all executable QA NOT RUN",
+  "base_root": "/workspace/shared/precinct-slice-five-integration",
+  "integration_policy": "Apply narrow hunks over assembled candidate; preserve patrol-v2 registry/replay and crowd/voice/variant Canvas deltas. Do not replace advanced shared files.",
+  "files": [
+    {
+      "path": "web/ATTRIBUTIONS.md",
+      "status": "modified",
+      "base_sha256": "bd1260e7dbf34b12275a3d4357956176eb3daa6c32807f4f736c463d9daee972",
+      "final_sha256": "a0cdd80b61b223819c2e5434e1dcba29c208809d32bf795daf6abe16708596d6"
+    },
+    {
+      "path": "web/src/components/precinct/ObservationStationPanel.tsx",
+      "status": "modified",
+      "base_sha256": "065d2162c91b781fa31b27c6748e7521293cfc0c33590861de5835b0e2e0ed49",
+      "final_sha256": "bde52ea459a6539c28a525eb71bfa27a7b1b9770c99926f5b90cedbe890e4642"
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctActorReplay.tsx",
+      "status": "modified",
+      "base_sha256": "867947e4675504f6f3e8f65b73e891ccd9e02900ee4425af13c2fc0d4b0c1b73",
+      "final_sha256": "b1a79dc6fa52952c39e8dab1c08aeee2f9aa018762bd17b42349d0cf7069d617"
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctCanvas.tsx",
+      "status": "modified",
+      "base_sha256": "9cb6d826ffedb2a401dfc3f13731401a8f2d3fded355b4aada81d33d3c0d3d0e",
+      "final_sha256": "5931870a0374c2d7182f13df52a7f541ac8a7851ee8537975a4534fbbee6369d"
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctReviewPanel.tsx",
+      "status": "added",
+      "base_sha256": null,
+      "final_sha256": "86d65b711b36c2ccbe7b947e6784eca1e1683aa8c73ee54ce61d03b97b8db5a6"
+    },
+    {
+      "path": "web/src/components/precinct/PrecinctReviewPanelReplay.test.tsx",
+      "status": "added",
+      "base_sha256": null,
+      "final_sha256": "1d75369cfc0fe9007325108d4f6301aaa4dd4d029f86df72be7b7fd464499d84"
+    },
+    {
+      "path": "web/src/components/precinct/interviewScene.ts",
+      "status": "modified",
+      "base_sha256": "bcbc02f1d1b80c199cc918c2940b2e1e42bde8a6c63cd5d8cbd3ef44fca8e2e7",
+      "final_sha256": "75635ef7afff0f86254150d020bb294fef4648edb964d87264e03214d44518bb"
+    },
+    {
+      "path": "web/src/components/precinct/proceduralActorReplay.test.ts",
+      "status": "modified",
+      "base_sha256": "3d49407be7f3c14fbf510e0bf22b25fce584f53c9b9538a0355959f1ea862cda",
+      "final_sha256": "700acdd9696d9a6c1532e26e78cc4efabec9b09f7293b393df43d964b18d7347"
+    },
+    {
+      "path": "web/src/components/precinct/reviewerBodyV2.test.ts",
+      "status": "added",
+      "base_sha256": null,
+      "final_sha256": "e361253f116da2ec397c9d9568c898e0dece7cbae00ffa8bfba96f99f24ae99d"
+    },
+    {
+      "path": "web/src/components/precinct/reviewerBodyV2.ts",
+      "status": "added",
+      "base_sha256": null,
+      "final_sha256": "158c0c6fc8d4e94e8c6424284909634b6f78790fa6201fa053e8085a11c37df5"
+    },
+    {
+      "path": "web/src/lib/precinct/proceduralActors.ts",
+      "status": "modified",
+      "base_sha256": "6c648a7bc4351767ee5d703df3761e3f195f5d8373a0fc52e80d698fb369c152",
+      "final_sha256": "0a4d338905990cdb571cc55e001170837a14065554e64979d966e547e2870ad4"
+    },
+    {
+      "path": "web/src/lib/precinct/proceduralReviewerV2.test.ts",
+      "status": "added",
+      "base_sha256": null,
+      "final_sha256": "14f45af7e3b67e63a951e4da68529d616dac75ccef91ef50cc864e9c56b8e950"
+    },
+    {
+      "path": "web/src/lib/precinct/proceduralReviewerV2.ts",
+      "status": "added",
+      "base_sha256": null,
+      "final_sha256": "df6b04537932aa8b210d84592713d56319ac5f83f52a31b8621c7d3018e21cd3"
+    },
+    {
+      "path": "web/src/routes/PrecinctRoute.tsx",
+      "status": "modified",
+      "base_sha256": "0c6ee6a0fa1492c531df1188d758586bce6428128a8e12515b47f6f1fd8971fb",
+      "final_sha256": "b6b67e515db63cddb1fd073d53605d0ae45e32c161953314003bec3916bef46a"
+    }
+  ],
+  "unchanged_frozen_source": [
+    {
+      "path": "web/src/lib/precinct/interviewStage.ts",
+      "sha256": "1f332ec6a7944ac08c270703b4ef6df7639274a9b3535c55ca1a1b95245618a9"
+    },
+    {
+      "path": "web/src/lib/precinct/proceduralSeatedV1.ts",
+      "sha256": "53249924dd5536fd2a1ca69c75dab33e67e75aabeeb87581bbdda41b7842b61e"
+    },
+    {
+      "path": "web/src/lib/precinct/proceduralStaffV1.ts",
+      "sha256": "5fdc7eb36884fa5d38595109561486893057e27320226ddcad3b3698ddcaf0a1"
+    },
+    {
+      "path": "web/src/lib/precinct/proceduralWalkingV1.ts",
+      "sha256": "70d567129bdd2d3ae0b120c8908a3c482a21366728947ccc1a02b12a02fabe60"
+    },
+    {
+      "path": "web/src/components/precinct/seatedBodyV1.ts",
+      "sha256": "22aaeb7faa410924f5b413425ae964243c17e2a0f59c80f7fb613c6d874dfdc2"
+    },
+    {
+      "path": "web/src/components/precinct/seatedAvatarRig.ts",
+      "sha256": "b8947afa49fb556c94c1fabda2c851f11ad81ed55c63c36d098498187745ef45"
+    },
+    {
+      "path": "web/src/components/precinct/standingAvatarRigV1.ts",
+      "sha256": "98747f418f3975114799a94105fc53d2c671d0731f5623fa8ad64f2ef466974c"
+    }
+  ]
+}

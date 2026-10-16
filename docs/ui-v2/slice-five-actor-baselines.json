@@ -1,0 +1,33 @@
+{
+  "replaced_or_added": {
+    "web/src/components/precinct/PrecinctActorReplay.test.tsx": null,
+    "web/src/components/precinct/PrecinctActorReplay.tsx": null,
+    "web/src/components/precinct/PrecinctCanvas.tsx": "446235fe47ec9f428c5e0dd8eee04e80e06a7df21d3310fb0d7e843c0ccdffd5",
+    "web/src/components/precinct/PrecinctControls.test.tsx": "5edc563a37f62b1ea1a92f7a7c3cc99d95b5c5fd99450dac9dd3e337a949b9f6",
+    "web/src/components/precinct/PrecinctInterviewCast.tsx": "7e6e2c531a5c0d46fb0268240dfeea72efe87cb8eede4b45390cd21c8b14f2df",
+    "web/src/components/precinct/PrecinctStaff.tsx": "576fa2a527e35fe284718b4ecd3b7744bc9847fb03705f28f04dbde5ba460108",
+    "web/src/components/precinct/WalkingAvatar.tsx": "25a41d32f25f1583bac550ceede46718188ed624d47537eeef12217066c5698f",
+    "web/src/components/precinct/actorSamples.ts": null,
+    "web/src/components/precinct/proceduralActorReplay.test.ts": null,
+    "web/src/components/precinct/proceduralRigFixture.testSupport.ts": null,
+    "web/src/components/precinct/seatedAvatarRig.ts": "0ffa21053e787cda81c823574155d418afe45a26f630330d5c29dbab17d6415f",
+    "web/src/components/precinct/seatedBodyV1.ts": null,
+    "web/src/components/precinct/standingAvatarRigV1.ts": null,
+    "web/src/components/precinct/useActorSampler.test.tsx": null,
+    "web/src/components/precinct/useActorSampler.ts": null,
+    "web/src/lib/precinct/proceduralActors.test.ts": null,
+    "web/src/lib/precinct/proceduralActors.ts": null,
+    "web/src/lib/precinct/proceduralSeatedV1.test.ts": null,
+    "web/src/lib/precinct/proceduralSeatedV1.ts": null,
+    "web/src/lib/precinct/proceduralStaffV1.test.ts": null,
+    "web/src/lib/precinct/proceduralStaffV1.ts": null,
+    "web/src/lib/precinct/proceduralWalkingV1.test.ts": null,
+    "web/src/lib/precinct/proceduralWalkingV1.ts": null
+  },
+  "untouched_current_baselines": {
+    "web/src/components/precinct/interviewScene.ts": "bcbc02f1d1b80c199cc918c2940b2e1e42bde8a6c63cd5d8cbd3ef44fca8e2e7",
+    "web/src/components/precinct/sceneTypes.ts": "92054e59ef4f34f18823f2ea3305074ea5a09f5f7069982e9ff90d0b9a61c749",
+    "web/src/lib/precinct/interviewStage.ts": "1f332ec6a7944ac08c270703b4ef6df7639274a9b3535c55ca1a1b95245618a9",
+    "web/src/components/precinct/PresentedEvidencePaper.tsx": "6791bbef572bac67a37f5fa0ee2dcc37d1d59c3ce9172a5b9e5932a9724c84c7"
+  }
+}

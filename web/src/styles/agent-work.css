@@ -1,0 +1,94 @@
+/* TechnoMile monitor styles: scoped donor palette/geometry, exact caller-clock motion instead of CSS loops. */
+.awm {
+  --awm-ink: #263d35;
+  --awm-muted: #52635c;
+  --awm-paper: #fffdf6;
+  --awm-border: #bcc8bc;
+  margin: 0;
+  color: var(--awm-ink);
+  background: #f8f8f2;
+  border: 1px solid var(--awm-border);
+  border-radius: 14px;
+  overflow: hidden;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  isolation: isolate;
+  min-width: 0;
+}
+.awm *, .awm *::before, .awm *::after { box-sizing: border-box; }
+.awm button { font: inherit; cursor: pointer; color: inherit; }
+.awm button:focus-visible, .awm summary:focus-visible { outline: 3px solid #125f8c; outline-offset: 3px; }
+.awm-header { display: flex; align-items: center; gap: 14px; padding: 17px 22px; background: #fffef7; border-bottom: 1px solid var(--awm-border); }
+.awm-header > div { flex: 1; min-width: 0; }
+.awm-header h3 { font: 500 23px/1.2 Georgia, serif; margin: 4px 0 0; }
+.awm-eyebrow { display: block; font-size: 10px; line-height: 1.4; letter-spacing: 1.2px; color: #52635c; font-weight: 700; }
+.awm-clock-label { font-size: 12px; color: var(--awm-muted); white-space: nowrap; }
+.awm-expand { width: 38px; min-height: 38px; flex: 0 0 auto; border: 1px solid #b7c6b9; background: #f3f6ee; border-radius: 8px; font-size: 22px !important; }
+.awm-style-picker { display: flex; flex-wrap: wrap; gap: 7px; padding: 12px 22px; background: #eef2e9; }
+.awm-style-picker button { border: 1px solid #91a895; padding: 8px 12px; border-radius: 6px; background: #fffef7; font-size: 12px; min-height: 36px; }
+.awm-style-picker button[aria-pressed="true"] { background: #294e40; border-color: #294e40; color: white; }
+.awm-scene { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; }
+.awm-scene-title { font-family: Georgia, serif; font-size: 21px; fill: #2f4438; letter-spacing: .7px; }
+.awm-svg-label { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; fill: #233d35; font-weight: 700; }
+.awm-svg-note { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; fill: #445648; }
+.awm-paper { fill: #fffdf6; stroke: #b6aa93; stroke-width: 1; }
+.awm-paper-rule { stroke: #9aab9d; stroke-width: 2; }
+.awm figcaption { padding: 0 22px 17px; }
+.awm-caption { margin: 0 -22px 16px; padding: 12px 22px; background: #e7eee3; border-block: 1px solid var(--awm-border); font-size: 13px; line-height: 1.5; }
+.awm-agent-status { padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; list-style: none; }
+.awm-agent-status li { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; line-height: 1.4; min-width: 0; }
+.awm-agent-status li > span:last-child { display: grid; gap: 4px; }
+.awm-agent-status li strong { font-weight: 650; }
+.awm-agent-status li > span > span { color: var(--awm-muted); }
+.awm-status-dot { display: inline-block; width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #829083; margin-top: 5px; }
+.awm-agent-status [data-status="working"] .awm-status-dot { background: #32674c; outline: 2px solid #cadbc8; outline-offset: 2px; }
+.awm-agent-status [data-status="failed"] .awm-status-dot { background: #95572b; }
+.awm-agent-status [data-status="withheld"] .awm-status-dot { border-radius: 1px; background: #5b6462; }
+.awm-record { margin-top: 20px; border-top: 1px solid var(--awm-border); font-size: 13px; }
+.awm-record summary { padding: 13px 0; cursor: pointer; font-weight: 650; }
+.awm-record summary > span { margin-left: 8px; color: var(--awm-muted); font-weight: 400; }
+.awm-record ol { margin: 0; padding: 0; list-style: none; max-height: 280px; overflow: auto; }
+.awm-record li { display: grid; grid-template-columns: 70px minmax(0, 1fr) 84px; gap: 12px; padding: 9px 0; align-items: baseline; border-top: 1px solid #d8dfd4; }
+.awm-record li > span:last-child { text-align: right; font-size: 11px; color: var(--awm-muted); }
+.awm-record li button { padding: 2px 0; border: 0; background: transparent; text-align: left; text-decoration: underline; text-underline-offset: 3px; }
+.awm-item-kind { text-transform: uppercase; font-size: 10px; letter-spacing: .6px; color: #526354; }
+.awm-flag-quotes { border: 1px solid #d2c7aa; background: #f8f0d9; margin-top: 15px; padding: 0 13px 4px; line-height: 1.6; overflow-wrap: anywhere; }
+.awm-flag-quotes h4 { margin-bottom: 0; }
+.awm-safety { margin: 17px 0 0; font-size: 11px; line-height: 1.5; color: #52635c; }
+.awm-thumbnail-note { margin: 12px 0 0; font-size: 10px; color: #52635c; }
+.awm--thumbnail .awm-header { padding: 12px 14px; }
+.awm--thumbnail .awm-header h3 { font-size: 19px; }
+.awm--thumbnail .awm-eyebrow { font-size: 9px; }
+.awm--thumbnail .awm-clock-label { display: none; }
+.awm--thumbnail figcaption { padding: 0 14px 13px; }
+.awm--thumbnail .awm-caption { margin: 0 -14px 11px; padding: 9px 14px; font-size: 12px; }
+.awm--thumbnail .awm-agent-status { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; font-size: 11px; }
+.awm--case-board { --awm-border: #c6b99e; background: #f8f3e8; }
+.awm--case-board .awm-caption { background: #eee5d1; }
+.awm--playhouse { --awm-border: #bcb7aa; background: #f7f3e9; }
+.awm--playhouse .awm-caption { background: #e5ebe7; }
+.awm--tower .awm-caption { background: #e2ebe6; }
+.awm-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+/* No CSS/SMIL animation or transition clocks. Pausing the caller clock freezes all geometry exactly. */
+.awm[data-reduced-motion="true"] .awm-gesture { transform: none !important; }
+.awm[data-reduced-motion="true"] .awm-moving { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .awm .awm-gesture { transform: none !important; }
+  .awm .awm-moving { display: none; }
+  .awm .awm-lift { transform: translate(650px, 423px) !important; }
+}
+@media (max-width: 640px) {
+  .awm-agent-status { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .awm-header { padding: 13px 14px; }
+  .awm-header h3 { font-size: 20px; }
+  .awm-clock-label { font-size: 10px; }
+  .awm figcaption { padding-inline: 14px; }
+  .awm-caption { padding-inline: 14px; margin-inline: -14px; }
+  .awm-record li { grid-template-columns: 55px minmax(0, 1fr); }
+  .awm-record li > span:last-child { grid-column: 2; text-align: left; }
+}
+@media (forced-colors: active) {
+  .awm { border: 1px solid CanvasText; }
+  .awm button { border: 1px solid ButtonText; }
+  .awm-status-dot { background: CanvasText; }
+  .awm-scene { forced-color-adjust: none; }
+}

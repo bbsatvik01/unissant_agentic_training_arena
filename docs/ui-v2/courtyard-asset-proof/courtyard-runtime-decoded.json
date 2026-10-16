@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "runtimeSha256": "e985fe9677cf56ce77ee361b8567b5c2bb1eaae9304464f54c473ca2d7c9c4a0",
+  "decodedBinarySha256": "a438d3340602693609c89501f7af0990cf1ae43bc4da8151edd379ca2f7d8af2",
+  "triangles": 121656,
+  "vertices": 210147,
+  "meshMaterialGroups": 44,
+  "decodedBufferViews": 129,
+  "sourceMetadataIdentical": true
+}

@@ -1,0 +1,15 @@
+{
+  "status": "SOURCE ONLY; parse/types/lint/execution all UNRUN",
+  "issue_url": "https://github.com/bbsatvik01/unissant_agentic_training_arena/issues/16",
+  "source": {
+    "path": "web/tools/precinct-staff-audio-smoke.ts",
+    "action": "add only",
+    "bytes": 31280,
+    "sha256": "a863e0c87da1386d48b47cd4b07537a43a87c1a46e7770c0cd1c02cf97b2974c"
+  },
+  "production_changes": false,
+  "dependencies": "Existing finalized voice source/assets and installed Node/Playwright/Chromium; no new package",
+  "browser": "Own disposable test context only, requires explicit CPU grant",
+  "audio_proof": "Real rendered Web Audio signal plus real existing morphs; no audible hardware or human listening claim",
+  "video_audio": false
+}

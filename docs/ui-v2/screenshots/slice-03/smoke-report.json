@@ -1,0 +1,764 @@
+{
+  "generatedAt": "2026-10-15T11:29:05.243Z",
+  "target": "http://127.0.0.1:5173/",
+  "browser": "154.0.8037.57",
+  "executablePath": "/usr/bin/chromium",
+  "launchArgs": [
+    "--use-gl=angle",
+    "--use-angle=swiftshader",
+    "--enable-unsafe-swiftshader"
+  ],
+  "verification": "Automated isolated headless browser smoke and screenshots. Independent visual and real-device GPU checks remain separate.",
+  "status": "passed-automated-smoke",
+  "viewports": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "renderMode": "live-webgl",
+      "checks": [
+        {
+          "name": "actual precinct renderer and local-only startup",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 39196
+        },
+        {
+          "name": "empty desk asks for an explicit assignment",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 7127
+        },
+        {
+          "name": "public case selection loads no interview or score",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 6248
+        },
+        {
+          "name": "screenshot 01-public-case-selection",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 5195
+        },
+        {
+          "name": "check-in and evidence-first briefing use the selected public case",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 26139
+        },
+        {
+          "name": "dossier overview contains public facts and six accessible tabs",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 25059
+        },
+        {
+          "name": "screenshot 02-dossier-overview",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 10093
+        },
+        {
+          "name": "keyboard tabs and source table preserve original document text",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 2002
+        },
+        {
+          "name": "screenshot 03-original-public-document",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 944
+        },
+        {
+          "name": "profile and evidence expose only public supplied materials",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 921
+        },
+        {
+          "name": "timeline uses explicit source cells and never infers missing chronology",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 541
+        },
+        {
+          "name": "screenshot 04-source-led-timeline",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 1250
+        },
+        {
+          "name": "notebook accepts a cited question without moving or saving automatically",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 1765
+        },
+        {
+          "name": "screenshot 05-cited-working-notebook",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 3177
+        },
+        {
+          "name": "notes survive close/reopen and citations reopen the source",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 6820
+        },
+        {
+          "name": "device notebook save and forget are explicit and scoped",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 4520
+        },
+        {
+          "name": "larger text high contrast and 150-percent reading stay within the viewport",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 17073
+        },
+        {
+          "name": "only explicit file-review confirmation advances the shift",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 1593
+        },
+        {
+          "name": "no page overflow or remote/API requests",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 6
+        }
+      ],
+      "screenshots": [
+        {
+          "name": "01-public-case-selection",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-03/01-public-case-selection-1440x900.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "02-dossier-overview",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-03/02-dossier-overview-1440x900.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "03-original-public-document",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-03/03-original-public-document-1440x900.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "04-source-led-timeline",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-03/04-source-led-timeline-1440x900.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "05-cited-working-notebook",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-03/05-cited-working-notebook-1440x900.png",
+          "renderMode": "live-webgl"
+        }
+      ],
+      "console": [
+        {
+          "type": "debug",
+          "text": "[vite] connecting...",
+          "location": {
+            "url": "http://127.0.0.1:5173/@vite/client",
+            "line": 882,
+            "column": 8,
+            "lineNumber": 882,
+            "columnNumber": 8
+          }
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected.",
+          "location": {
+            "url": "http://127.0.0.1:5173/@vite/client",
+            "line": 995,
+            "column": 11,
+            "lineNumber": 995,
+            "columnNumber": 11
+          }
+        },
+        {
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+          "location": {
+            "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=0982d449",
+            "line": 15557,
+            "column": 48,
+            "lineNumber": 15557,
+            "columnNumber": 48
+          }
+        },
+        {
+          "type": "warning",
+          "text": "THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.",
+          "location": {
+            "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three.module-QAJAubfM.js?v=0982d449",
+            "line": 1748,
+            "column": 15,
+            "lineNumber": 1748,
+            "columnNumber": 15
+          }
+        }
+      ],
+      "pageErrors": [],
+      "networkRequests": [
+        "http://127.0.0.1:5173/",
+        "http://127.0.0.1:5173/@vite/client",
+        "http://127.0.0.1:5173/src/main.tsx?t=1792063730829",
+        "http://127.0.0.1:5173/@react-refresh",
+        "http://127.0.0.1:5173/node_modules/.pnpm/vite@8.3.1_@types+node@24.13.6_jiti@2.7.0/node_modules/vite/dist/client/env.mjs",
+        "http://127.0.0.1:5173/src/styles/app.css?t=1792063730829",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-router_dom.js?v=0982d449",
+        "http://127.0.0.1:5173/src/router.tsx?t=1792063730829",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-router.js?v=0982d449",
+        "http://127.0.0.1:5173/src/routes/PrecinctRoute.tsx?t=1792063730829",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/rolldown-runtime-DC62tzP2.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/development-mz1XJHPJ.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom.js?v=0982d449",
+        "http://127.0.0.1:5173/public/world/precinct-manifest.json?t=1792059137213&import",
+        "http://127.0.0.1:5173/src/lib/copy/ex4.ts",
+        "http://127.0.0.1:5173/src/hooks/usePrecinctNpcController.ts?t=1792059464347",
+        "http://127.0.0.1:5173/src/components/precinct/ReceptionBriefingPanel.tsx?t=1792062005946",
+        "http://127.0.0.1:5173/src/components/precinct/PrecinctDeskPanel.tsx?t=1792063730829",
+        "http://127.0.0.1:5173/src/components/precinct/PrecinctCaseChoicePanel.tsx",
+        "http://127.0.0.1:5173/src/routes/precinct/usePrecinctSession.ts",
+        "http://127.0.0.1:5173/src/routes/precinct/usePrecinctNotebook.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/movement.ts",
+        "http://127.0.0.1:5173/src/components/precinct/sceneTypes.ts?t=1792057961753",
+        "http://127.0.0.1:5173/src/components/precinct/RenderBoundary.tsx",
+        "http://127.0.0.1:5173/src/styles/precinct.css?t=1792057961756",
+        "http://127.0.0.1:5173/src/lib/precinct/npcIdentity.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/npcLocalAdapter.ts?t=1792059464347",
+        "http://127.0.0.1:5173/src/lib/precinct/staffDialogue.ts?t=1792057961750",
+        "http://127.0.0.1:5173/src/components/precinct/LocalSpeech.tsx",
+        "http://127.0.0.1:5173/src/styles/precinct-staff-panel.css",
+        "http://127.0.0.1:5173/src/lib/precinct/npcVisitMemory.ts",
+        "http://127.0.0.1:5173/src/components/precinct/DossierPanel.tsx?t=1792063730829",
+        "http://127.0.0.1:5173/src/styles/precinct-desk.css",
+        "http://127.0.0.1:5173/src/lib/api/precinctLocalApi.ts",
+        "http://127.0.0.1:5173/src/lib/study/study.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/localReadAloud.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/session.ts",
+        "http://127.0.0.1:5173/src/lib/world/cases.ts",
+        "http://127.0.0.1:5173/src/lib/world/cast.ts",
+        "http://127.0.0.1:5173/src/lib/world/latest.ts",
+        "http://127.0.0.1:5173/src/lib/world/live.ts",
+        "http://127.0.0.1:5173/src/lib/world/parseRecording.ts",
+        "http://127.0.0.1:5173/src/lib/voice/liveWorld.ts",
+        "http://127.0.0.1:5173/src/routes/world/useLiveSession.ts?t=1792061708541",
+        "http://127.0.0.1:5173/src/routes/world/usePlayback.ts?t=1792061708554",
+        "http://127.0.0.1:5173/src/routes/world/useVoice.ts",
+        "http://127.0.0.1:5173/src/routes/world/useVoiceSession.ts",
+        "http://127.0.0.1:5173/src/routes/world/voiceEngines.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/dossier.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/notebookWorkspace.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/preparationHandoff.ts",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/scheduler-0aUpBaxj.js?v=0982d449",
+        "http://127.0.0.1:5173/src/lib/precinct/notebook.ts",
+        "http://127.0.0.1:5173/src/styles/dossier.css?t=1792063730812",
+        "http://127.0.0.1:5173/src/lib/api/arena.ts",
+        "http://127.0.0.1:5173/src/lib/api/client.ts",
+        "http://127.0.0.1:5173/src/lib/voice/tts.ts",
+        "http://127.0.0.1:5173/src/fixtures/cases.json?import",
+        "http://127.0.0.1:5173/src/lib/contracts/validate.ts",
+        "http://127.0.0.1:5173/src/lib/world/recording.ts",
+        "http://127.0.0.1:5173/src/lib/trial/sessionController.ts",
+        "http://127.0.0.1:5173/src/lib/trial/trialReducer.ts",
+        "http://127.0.0.1:5173/src/lib/world/sessionMemory.ts",
+        "http://127.0.0.1:5173/src/lib/voice/speechSync.ts",
+        "http://127.0.0.1:5173/src/lib/world/worldState.ts",
+        "http://127.0.0.1:5173/src/lib/world/audioLips.ts",
+        "http://127.0.0.1:5173/src/lib/voice/voiceMachine.ts",
+        "http://127.0.0.1:5173/src/routes/world/voiceAudio.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/notebookController.ts",
+        "http://127.0.0.1:5173/src/lib/voice/gemini.ts",
+        "http://127.0.0.1:5173/src/lib/world/cadence.ts",
+        "http://127.0.0.1:5173/src/lib/contracts/compiled/validators.js",
+        "http://127.0.0.1:5173/src/lib/contracts/invariants.ts",
+        "http://127.0.0.1:5173/src/lib/sse/trial-stream.ts",
+        "http://127.0.0.1:5173/src/lib/world/visemes.ts",
+        "http://127.0.0.1:5173/src/lib/companion/fsm.ts",
+        "http://127.0.0.1:5173/src/lib/contracts/quote.ts",
+        "http://127.0.0.1:5173/src/lib/voice/playbackLedger.ts",
+        "http://127.0.0.1:5173/src/lib/sse/ticketed-stream.ts",
+        "http://127.0.0.1:5173/src/components/precinct/PrecinctCanvas.tsx?t=1792059137224",
+        "http://127.0.0.1:5173/favicon.svg",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/@react-three_fiber.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_loaders_GLTFLoader__js.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_libs_meshopt___decoder__module__js.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_environments_RoomEnvironment__js.js?v=0982d449",
+        "http://127.0.0.1:5173/src/lib/precinct/cadence.ts",
+        "http://127.0.0.1:5173/src/lib/world/quality.ts",
+        "http://127.0.0.1:5173/src/components/precinct/WalkingAvatar.tsx",
+        "http://127.0.0.1:5173/src/components/precinct/PrecinctStaff.tsx?t=1792057961746",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three.module-QAJAubfM.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_utils_SkeletonUtils__js.js?v=0982d449",
+        "http://127.0.0.1:5173/src/lib/precinct/staff.ts?t=1792057961746",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-runtime.js?v=0982d449",
+        "http://127.0.0.1:5173/world/precinct.glb",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/avatar.glb",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/avatar.glb",
+        "http://127.0.0.1:5173/avatars/Business_Male_06/avatar.glb",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/body.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/body_n.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/head.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/head_n.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/opacity.png",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/body.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/body_n.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/head.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/head_n.jpg",
+        "http://127.0.0.1:5173/src/fixtures/recordings/F01-truthful.json?import"
+      ],
+      "failedRequests": [],
+      "httpErrors": [],
+      "assets": [
+        {
+          "url": "http://127.0.0.1:5173/world/precinct.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/avatar.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/avatar.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_06/avatar.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/body.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/head.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/body_n.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/opacity.png",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/body.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/head_n.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/body_n.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/head_n.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/head.jpg",
+          "status": 200
+        }
+      ],
+      "webgl": {
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "WebKit WebGL",
+        "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "width": 1080,
+        "height": 675
+      },
+      "frameTiming": null
+    },
+    {
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "renderMode": "live-webgl",
+      "checks": [
+        {
+          "name": "actual precinct renderer and local-only startup",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 37918
+        },
+        {
+          "name": "empty desk asks for an explicit assignment",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 5765
+        },
+        {
+          "name": "public case selection loads no interview or score",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 5202
+        },
+        {
+          "name": "screenshot 01-public-case-selection",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 15812
+        },
+        {
+          "name": "check-in and evidence-first briefing use the selected public case",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 40018
+        },
+        {
+          "name": "dossier overview contains public facts and six accessible tabs",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 26460
+        },
+        {
+          "name": "screenshot 02-dossier-overview",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 10199
+        },
+        {
+          "name": "keyboard tabs and source table preserve original document text",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 2365
+        },
+        {
+          "name": "screenshot 03-original-public-document",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 2071
+        },
+        {
+          "name": "profile and evidence expose only public supplied materials",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 1253
+        },
+        {
+          "name": "timeline uses explicit source cells and never infers missing chronology",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 1080
+        },
+        {
+          "name": "screenshot 04-source-led-timeline",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 2767
+        },
+        {
+          "name": "notebook accepts a cited question without moving or saving automatically",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 2497
+        },
+        {
+          "name": "screenshot 05-cited-working-notebook",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 4965
+        },
+        {
+          "name": "notes survive close/reopen and citations reopen the source",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 7567
+        },
+        {
+          "name": "device notebook save and forget are explicit and scoped",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 5227
+        },
+        {
+          "name": "larger text high contrast and 150-percent reading stay within the viewport",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 31404
+        },
+        {
+          "name": "only explicit file-review confirmation advances the shift",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 2861
+        },
+        {
+          "name": "no page overflow or remote/API requests",
+          "status": "passed",
+          "detail": "",
+          "durationMs": 12
+        }
+      ],
+      "screenshots": [
+        {
+          "name": "01-public-case-selection",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-03/01-public-case-selection-1920x1080.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "02-dossier-overview",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-03/02-dossier-overview-1920x1080.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "03-original-public-document",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-03/03-original-public-document-1920x1080.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "04-source-led-timeline",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-03/04-source-led-timeline-1920x1080.png",
+          "renderMode": "live-webgl"
+        },
+        {
+          "name": "05-cited-working-notebook",
+          "path": "/workspace/shared/unissant_agentic_training_arena/docs/ui-v2/screenshots/slice-03/05-cited-working-notebook-1920x1080.png",
+          "renderMode": "live-webgl"
+        }
+      ],
+      "console": [
+        {
+          "type": "debug",
+          "text": "[vite] connecting...",
+          "location": {
+            "url": "http://127.0.0.1:5173/@vite/client",
+            "line": 882,
+            "column": 8,
+            "lineNumber": 882,
+            "columnNumber": 8
+          }
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected.",
+          "location": {
+            "url": "http://127.0.0.1:5173/@vite/client",
+            "line": 995,
+            "column": 11,
+            "lineNumber": 995,
+            "columnNumber": 11
+          }
+        },
+        {
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+          "location": {
+            "url": "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=0982d449",
+            "line": 15557,
+            "column": 48,
+            "lineNumber": 15557,
+            "columnNumber": 48
+          }
+        },
+        {
+          "type": "warning",
+          "text": "THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.",
+          "location": {
+            "url": "http://127.0.0.1:5173/node_modules/.vite/deps/three.module-QAJAubfM.js?v=0982d449",
+            "line": 1748,
+            "column": 15,
+            "lineNumber": 1748,
+            "columnNumber": 15
+          }
+        }
+      ],
+      "pageErrors": [],
+      "networkRequests": [
+        "http://127.0.0.1:5173/",
+        "http://127.0.0.1:5173/@vite/client",
+        "http://127.0.0.1:5173/src/main.tsx?t=1792063730829",
+        "http://127.0.0.1:5173/@react-refresh",
+        "http://127.0.0.1:5173/src/styles/app.css?t=1792063730829",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-router_dom.js?v=0982d449",
+        "http://127.0.0.1:5173/src/router.tsx?t=1792063730829",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.pnpm/vite@8.3.1_@types+node@24.13.6_jiti@2.7.0/node_modules/vite/dist/client/env.mjs",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/rolldown-runtime-DC62tzP2.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-router.js?v=0982d449",
+        "http://127.0.0.1:5173/src/routes/PrecinctRoute.tsx?t=1792063730829",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/development-mz1XJHPJ.js?v=0982d449",
+        "http://127.0.0.1:5173/public/world/precinct-manifest.json?t=1792059137213&import",
+        "http://127.0.0.1:5173/src/lib/copy/ex4.ts",
+        "http://127.0.0.1:5173/src/hooks/usePrecinctNpcController.ts?t=1792059464347",
+        "http://127.0.0.1:5173/src/components/precinct/ReceptionBriefingPanel.tsx?t=1792062005946",
+        "http://127.0.0.1:5173/src/components/precinct/PrecinctDeskPanel.tsx?t=1792063730829",
+        "http://127.0.0.1:5173/src/components/precinct/PrecinctCaseChoicePanel.tsx",
+        "http://127.0.0.1:5173/src/routes/precinct/usePrecinctSession.ts",
+        "http://127.0.0.1:5173/src/routes/precinct/usePrecinctNotebook.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/movement.ts",
+        "http://127.0.0.1:5173/src/components/precinct/sceneTypes.ts?t=1792057961753",
+        "http://127.0.0.1:5173/src/components/precinct/RenderBoundary.tsx",
+        "http://127.0.0.1:5173/src/styles/precinct.css?t=1792057961756",
+        "http://127.0.0.1:5173/src/lib/precinct/npcLocalAdapter.ts?t=1792059464347",
+        "http://127.0.0.1:5173/src/lib/precinct/npcVisitMemory.ts",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/scheduler-0aUpBaxj.js?v=0982d449",
+        "http://127.0.0.1:5173/src/lib/precinct/npcIdentity.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/staffDialogue.ts?t=1792057961750",
+        "http://127.0.0.1:5173/src/components/precinct/LocalSpeech.tsx",
+        "http://127.0.0.1:5173/src/styles/precinct-staff-panel.css",
+        "http://127.0.0.1:5173/src/components/precinct/DossierPanel.tsx?t=1792063730829",
+        "http://127.0.0.1:5173/src/styles/precinct-desk.css",
+        "http://127.0.0.1:5173/src/lib/api/precinctLocalApi.ts",
+        "http://127.0.0.1:5173/src/lib/study/study.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/localReadAloud.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/session.ts",
+        "http://127.0.0.1:5173/src/lib/world/cases.ts",
+        "http://127.0.0.1:5173/src/lib/world/cast.ts",
+        "http://127.0.0.1:5173/src/lib/world/latest.ts",
+        "http://127.0.0.1:5173/src/lib/world/live.ts",
+        "http://127.0.0.1:5173/src/lib/world/parseRecording.ts",
+        "http://127.0.0.1:5173/src/lib/voice/liveWorld.ts",
+        "http://127.0.0.1:5173/src/routes/world/useLiveSession.ts?t=1792061708541",
+        "http://127.0.0.1:5173/src/routes/world/usePlayback.ts?t=1792061708554",
+        "http://127.0.0.1:5173/src/routes/world/useVoice.ts",
+        "http://127.0.0.1:5173/src/routes/world/useVoiceSession.ts",
+        "http://127.0.0.1:5173/src/routes/world/voiceEngines.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/dossier.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/notebookWorkspace.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/preparationHandoff.ts",
+        "http://127.0.0.1:5173/src/lib/api/arena.ts",
+        "http://127.0.0.1:5173/src/lib/api/client.ts",
+        "http://127.0.0.1:5173/src/lib/voice/tts.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/notebook.ts",
+        "http://127.0.0.1:5173/src/styles/dossier.css?t=1792063730812",
+        "http://127.0.0.1:5173/src/fixtures/cases.json?import",
+        "http://127.0.0.1:5173/src/lib/world/recording.ts",
+        "http://127.0.0.1:5173/src/lib/contracts/validate.ts",
+        "http://127.0.0.1:5173/src/lib/voice/voiceMachine.ts",
+        "http://127.0.0.1:5173/src/lib/world/worldState.ts",
+        "http://127.0.0.1:5173/src/lib/trial/sessionController.ts",
+        "http://127.0.0.1:5173/src/lib/trial/trialReducer.ts",
+        "http://127.0.0.1:5173/src/lib/world/sessionMemory.ts",
+        "http://127.0.0.1:5173/src/lib/voice/speechSync.ts",
+        "http://127.0.0.1:5173/src/lib/world/audioLips.ts",
+        "http://127.0.0.1:5173/src/routes/world/voiceAudio.ts",
+        "http://127.0.0.1:5173/src/lib/voice/gemini.ts",
+        "http://127.0.0.1:5173/src/lib/precinct/notebookController.ts",
+        "http://127.0.0.1:5173/src/lib/world/cadence.ts",
+        "http://127.0.0.1:5173/src/lib/contracts/compiled/validators.js",
+        "http://127.0.0.1:5173/src/lib/contracts/invariants.ts",
+        "http://127.0.0.1:5173/src/lib/companion/fsm.ts",
+        "http://127.0.0.1:5173/src/lib/contracts/quote.ts",
+        "http://127.0.0.1:5173/src/lib/world/visemes.ts",
+        "http://127.0.0.1:5173/src/lib/sse/trial-stream.ts",
+        "http://127.0.0.1:5173/src/lib/voice/playbackLedger.ts",
+        "http://127.0.0.1:5173/src/lib/sse/ticketed-stream.ts",
+        "http://127.0.0.1:5173/src/components/precinct/PrecinctCanvas.tsx?t=1792059137224",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/@react-three_fiber.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_loaders_GLTFLoader__js.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_libs_meshopt___decoder__module__js.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_environments_RoomEnvironment__js.js?v=0982d449",
+        "http://127.0.0.1:5173/src/lib/precinct/cadence.ts",
+        "http://127.0.0.1:5173/src/lib/world/quality.ts",
+        "http://127.0.0.1:5173/src/components/precinct/WalkingAvatar.tsx",
+        "http://127.0.0.1:5173/src/components/precinct/PrecinctStaff.tsx?t=1792057961746",
+        "http://127.0.0.1:5173/favicon.svg",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three.module-QAJAubfM.js?v=0982d449",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/three_examples_jsm_utils_SkeletonUtils__js.js?v=0982d449",
+        "http://127.0.0.1:5173/src/lib/precinct/staff.ts?t=1792057961746",
+        "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-runtime.js?v=0982d449",
+        "http://127.0.0.1:5173/world/precinct.glb",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/avatar.glb",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/avatar.glb",
+        "http://127.0.0.1:5173/avatars/Business_Male_06/avatar.glb",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/body.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/body_n.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/head.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/head_n.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Female_01/opacity.png",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/body.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/body_n.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/head.jpg",
+        "http://127.0.0.1:5173/avatars/Business_Male_04/head_n.jpg",
+        "http://127.0.0.1:5173/src/fixtures/recordings/F01-truthful.json?import"
+      ],
+      "failedRequests": [],
+      "httpErrors": [],
+      "assets": [
+        {
+          "url": "http://127.0.0.1:5173/world/precinct.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/avatar.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_06/avatar.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/avatar.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/body_n.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/body.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/head.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/head_n.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Female_01/opacity.png",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/body.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/body_n.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/head.jpg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:5173/avatars/Business_Male_04/head_n.jpg",
+          "status": 200
+        }
+      ],
+      "webgl": {
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "WebKit WebGL",
+        "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "width": 1440,
+        "height": 810
+      },
+      "frameTiming": null
+    }
+  ],
+  "fatal": null
+}
