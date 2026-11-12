@@ -93,7 +93,7 @@ jobs:
       # "latest"); --results=verified,unknown matches `make trufflehog`: a credential that verifies live, or
       # whose verification could not complete, fails the job.
       - name: TruffleHog
-        uses: trufflesecurity/trufflehog@f714bf454f350590f4a24c3ddb1aef02c35bf5b6 # v3.97.5
+        uses: trufflesecurity/trufflehog@ea68ca03c865c5f324e86e849ced20ed3cf9dbbb # v3.99.8
         with:
           version: "3.97.5"
           extra_args: --results=verified,unknown
@@ -105,7 +105,7 @@ jobs:
     # (fail-on-vuln). Its job declares security-events: write for an optional SARIF upload, so the caller must
     # grant it; the upload stays off because code scanning needs GitHub Advanced Security on a private repo, and
     # the SARIF is kept as a workflow artifact instead.
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
     permissions:
       actions: read
       contents: read
